@@ -87,7 +87,7 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 - `hooks/hooks.json`
 - `hooks/hooks-cursor.json`
 
-让 SessionStart 时自动注入 `.superpowers/spec` 的轻量摘要树。
+让 SessionStart 时自动注入 `.superpowers/spec` 的轻量摘要树，以及当前 plan sidecar 的轻量状态。
 
 ---
 
@@ -154,7 +154,43 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 
 ## 5. 日常怎么用 spec
 
-### 5.1 平时不用全文加载
+### 5.1 如果任务由 Superpowers plan 驱动，先初始化 plan sidecar
+
+保留原生 plan 文件路径不变，例如：
+
+```text
+docs/superpowers/plans/2026-04-22-example.md
+```
+
+为它初始化 sidecar：
+
+```bash
+python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/2026-04-22-example.md --set-current
+```
+
+这会创建：
+
+```text
+docs/superpowers/plans/2026-04-22-example.context/
+├── plan.jsonl
+├── implement.jsonl
+├── review.jsonl
+└── state.json
+```
+
+并写入：
+
+```text
+.superpowers/current-plan
+```
+
+在 planning 阶段，把选中的 spec 写入 `plan.jsonl`；实现和评审阶段优先消费 sidecar，而不是重新从 `.superpowers/spec` 自由选择。
+
+Git 建议：
+- 建议把 `docs/superpowers/plans/<stem>.context/` 一起提交，保证 planning-selected context 可复现
+- 建议把 `.superpowers/current-plan` 视为本地工作状态，并加入 `.gitignore`
+
+### 5.2 平时不用全文加载
 
 正常情况下：
 
@@ -164,7 +200,20 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
   - 子目录 `index.md`
   - 具体 leaf spec 文件
 
-### 5.2 什么时候该更新 spec
+### 5.3 在实现和评审前渲染 sidecar context
+
+```bash
+python3 superpowers/scripts/plan-context.py render --phase implement
+python3 superpowers/scripts/plan-context.py render --phase review
+```
+
+可以用下面的命令校验当前 plan sidecar 是否完整：
+
+```bash
+python3 superpowers/scripts/plan-context.py verify --current
+```
+
+### 5.4 什么时候该更新 spec
 
 当一次任务结束后，如果你学到了下面这些内容，就应该更新 spec：
 
@@ -181,7 +230,7 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 - **这是怎么安全实现** → 写到 `backend/*.md` 或 `frontend/*.md`
 - **这是实现前要考虑什么** → 写到 `guides/*.md`
 
-### 5.3 一键更新 spec（推荐）
+### 5.5 一键更新 spec（推荐）
 
 如果你已经知道 hint、标题、why 和规则内容，直接用：
 
@@ -201,7 +250,7 @@ python3 superpowers/scripts/spec_update_run.py \
 3. 刷新索引链
 4. 输出最终命中的 spec 文件
 
-### 5.4 如果你想手动分步控制
+### 5.6 如果你想手动分步控制
 
 #### 选目标 spec
 
@@ -238,7 +287,7 @@ python3 superpowers/scripts/spec_apply_update.py \
 python3 superpowers/scripts/update-spec.py
 ```
 
-### 5.5 更新 spec 时要注意什么
+### 5.7 更新 spec 时要注意什么
 
 - 不要把详细规则都写进 `index.md`
 - `index.md` 负责导航，叶子文件负责正文内容

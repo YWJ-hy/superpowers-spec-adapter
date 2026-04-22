@@ -29,6 +29,7 @@ adapter 目前提供了这些能力：
 
 - 安装 / 卸载 / 校验 / 状态检查
 - SessionStart 注入轻量 spec 摘要树
+- SessionStart 注入当前 plan sidecar 的轻量状态
 - `update-spec` 自动维护索引链
 - `spec-context` 输出递归摘要树或定向读取 spec
 - `.adapter-ignore` 自定义忽略目录
@@ -45,11 +46,15 @@ adapter 会把以下 overlay 安装进 `superpowers/`：
 ```text
 superpowers/
 ├── skills/spec-progressive-disclosure/SKILL.md
+├── skills/plan-context-sidecar/SKILL.md
 ├── commands/update-spec.md
+├── commands/plan-context.md
 ├── scripts/update-spec.py
 ├── scripts/spec-context.py
 ├── scripts/spec_common.py
-└── hooks/session-spec-index
+├── scripts/plan-context.py
+├── hooks/session-spec-index
+└── hooks/session-plan-context
 ```
 
 同时会修改：
@@ -253,9 +258,56 @@ superpower-adapter/lib/hook_patch.py
 - `superpowers/hooks/hooks.json`
 - `superpowers/hooks/hooks-cursor.json`
 
-它会把 `session-spec-index` 追加到 SessionStart 中。
+它会把 `session-spec-index` 和 `session-plan-context` 追加到 SessionStart 中。
 
-### 3.3 为什么不直接把全文注入 SessionStart
+### 3.3 plan sidecar 是怎么工作的
+
+保持原生 Superpowers plan 文件路径不变：
+
+```text
+docs/superpowers/plans/YYYY-MM-DD-<feature>.md
+```
+
+给每个 plan 增加同 stem 的 sidecar 目录：
+
+```text
+docs/superpowers/plans/YYYY-MM-DD-<feature>.context/
+├── plan.jsonl
+├── implement.jsonl
+├── review.jsonl
+└── state.json
+```
+
+再用一个轻量指针文件记录当前活跃 plan：
+
+```text
+.superpowers/current-plan
+```
+
+推荐的 Git 策略：
+- 提交 `docs/superpowers/plans/<stem>.context/`
+- 默认不提交 `.superpowers/current-plan`，把它作为本地工作状态并加入 `.gitignore`
+
+语义约束是：
+
+- `plan.jsonl` 是 planning 阶段选定的共同基线 context
+- `implement.jsonl` 是实现阶段补充
+- `review.jsonl` 是评审阶段补充
+- 实现阶段优先消费 `plan.jsonl + implement.jsonl`
+- 评审阶段优先消费 `plan.jsonl + review.jsonl`
+- sidecar 缺失或明显不足时，才回退到 `.superpowers/spec` 的自由发现路径
+
+对应命令：
+
+```bash
+python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/<stem>.md --set-current
+python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/backend/example.md --reason "Why this spec matters"
+python3 superpowers/scripts/plan-context.py render --phase implement
+python3 superpowers/scripts/plan-context.py render --phase review
+python3 superpowers/scripts/plan-context.py verify --current
+```
+
+### 3.4 为什么不直接把全文注入 SessionStart
 
 因为全文注入会导致：
 

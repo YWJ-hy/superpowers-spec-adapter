@@ -10,6 +10,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Store project specs in `.superpowers/spec/`
 - Use `index.md` as the entry point
 - Load spec details progressively instead of reading the full tree
+- Keep planning-selected spec context in a plan sidecar directory alongside `docs/superpowers/plans/*.md`
 - Reinstall the same overlay after upgrading `superpowers/`
 
 ## Install
@@ -107,6 +108,45 @@ The installed `spec-progressive-disclosure` skill tells the agent to:
 
 The session hook injects a lightweight recursive summary tree by default, not the full spec text.
 The adapter now ships a shared `spec_common.py` helper so `update-spec.py` and `spec-context.py` reuse the same traversal, ignore, and summary logic.
+
+## Plan sidecar context
+
+When a task is driven by a Superpowers plan file, keep the primary plan file unchanged:
+
+```text
+docs/superpowers/plans/YYYY-MM-DD-<feature>.md
+```
+
+Store planning-selected task context in the matching sidecar directory:
+
+```text
+docs/superpowers/plans/YYYY-MM-DD-<feature>.context/
+├── plan.jsonl
+├── implement.jsonl
+├── review.jsonl
+└── state.json
+```
+
+Track the active plan with:
+
+```text
+.superpowers/current-plan
+```
+
+Useful commands:
+
+```bash
+python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/<stem>.md --set-current
+python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/backend/example.md --reason "Why this spec matters"
+python3 superpowers/scripts/plan-context.py render --phase implement
+python3 superpowers/scripts/plan-context.py render --phase review
+python3 superpowers/scripts/plan-context.py verify --current
+```
+
+Git recommendation:
+
+- Commit `docs/superpowers/plans/<stem>.context/` with the plan so planning-selected context stays reproducible.
+- Treat `.superpowers/current-plan` as local working state; prefer adding it to `.gitignore` unless your team explicitly wants to share the active pointer.
 
 ## Export manifest
 

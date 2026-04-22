@@ -7,8 +7,14 @@ import json
 import sys
 from pathlib import Path
 
-CLAUDE_COMMAND = '"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd" session-spec-index'
-CURSOR_COMMAND = './hooks/session-spec-index'
+CLAUDE_COMMANDS = [
+    '"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd" session-spec-index',
+    '"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd" session-plan-context',
+]
+CURSOR_COMMANDS = [
+    './hooks/session-spec-index',
+    './hooks/session-plan-context',
+]
 
 
 def load_json(path: Path) -> dict:
@@ -26,36 +32,58 @@ def patch_claude(path: Path, mode: str) -> bool:
         hooks.append({'matcher': 'startup|clear|compact', 'hooks': []})
     event = hooks[0]
     commands = event.setdefault('hooks', [])
-    exists = any(h.get('command') == CLAUDE_COMMAND for h in commands)
+    existing_commands = {h.get('command') for h in commands}
+    changed = False
 
-    if mode == 'install' and not exists:
-        commands.append({'type': 'command', 'command': CLAUDE_COMMAND, 'async': False})
-        save_json(path, data)
-        return True
-    if mode == 'uninstall' and exists:
-        event['hooks'] = [h for h in commands if h.get('command') != CLAUDE_COMMAND]
-        save_json(path, data)
-        return True
-    if mode == 'verify' and not exists:
-        raise SystemExit(f'Missing session-spec-index hook in {path}')
+    if mode == 'install':
+        for command in CLAUDE_COMMANDS:
+            if command not in existing_commands:
+                commands.append({'type': 'command', 'command': command, 'async': False})
+                changed = True
+        if changed:
+            save_json(path, data)
+        return changed
+
+    if mode == 'uninstall':
+        filtered = [h for h in commands if h.get('command') not in CLAUDE_COMMANDS]
+        if len(filtered) != len(commands):
+            event['hooks'] = filtered
+            save_json(path, data)
+            return True
+        return False
+
+    missing = [command for command in CLAUDE_COMMANDS if command not in existing_commands]
+    if missing:
+        raise SystemExit(f'Missing adapter SessionStart hooks in {path}: {", ".join(missing)}')
     return False
 
 
 def patch_cursor(path: Path, mode: str) -> bool:
     data = load_json(path)
     hooks = data.setdefault('hooks', {}).setdefault('sessionStart', [])
-    exists = any(h.get('command') == CURSOR_COMMAND for h in hooks)
+    existing_commands = {h.get('command') for h in hooks}
 
-    if mode == 'install' and not exists:
-        hooks.append({'command': CURSOR_COMMAND})
-        save_json(path, data)
-        return True
-    if mode == 'uninstall' and exists:
-        data['hooks']['sessionStart'] = [h for h in hooks if h.get('command') != CURSOR_COMMAND]
-        save_json(path, data)
-        return True
-    if mode == 'verify' and not exists:
-        raise SystemExit(f'Missing session-spec-index hook in {path}')
+    if mode == 'install':
+        changed = False
+        for command in CURSOR_COMMANDS:
+            if command not in existing_commands:
+                hooks.append({'command': command})
+                changed = True
+        if changed:
+            save_json(path, data)
+        return changed
+
+    if mode == 'uninstall':
+        filtered = [h for h in hooks if h.get('command') not in CURSOR_COMMANDS]
+        if len(filtered) != len(hooks):
+            data['hooks']['sessionStart'] = filtered
+            save_json(path, data)
+            return True
+        return False
+
+    missing = [command for command in CURSOR_COMMANDS if command not in existing_commands]
+    if missing:
+        raise SystemExit(f'Missing adapter sessionStart hooks in {path}: {", ".join(missing)}')
     return False
 
 

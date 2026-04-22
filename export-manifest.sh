@@ -94,6 +94,37 @@ if spec_root.is_dir():
                     if not is_ignored(path.relative_to(spec_root)):
                         effective_leaf_files.append(rel)
 
+current_plan_path = repo_root / '.superpowers' / 'current-plan'
+current_plan_rel = None
+current_plan_exists = False
+plan_context_state = {
+    'currentPlanPointerExists': current_plan_path.is_file(),
+    'currentPlanPath': None,
+    'currentPlanExists': False,
+    'contextDir': None,
+    'contextDirExists': False,
+    'stateFileExists': False,
+    'jsonlFiles': {
+        'plan': False,
+        'implement': False,
+        'review': False,
+    },
+}
+if current_plan_path.is_file():
+    current_plan_rel = current_plan_path.read_text(encoding='utf-8').strip()
+    if current_plan_rel:
+        current_plan = (repo_root / current_plan_rel).resolve()
+        plan_context_state['currentPlanPath'] = current_plan_rel
+        current_plan_exists = current_plan.is_file()
+        plan_context_state['currentPlanExists'] = current_plan_exists
+        context_dir = current_plan.with_suffix('.context')
+        plan_context_state['contextDir'] = str(context_dir.relative_to(repo_root)) if context_dir.exists() or current_plan_exists else current_plan.with_suffix('.context').relative_to(repo_root).as_posix()
+        plan_context_state['contextDirExists'] = context_dir.is_dir()
+        state_file = context_dir / 'state.json'
+        plan_context_state['stateFileExists'] = state_file.is_file()
+        for phase_name, filename in [('plan', 'plan.jsonl'), ('implement', 'implement.jsonl'), ('review', 'review.jsonl')]:
+            plan_context_state['jsonlFiles'][phase_name] = (context_dir / filename).is_file()
+
 payload = {
     'adapter': {
         'name': manifest['name'],
@@ -111,6 +142,7 @@ payload = {
         'missingFiles': missing,
     },
     'patchedState': hook_states,
+    'planContextState': plan_context_state,
     'specState': {
         'specRoot': str(spec_root),
         'exists': spec_root.is_dir(),

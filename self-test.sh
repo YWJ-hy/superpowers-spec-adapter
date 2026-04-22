@@ -21,6 +21,7 @@ REPO_ROOT="$(cd "$REPO_ROOT_INPUT" && pwd)"
 "$SCRIPT_DIR/verify.sh" "$TARGET_INPUT"
 (cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Adapter Self Test" "Validate one-shot spec updates." "Self-test rule")
 (cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Adapter Self Test" "Validate one-shot spec updates again." "Self-test rule updated")
+bash "$SCRIPT_DIR/tests/plan-context-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 python3 "$SCRIPT_DIR/lib/hook_patch.py" verify "$TARGET_DIR"
 "$SCRIPT_DIR/status.sh" "$TARGET_INPUT"
 

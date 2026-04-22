@@ -61,7 +61,12 @@ for item in installed_paths(Path(sys.argv[1])):
 PY
 )
 
-chmod +x "$TARGET_DIR/scripts/update-spec.py" "$TARGET_DIR/scripts/spec-context.py" "$TARGET_DIR/hooks/session-spec-index"
+chmod +x \
+  "$TARGET_DIR/scripts/update-spec.py" \
+  "$TARGET_DIR/scripts/spec-context.py" \
+  "$TARGET_DIR/scripts/plan-context.py" \
+  "$TARGET_DIR/hooks/session-spec-index" \
+  "$TARGET_DIR/hooks/session-plan-context"
 python3 "$PATCHER" install "$TARGET_DIR"
 
 printf 'superpower-adapter install complete\n'
