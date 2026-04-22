@@ -19,28 +19,28 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 ./superpower-adapter/verify.sh
 ```
 
-By default the scripts now target the user's installed Superpowers Claude Code plugin if it exists. If no installed plugin is found, they fall back to `./superpowers` in the current repository root. You can also pass an explicit repo root or explicit plugin directory.
+Install-related commands still target the user's installed Superpowers Claude Code plugin by default. Commands that read or write `.superpowers/spec/` now require an explicit project root argument.
 
 ## Bootstrap specs
 
 Initialize the minimum project spec structure without overwriting existing files:
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project
 ```
 
 Optionally create starter category indexes in the same command:
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . backend frontend guides
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project backend frontend guides
 ```
 
 Or use presets:
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . --preset web
-./superpower-adapter/manage.sh bootstrap-spec . --preset backend
-./superpower-adapter/manage.sh bootstrap-spec . --preset fullstack
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset web
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset fullstack
 ```
 
 Presets:
@@ -113,7 +113,7 @@ The adapter now ships a shared `spec_common.py` helper so `update-spec.py` and `
 Export adapter and spec state for upgrade-time comparison:
 
 ```bash
-./superpower-adapter/manage.sh export-manifest . ./superpower-adapter/manifest-output.json
+./superpower-adapter/manage.sh export-manifest /path/to/project ./superpower-adapter/manifest-output.json
 ```
 
 The manifest includes installed adapter files, patched hook files, and a `.superpowers/spec` snapshot with both raw and ignore-filtered effective views. The effective view applies both default ignored directories and any custom entries from `.adapter-ignore`.
@@ -123,7 +123,7 @@ The manifest includes installed adapter files, patched hook files, and a `.super
 Run the full local validation flow before treating the adapter state as releasable:
 
 ```bash
-./superpower-adapter/manage.sh release-check
+./superpower-adapter/manage.sh release-check /path/to/project
 ```
 
 This runs:

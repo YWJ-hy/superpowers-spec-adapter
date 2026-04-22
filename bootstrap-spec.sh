@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "${1:-$(pwd)}" && pwd)"
-shift $(( $# > 0 ? 1 : 0 )) || true
+usage() {
+  printf 'Usage: %s <project-root> [--preset web|backend|fullstack] [categories...]\n' "$0" >&2
+  exit 1
+}
+
+if [[ $# -lt 1 || -z "${1:-}" ]]; then
+  printf 'Missing required project root.\n' >&2
+  usage
+fi
+
+REPO_ROOT="$(cd "$1" && pwd)"
+shift
 SPEC_ROOT="$REPO_ROOT/.superpowers/spec"
 ENTRY_INDEX="$SPEC_ROOT/index.md"
 IGNORE_FILE="$SPEC_ROOT/.adapter-ignore"

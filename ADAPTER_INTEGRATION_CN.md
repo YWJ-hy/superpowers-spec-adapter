@@ -380,7 +380,7 @@ flowchart TD
 最小初始化：
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project
 ```
 
 这会创建：
@@ -393,9 +393,9 @@ flowchart TD
 例如：
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . --preset web
-./superpower-adapter/manage.sh bootstrap-spec . --preset backend
-./superpower-adapter/manage.sh bootstrap-spec . --preset fullstack
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset web
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset fullstack
 ```
 
 preset 含义：
@@ -407,7 +407,7 @@ preset 含义：
 也可以和显式分类参数混用：
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . --preset backend api-contracts
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend api-contracts
 ```
 
 ### 5.4 更新 spec 正文 + 刷新索引链
@@ -479,19 +479,19 @@ python3 superpowers/scripts/spec-context.py --category backend
 健康检查：
 
 ```bash
-./superpower-adapter/manage.sh doctor
+./superpower-adapter/manage.sh doctor /path/to/project
 ```
 
 导出快照：
 
 ```bash
-./superpower-adapter/manage.sh export-manifest . ./superpower-adapter/manifest-output.json
+./superpower-adapter/manage.sh export-manifest /path/to/project ./superpower-adapter/manifest-output.json
 ```
 
 发布前检查：
 
 ```bash
-./superpower-adapter/manage.sh release-check
+./superpower-adapter/manage.sh release-check /path/to/project
 ```
 
 ### 5.8 升级 Superpowers 后怎么做
@@ -506,7 +506,7 @@ python3 superpowers/scripts/spec-context.py --category backend
 或者直接：
 
 ```bash
-./superpower-adapter/manage.sh release-check
+./superpower-adapter/manage.sh release-check /path/to/project
 ```
 
 这样就能把 adapter overlay 重新写回新版 `superpowers/`。

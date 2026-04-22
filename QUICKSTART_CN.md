@@ -96,7 +96,7 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 ### 最小初始化
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project
 ```
 
 会创建：
@@ -109,7 +109,7 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 #### Web 项目
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . --preset web
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset web
 ```
 
 生成：
@@ -119,7 +119,7 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 #### Backend 项目
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . --preset backend
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend
 ```
 
 生成：
@@ -129,7 +129,7 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 #### Fullstack 项目
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . --preset fullstack
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset fullstack
 ```
 
 生成：
@@ -140,7 +140,7 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 ### 混合自定义目录
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec . --preset backend api-contracts
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend api-contracts
 ```
 
 这个命令会：
@@ -291,7 +291,7 @@ scratch
 ### 做健康检查
 
 ```bash
-./superpower-adapter/manage.sh doctor
+./superpower-adapter/manage.sh doctor /path/to/project
 ```
 
 它会检查：
@@ -306,7 +306,7 @@ scratch
 ### 导出快照
 
 ```bash
-./superpower-adapter/manage.sh export-manifest . ./superpower-adapter/manifest-output.json
+./superpower-adapter/manage.sh export-manifest /path/to/project ./superpower-adapter/manifest-output.json
 ```
 
 这个文件可以用于：
@@ -322,7 +322,7 @@ scratch
 在准备把这套 adapter 视为当前稳定状态前，跑：
 
 ```bash
-./superpower-adapter/manage.sh release-check
+./superpower-adapter/manage.sh release-check /path/to/project
 ```
 
 它会自动执行：
@@ -348,7 +348,7 @@ scratch
 或者直接：
 
 ```bash
-./superpower-adapter/manage.sh release-check
+./superpower-adapter/manage.sh release-check /path/to/project
 ```
 
 adapter 会把 overlay 重新安装回新的插件版本。
@@ -363,7 +363,7 @@ adapter 会把 overlay 重新安装回新的插件版本。
 
 ```bash
 ./superpower-adapter/manage.sh install
-./superpower-adapter/manage.sh bootstrap-spec . --preset fullstack
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset fullstack
 ```
 
 ### 日常沉淀 spec
@@ -379,7 +379,7 @@ python3 superpowers/scripts/spec_update_run.py \
 ### 发布前检查
 
 ```bash
-./superpower-adapter/manage.sh release-check
+./superpower-adapter/manage.sh release-check /path/to/project
 ```
 
 ### 插件升级后重装
