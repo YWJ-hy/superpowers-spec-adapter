@@ -34,6 +34,7 @@ check_file() {
 }
 
 while IFS= read -r relative; do
+  relative="${relative%$'\r'}"
   [[ -z "$relative" ]] && continue
   check_file "$relative"
 done < <(python3 - <<'PY' "$SCRIPT_DIR"

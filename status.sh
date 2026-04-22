@@ -20,6 +20,7 @@ PY
 
 while IFS= read -r relative
 do
+  relative="${relative%$'\r'}"
   target="$TARGET_DIR/$relative"
   if [[ -f "$target" ]] && grep -Fq "$MARKER" "$target"; then
     printf '[managed] %s\n' "$relative"

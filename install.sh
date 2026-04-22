@@ -48,6 +48,7 @@ copy_overlay() {
 }
 
 while IFS= read -r relative; do
+  relative="${relative%$'\r'}"
   [[ -z "$relative" ]] && continue
   copy_overlay "$relative" "$relative"
 done < <(python3 - <<'PY' "$SCRIPT_DIR"
