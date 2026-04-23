@@ -6,7 +6,11 @@
 2. 怎么初始化 spec
 3. 怎么一键更新 spec
 4. 怎么做发布前检查
-5. Superpowers 升级后怎么重装
+5. 怎么做阶段前检查
+6. 怎么用 selector 选 spec
+7. 怎么判断要不要回写 spec
+8. 怎么做发布前检查
+9. Superpowers 升级后怎么重装
 
 如果你需要完整设计说明、流程图和实现细节，请看：
 
@@ -200,11 +204,54 @@ Git 建议：
   - 子目录 `index.md`
   - 具体 leaf spec 文件
 
-### 5.3 在实现和评审前渲染 sidecar context
+### 5.3 在进入新阶段前先做 gate 检查
+
+```bash
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/2026-04-22-example.md
+python3 superpowers/scripts/workflow-gate.py implement
+python3 superpowers/scripts/workflow-gate.py review
+python3 superpowers/scripts/workflow-gate.py completion --summary "normalize backend error contract"
+```
+
+返回值语义：
+
+- `OK`：可以继续
+- `WARN`：建议补齐，但不一定阻断
+- `BLOCK`：先修复 plan / sidecar / context 问题
+
+### 5.4 用 selector 选 spec
+
+只推荐候选：
+
+```bash
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
+```
+
+直接写入 sidecar：
+
+```bash
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase review --plan docs/superpowers/plans/2026-04-22-example.md --write-sidecar --limit 3
+```
+
+### 5.5 在实现和评审前渲染 sidecar context
 
 ```bash
 python3 superpowers/scripts/plan-context.py render --phase implement
 python3 superpowers/scripts/plan-context.py render --phase review
+```
+
+如果你想控制全文展开预算：
+
+```bash
+python3 superpowers/scripts/plan-context.py render --phase implement --max-full 2 --max-chars 12000
+```
+
+如果你想拿机器可消费结构：
+
+```bash
+python3 superpowers/scripts/plan-context.py render --phase implement --json
 ```
 
 可以用下面的命令校验当前 plan sidecar 是否完整：
@@ -213,7 +260,7 @@ python3 superpowers/scripts/plan-context.py render --phase review
 python3 superpowers/scripts/plan-context.py verify --current
 ```
 
-### 5.4 什么时候该更新 spec
+### 5.6 什么时候该更新 spec
 
 当一次任务结束后，如果你学到了下面这些内容，就应该更新 spec：
 
@@ -230,7 +277,20 @@ python3 superpowers/scripts/plan-context.py verify --current
 - **这是怎么安全实现** → 写到 `backend/*.md` 或 `frontend/*.md`
 - **这是实现前要考虑什么** → 写到 `guides/*.md`
 
-### 5.5 一键更新 spec（推荐）
+### 5.7 先判断要不要回写 spec
+
+```bash
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+```
+
+常见返回值：
+
+- `NO_UPDATE_NEEDED`
+- `RECOMMEND_UPDATE`
+- `STRONGLY_RECOMMEND_UPDATE`
+
+### 5.8 一键更新 spec（推荐）
 
 如果你已经知道 hint、标题、why 和规则内容，直接用：
 
@@ -250,7 +310,7 @@ python3 superpowers/scripts/spec_update_run.py \
 3. 刷新索引链
 4. 输出最终命中的 spec 文件
 
-### 5.6 如果你想手动分步控制
+### 5.9 如果你想手动分步控制
 
 #### 选目标 spec
 
@@ -287,7 +347,7 @@ python3 superpowers/scripts/spec_apply_update.py \
 python3 superpowers/scripts/update-spec.py
 ```
 
-### 5.7 更新 spec 时要注意什么
+### 5.10 更新 spec 时要注意什么
 
 - 不要把详细规则都写进 `index.md`
 - `index.md` 负责导航，叶子文件负责正文内容

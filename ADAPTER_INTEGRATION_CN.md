@@ -38,6 +38,9 @@ adapter 目前提供了这些能力：
 - `export-manifest` 导出 adapter + spec 快照
 - `doctor` 健康检查
 - `release-check` 发布前检查
+- `workflow-gate` 阶段前置检查
+- `spec_select_context` 候选推荐与 sidecar 写入
+- `spec_update_check` 回写前判断
 
 ### 1.2 写入到 Superpowers 的内容
 
@@ -49,10 +52,15 @@ superpowers/
 ├── skills/plan-context-sidecar/SKILL.md
 ├── commands/update-spec.md
 ├── commands/plan-context.md
+├── commands/check-workflow.md
 ├── scripts/update-spec.py
 ├── scripts/spec-context.py
 ├── scripts/spec_common.py
+├── scripts/plan_context_common.py
 ├── scripts/plan-context.py
+├── scripts/workflow-gate.py
+├── scripts/spec_select_context.py
+├── scripts/spec_update_check.py
 ├── hooks/session-spec-index
 └── hooks/session-plan-context
 ```
@@ -307,7 +315,85 @@ python3 superpowers/scripts/plan-context.py render --phase review
 python3 superpowers/scripts/plan-context.py verify --current
 ```
 
-### 3.4 为什么不直接把全文注入 SessionStart
+在第一阶段补强后，`plan-context.py` 还新增了：
+
+- `add --no-dedupe`
+- `add --replace-existing`
+- `render --max-full <n>`
+- `render --max-chars <n>`
+- `render --json`
+- `render --no-dedupe`
+
+这使 sidecar 从简单追加日志，变成了“可去重、可控预算、可机器消费”的上下文层。
+
+### 3.4 workflow gate 是怎么工作的
+
+`workflow-gate.py` 把原先主要依赖 skill 文本约束的流程检查，补成了可执行的前置 gate：
+
+```bash
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
+python3 superpowers/scripts/workflow-gate.py implement
+python3 superpowers/scripts/workflow-gate.py review
+python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
+```
+
+返回语义：
+
+- `OK`：可以继续
+- `WARN`：建议补齐，但由人决定是否继续
+- `BLOCK`：应先修复 plan / sidecar / selected context 问题
+
+当前 gate 语义大致为：
+
+- planning：plan 无效时阻断；sidecar 未初始化时警告
+- implement：缺少 current plan、sidecar 或 planning-selected context 时阻断
+- review：缺少 planning-selected context 时阻断；缺少 review-specific context 时警告
+- completion：没有 current plan 时只警告；存在 durable knowledge 信号时提醒考虑回写 spec
+
+### 3.5 selector 和 update-check 是怎么补进来的
+
+第二阶段补强主要解决了“读侧还是太靠 agent 自觉”和“completion 前要不要回写 spec 还只是轻量提示”这两个问题。
+
+#### `spec_select_context.py`
+
+它负责：
+
+- 根据 hint 做候选推荐
+- 结合 phase 调整候选 mode
+- 输出文本或 JSON
+- 可直接 `--write-sidecar` 把候选写进对应 phase 的 sidecar
+
+示例：
+
+```bash
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
+```
+
+这让读侧能力从“只靠 skill 告诉 agent 应该怎么选”，进一步变成“程序先推荐候选，再由 agent 或脚本把选择结果写进 sidecar”。
+
+#### `spec_update_check.py`
+
+它负责在任务结束前独立判断：
+
+- 这次工作是否可能产生 durable implementation knowledge
+- 是否应考虑运行 `spec_update_run.py`
+
+示例：
+
+```bash
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+```
+
+当前输出等级：
+
+- `NO_UPDATE_NEEDED`
+- `RECOMMEND_UPDATE`
+- `STRONGLY_RECOMMEND_UPDATE`
+
+### 3.6 为什么不直接把全文注入 SessionStart
 
 因为全文注入会导致：
 
@@ -520,7 +606,31 @@ python3 superpowers/scripts/spec-context.py --file backend/error-handling.md
 python3 superpowers/scripts/spec-context.py --category backend
 ```
 
-### 5.7 日常检查
+### 5.7 阶段前检查
+
+```bash
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
+python3 superpowers/scripts/workflow-gate.py implement
+python3 superpowers/scripts/workflow-gate.py review
+python3 superpowers/scripts/workflow-gate.py completion --summary "normalize backend error contract"
+```
+
+### 5.8 用 selector 选 spec
+
+```bash
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
+```
+
+### 5.9 在回写前先做 update 检查
+
+```bash
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+```
+
+### 5.10 日常检查
 
 查看状态：
 

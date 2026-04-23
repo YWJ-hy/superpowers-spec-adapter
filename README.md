@@ -11,6 +11,9 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Use `index.md` as the entry point
 - Load spec details progressively instead of reading the full tree
 - Keep planning-selected spec context in a plan sidecar directory alongside `docs/superpowers/plans/*.md`
+- Check workflow readiness before planning, implementation, review, or completion
+- Recommend spec candidates from `.superpowers/spec/` and optionally write them into the plan sidecar
+- Check whether a task likely produced durable implementation knowledge before updating spec
 - Reinstall the same overlay after upgrading `superpowers/`
 
 ## Install
@@ -109,6 +112,46 @@ The installed `spec-progressive-disclosure` skill tells the agent to:
 The session hook injects a lightweight recursive summary tree by default, not the full spec text.
 The adapter now ships a shared `spec_common.py` helper so `update-spec.py` and `spec-context.py` reuse the same traversal, ignore, and summary logic.
 
+## Workflow gate
+
+Use the workflow gate before entering a new phase:
+
+```bash
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
+python3 superpowers/scripts/workflow-gate.py implement
+python3 superpowers/scripts/workflow-gate.py review
+python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
+```
+
+This surfaces `OK`, `WARN`, or `BLOCK` so the agent can repair missing plan state or sidecar state before proceeding.
+
+## Spec selector
+
+Recommend spec candidates for the current task:
+
+```bash
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
+```
+
+You can also write the selected candidates directly into the sidecar for the current or explicit plan:
+
+```bash
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
+python3 superpowers/scripts/spec_select_context.py "error handling" --phase review --plan docs/superpowers/plans/<stem>.md --write-sidecar --limit 3
+```
+
+## Spec update check
+
+Before deciding whether to update `.superpowers/spec/`, run:
+
+```bash
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
+python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+```
+
+This returns `NO_UPDATE_NEEDED`, `RECOMMEND_UPDATE`, or `STRONGLY_RECOMMEND_UPDATE`.
+
 ## Plan sidecar context
 
 When a task is driven by a Superpowers plan file, keep the primary plan file unchanged:
@@ -171,6 +214,13 @@ This runs:
 - `doctor`
 - `self-test`
 - `export-manifest`
+
+The self-test now covers:
+- repeated `spec_update_run.py` merge behavior
+- `plan-context.py` smoke and regression flows
+- `workflow-gate.py` readiness checks
+- `spec_select_context.py` recommendation and sidecar writes
+- `spec_update_check.py` durable-knowledge recommendations
 
 ## Upgrade workflow
 
