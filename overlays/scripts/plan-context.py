@@ -5,125 +5,35 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
+from plan_context_common import (
+    DEFAULT_SPEC_ROOT,
+    PHASE_FILES,
+    SCHEMA_VERSION,
+    append_jsonl,
+    context_dir_for_plan,
+    current_plan_file,
+    ensure_project_root,
+    get_current_plan,
+    initialize_jsonl_files,
+    load_jsonl,
+    load_state,
+    now_iso,
+    rel_posix,
+    resolve_plan_path,
+    save_state,
+    set_current_plan,
+    validate_plan_location,
+    write_jsonl,
+)
 from spec_common import is_path_within, read_text, repo_root, summary_from_markdown
-
-SCHEMA_VERSION = 1
-CURRENT_PLAN_PATH = Path('.superpowers/current-plan')
-DEFAULT_SPEC_ROOT = Path('.superpowers/spec')
-DEFAULT_PLAN_ROOT = Path('docs/superpowers/plans')
-PHASE_FILES = {
-    'plan': 'plan.jsonl',
-    'implement': 'implement.jsonl',
-    'review': 'review.jsonl',
-}
-
-
-def now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
 
 
 def die(message: str) -> int:
     print(message, file=sys.stderr)
     return 1
-
-
-def rel_posix(root: Path, target: Path) -> str:
-    return target.relative_to(root).as_posix()
-
-
-def ensure_project_root(root: Path) -> None:
-    (root / '.superpowers').mkdir(exist_ok=True)
-
-
-def resolve_plan_path(root: Path, value: str) -> Path:
-    candidate = Path(value)
-    if candidate.is_absolute():
-        plan = candidate.resolve()
-    else:
-        plan = (root / candidate).resolve()
-    if not is_path_within(root.resolve(), plan):
-        raise ValueError(f'Plan path escapes repo root: {value}')
-    if plan.suffix != '.md':
-        raise ValueError(f'Plan path must be a .md file: {value}')
-    return plan
-
-
-def validate_plan_location(root: Path, plan_path: Path) -> None:
-    plan_root = (root / DEFAULT_PLAN_ROOT).resolve()
-    if not is_path_within(plan_root, plan_path.resolve()):
-        raise ValueError(f'Plan must live under {DEFAULT_PLAN_ROOT.as_posix()}: {rel_posix(root, plan_path)}')
-
-
-def context_dir_for_plan(plan_path: Path) -> Path:
-    return plan_path.with_suffix('.context')
-
-
-def current_plan_file(root: Path) -> Path:
-    return root / CURRENT_PLAN_PATH
-
-
-def load_state(context_dir: Path) -> dict | None:
-    path = context_dir / 'state.json'
-    if not path.is_file():
-        return None
-    return json.loads(path.read_text(encoding='utf-8'))
-
-
-def save_state(context_dir: Path, state: dict) -> None:
-    path = context_dir / 'state.json'
-    path.write_text(json.dumps(state, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-
-
-def initialize_jsonl_files(context_dir: Path) -> None:
-    for filename in PHASE_FILES.values():
-        path = context_dir / filename
-        if not path.exists():
-            path.write_text('', encoding='utf-8')
-
-
-def set_current_plan(root: Path, plan_path: Path) -> None:
-    ensure_project_root(root)
-    current_plan_file(root).write_text(rel_posix(root, plan_path) + '\n', encoding='utf-8')
-
-
-def get_current_plan(root: Path) -> Path | None:
-    path = current_plan_file(root)
-    if not path.is_file():
-        return None
-    value = path.read_text(encoding='utf-8').strip()
-    if not value:
-        return None
-    try:
-        return resolve_plan_path(root, value)
-    except ValueError:
-        return None
-
-
-def load_jsonl(path: Path) -> list[dict]:
-    if not path.is_file():
-        return []
-    rows = []
-    for index, line in enumerate(path.read_text(encoding='utf-8').splitlines(), start=1):
-        stripped = line.strip()
-        if not stripped:
-            continue
-        try:
-            item = json.loads(stripped)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f'Invalid JSON in {path.name}:{index}: {exc.msg}') from exc
-        if not isinstance(item, dict):
-            raise ValueError(f'Invalid record in {path.name}:{index}: expected object')
-        rows.append(item)
-    return rows
-
-
-def append_jsonl(path: Path, item: dict) -> None:
-    with path.open('a', encoding='utf-8') as fh:
-        fh.write(json.dumps(item, ensure_ascii=False) + '\n')
 
 
 def summarize_spec(root: Path, spec_path: Path) -> str:
@@ -133,14 +43,145 @@ def summarize_spec(root: Path, spec_path: Path) -> str:
         return ''
 
 
+def mode_rank(mode: str) -> int:
+    if mode == 'full':
+        return 2
+    return 1
+
+
+def record_identity_key(item: dict) -> tuple[str, str]:
+    return (item.get('path', ''), item.get('phase', ''))
+
+
+def merge_record(existing: dict, incoming: dict, replace_existing: bool = False) -> dict:
+    if replace_existing:
+        merged = dict(incoming)
+        merged['createdAt'] = existing.get('createdAt', incoming.get('createdAt'))
+        merged['updatedAt'] = now_iso()
+        return merged
+
+    merged = dict(existing)
+
+    if mode_rank(incoming.get('mode', 'summary')) >= mode_rank(existing.get('mode', 'summary')):
+        merged['mode'] = incoming.get('mode', existing.get('mode', 'summary'))
+
+    if incoming.get('reason'):
+        merged['reason'] = incoming['reason']
+
+    if incoming.get('selectedBy'):
+        merged['selectedBy'] = incoming['selectedBy']
+
+    merged['type'] = incoming.get('type', existing.get('type', 'spec'))
+    merged['path'] = incoming.get('path', existing.get('path', ''))
+    merged['phase'] = incoming.get('phase', existing.get('phase', ''))
+    merged['updatedAt'] = now_iso()
+    merged.setdefault('createdAt', existing.get('createdAt', now_iso()))
+    return merged
+
+
+def upsert_jsonl(path: Path, item: dict, replace_existing: bool = False) -> tuple[str, dict]:
+    rows = load_jsonl(path)
+    target_key = record_identity_key(item)
+
+    for index, existing in enumerate(rows):
+        if record_identity_key(existing) == target_key:
+            merged = merge_record(existing, item, replace_existing=replace_existing)
+            rows[index] = merged
+            write_jsonl(path, rows)
+            return ('updated', merged)
+
+    rows.append(item)
+    write_jsonl(path, rows)
+    return ('added', item)
+
+
+def record_sort_key(item: dict) -> tuple[int, int, str, str]:
+    source_rank = 0 if item.get('source') in {'implement', 'review'} else 1
+    mode_rank_value = -mode_rank(item.get('mode', 'summary'))
+    updated_at = item.get('updatedAt', item.get('createdAt', ''))
+    path_value = item.get('path', '')
+    return (source_rank, mode_rank_value, updated_at, path_value)
+
+
+def normalize_records(plan_records: list[dict], phase_records: list[dict], phase: str) -> list[dict]:
+    merged: dict[str, dict] = {}
+
+    for item in plan_records:
+        candidate = dict(item)
+        candidate['source'] = 'plan'
+        path = candidate.get('path', '')
+        if path:
+            merged[path] = candidate
+
+    for item in phase_records:
+        candidate = dict(item)
+        candidate['source'] = phase
+        path = candidate.get('path', '')
+        if not path:
+            continue
+
+        if path not in merged:
+            merged[path] = candidate
+            continue
+
+        existing = merged[path]
+        merged[path] = merge_record(existing, candidate, replace_existing=False)
+        merged[path]['source'] = phase
+
+    rows = list(merged.values())
+    rows.sort(key=record_sort_key)
+    return rows
+
+
+def apply_render_budget(root: Path, records: list[dict], max_full: int | None, max_chars: int | None) -> tuple[list[dict], dict]:
+    used_full = 0
+    used_chars = 0
+    downgraded: list[str] = []
+    output: list[dict] = []
+
+    for item in records:
+        row = dict(item)
+        rel = row.get('path', '')
+        mode = row.get('mode', 'summary')
+        target = (root / rel).resolve()
+
+        if mode == 'full' and target.is_file():
+            content = read_text(target)
+            content_len = len(content)
+
+            if max_full is not None and used_full >= max_full:
+                row['mode'] = 'summary'
+                downgraded.append(rel)
+            elif max_chars is not None and used_chars + content_len > max_chars:
+                row['mode'] = 'summary'
+                downgraded.append(rel)
+            else:
+                used_full += 1
+                used_chars += content_len
+
+        output.append(row)
+
+    budget = {
+        'maxFull': max_full,
+        'usedFull': used_full,
+        'maxChars': max_chars,
+        'usedChars': used_chars,
+        'downgraded': downgraded,
+    }
+    return output, budget
+
+
 def render_records(root: Path, records: list[dict], title: str) -> str:
     lines = [f'## {title}', '']
     for item in records:
         rel = item.get('path', '')
         reason = item.get('reason', '')
         mode = item.get('mode', 'summary')
+        source = item.get('source', '')
         spec_path = (root / rel).resolve()
         lines.append(f'- `{rel}`')
+        if source:
+            lines.append(f'  - Source: {source}')
         if reason:
             lines.append(f'  - Reason: {reason}')
         lines.append(f'  - Mode: {mode}')
@@ -158,6 +199,39 @@ def render_records(root: Path, records: list[dict], title: str) -> str:
         lines.append('- No records selected yet')
         lines.append('')
     return '\n'.join(lines).rstrip() + '\n'
+
+
+def render_records_json(root: Path, records: list[dict], budget: dict, plan_path: Path, context_dir: Path, phase: str) -> dict:
+    payload_records = []
+
+    for item in records:
+        rel = item.get('path', '')
+        spec_path = (root / rel).resolve()
+        mode = item.get('mode', 'summary')
+
+        payload = {
+            'path': rel,
+            'source': item.get('source'),
+            'mode': mode,
+            'reason': item.get('reason', ''),
+        }
+
+        if mode == 'full' and spec_path.is_file():
+            payload['content'] = read_text(spec_path)
+        else:
+            summary = summarize_spec(root, spec_path)
+            if summary:
+                payload['summary'] = summary
+
+        payload_records.append(payload)
+
+    return {
+        'plan': rel_posix(root, plan_path),
+        'contextDir': rel_posix(root, context_dir),
+        'phase': phase,
+        'records': payload_records,
+        'budget': budget,
+    }
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -291,6 +365,7 @@ def cmd_add(args: argparse.Namespace) -> int:
         return die(f'Context sidecar not initialized: {rel_posix(root, context_dir)}')
 
     phase_file = context_dir / PHASE_FILES[args.phase]
+    timestamp = now_iso()
     record = {
         'type': 'spec',
         'path': rel_posix(root, spec_path),
@@ -298,12 +373,25 @@ def cmd_add(args: argparse.Namespace) -> int:
         'phase': args.phase,
         'mode': args.mode,
         'selectedBy': args.selected_by,
-        'createdAt': now_iso(),
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
     }
-    append_jsonl(phase_file, record)
+
+    if args.no_dedupe:
+        append_jsonl(phase_file, record)
+        action = 'added'
+        saved = record
+    else:
+        action, saved = upsert_jsonl(phase_file, record, replace_existing=args.replace_existing)
+
     update_phase_state(context_dir, args.phase)
-    print(f'Added spec to {phase_file.name}: {record["path"]}')
-    print(f'Reason: {args.reason}')
+
+    if action == 'updated':
+        print(f'Updated spec in {phase_file.name}: {saved["path"]}')
+    else:
+        print(f'Added spec to {phase_file.name}: {saved["path"]}')
+    print(f'Reason: {saved.get("reason", "")}')
+    print(f'Mode: {saved.get("mode", "summary")}')
     return 0
 
 
@@ -325,6 +413,39 @@ def cmd_render(args: argparse.Namespace) -> int:
     plan_records = load_jsonl(context_dir / PHASE_FILES['plan'])
     phase_records = load_jsonl(context_dir / PHASE_FILES[args.phase])
 
+    if args.no_dedupe:
+        normalized = []
+        for item in plan_records:
+            row = dict(item)
+            row['source'] = 'plan'
+            normalized.append(row)
+        if args.phase != 'plan':
+            for item in phase_records:
+                row = dict(item)
+                row['source'] = args.phase
+                normalized.append(row)
+    else:
+        normalized = normalize_records(plan_records, phase_records, args.phase)
+
+    budgeted, budget = apply_render_budget(
+        root,
+        normalized,
+        max_full=args.max_full,
+        max_chars=args.max_chars,
+    )
+
+    if args.json:
+        payload = render_records_json(
+            root=root,
+            records=budgeted,
+            budget=budget,
+            plan_path=plan_path,
+            context_dir=context_dir,
+            phase=args.phase,
+        )
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+
     sections = [
         '## Current Plan',
         '',
@@ -333,11 +454,16 @@ def cmd_render(args: argparse.Namespace) -> int:
         f"- Current phase: {state.get('currentPhase', 'unknown')}",
         f'- Render phase: {args.phase}',
         '',
-        render_records(root, plan_records, 'Planning-selected Context').rstrip(),
+        render_records(root, budgeted, 'Selected Context').rstrip(),
     ]
 
-    if args.phase != 'plan':
-        sections.extend(['', render_records(root, phase_records, f'{args.phase.title()} Context').rstrip()])
+    if budget.get('downgraded'):
+        sections.extend([
+            '',
+            '## Budget Notes',
+            '',
+            f"- Downgraded to summary: {', '.join(f'`{item}`' for item in budget['downgraded'])}",
+        ])
 
     print('\n'.join(sections).rstrip())
     return 0
@@ -445,11 +571,17 @@ def build_parser() -> argparse.ArgumentParser:
     add_parser.add_argument('--reason', required=True)
     add_parser.add_argument('--mode', choices=('summary', 'full'), default='summary')
     add_parser.add_argument('--selected-by', default='planning')
+    add_parser.add_argument('--no-dedupe', action='store_true')
+    add_parser.add_argument('--replace-existing', action='store_true')
     add_parser.set_defaults(func=cmd_add)
 
     render_parser = subparsers.add_parser('render')
     render_parser.add_argument('--phase', choices=('plan', 'implement', 'review'), required=True)
     render_parser.add_argument('--plan')
+    render_parser.add_argument('--max-full', type=int)
+    render_parser.add_argument('--max-chars', type=int)
+    render_parser.add_argument('--json', action='store_true')
+    render_parser.add_argument('--no-dedupe', action='store_true')
     render_parser.set_defaults(func=cmd_render)
 
     verify_parser = subparsers.add_parser('verify')

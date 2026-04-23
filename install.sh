@@ -65,6 +65,9 @@ chmod +x \
   "$TARGET_DIR/scripts/update-spec.py" \
   "$TARGET_DIR/scripts/spec-context.py" \
   "$TARGET_DIR/scripts/plan-context.py" \
+  "$TARGET_DIR/scripts/workflow-gate.py" \
+  "$TARGET_DIR/scripts/spec_select_context.py" \
+  "$TARGET_DIR/scripts/spec_update_check.py" \
   "$TARGET_DIR/hooks/session-spec-index" \
   "$TARGET_DIR/hooks/session-plan-context"
 python3 "$PATCHER" install "$TARGET_DIR"
