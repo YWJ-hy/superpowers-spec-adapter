@@ -308,7 +308,7 @@ docs/superpowers/plans/YYYY-MM-DD-<feature>.context/
 - 评审阶段优先消费 `plan.jsonl + review.jsonl`
 - sidecar 缺失或明显不足时，才回退到 `.superpowers/spec` 的自由发现路径
 
-用户入口是 `/check-workflow planning`，底层会执行 sidecar 初始化和 planning context 写入：
+日常入口是 SessionStart hook 和 `plan-context-sidecar` skill：hook 会对 `.superpowers/current-plan` 指向的 plan 自动尝试 sidecar 初始化和 planning context 写入，skill 会在 implement / review 前自动运行 gate。`/check-workflow` 保留为自动化失败或状态不明确时的手动诊断入口，底层仍可直接执行：
 
 ```bash
 python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
@@ -615,12 +615,14 @@ python3 superpowers/scripts/spec-context.py --file backend/error-handling.md
 python3 superpowers/scripts/spec-context.py --category backend
 ```
 
-### 5.7 阶段前检查
+### 5.7 阶段前诊断
+
+日常阶段前检查由 SessionStart hook 和 `plan-context-sidecar` skill 自动触发；需要排查状态时可手动运行：
 
 ```bash
 python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
-python3 superpowers/scripts/workflow-gate.py implement
-python3 superpowers/scripts/workflow-gate.py review
+python3 superpowers/scripts/workflow-gate.py implement --json
+python3 superpowers/scripts/workflow-gate.py review --json
 python3 superpowers/scripts/workflow-gate.py completion --summary "normalize backend error contract"
 ```
 

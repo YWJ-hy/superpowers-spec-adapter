@@ -138,12 +138,12 @@ The adapter now ships a shared `spec_common.py` helper so `update-spec.py` and `
 
 ## Workflow gate
 
-Use the workflow gate before entering a new phase:
+The workflow gate is normally invoked by the adapter's SessionStart hook and `plan-context-sidecar` skill. Use it manually when automatic preparation is blocked or ambiguous:
 
 ```bash
 python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
-python3 superpowers/scripts/workflow-gate.py implement
-python3 superpowers/scripts/workflow-gate.py review
+python3 superpowers/scripts/workflow-gate.py implement --json
+python3 superpowers/scripts/workflow-gate.py review --json
 python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
 ```
 
@@ -200,7 +200,7 @@ Track the active plan with:
 .superpowers/current-plan
 ```
 
-Useful commands:
+Useful diagnostic commands:
 
 ```bash
 python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
@@ -209,7 +209,7 @@ python3 superpowers/scripts/plan-context.py render --phase review
 python3 superpowers/scripts/plan-context.py verify --current
 ```
 
-The planning gate initializes the sidecar, sets `.superpowers/current-plan`, recommends indexed specs, and writes planning context into `plan.jsonl`. `plan-context.py` remains an execution-layer helper, not a user-facing slash command.
+SessionStart and the `plan-context-sidecar` skill normally initialize the sidecar, recommend indexed specs, and write planning context into `plan.jsonl` automatically for the current plan. `plan-context.py` remains an execution-layer helper, not a user-facing slash command.
 
 Git recommendation:
 

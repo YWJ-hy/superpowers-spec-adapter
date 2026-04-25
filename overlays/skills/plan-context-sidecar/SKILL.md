@@ -11,9 +11,12 @@ Rules:
 1. Keep the plan markdown file as the primary plan artifact. Do not migrate it into a directory-based plan format.
 2. Treat `docs/superpowers/plans/<stem>.context/` as the durable sidecar context bundle for that plan.
 3. Treat `.superpowers/current-plan` as the current-plan pointer when it exists.
-4. During planning, select the minimum relevant spec files reachable from `.superpowers/spec/index.md` and record them into `plan.jsonl`.
-5. During implementation, consume `plan.jsonl` plus `implement.jsonl` instead of re-selecting specs from scratch.
-6. During review, consume `plan.jsonl` plus `review.jsonl` instead of re-selecting specs from scratch.
-7. Only fall back to fresh `.superpowers/spec/index.md` discovery when the sidecar is missing, invalid, or clearly insufficient for the current work.
-8. Use `python3 superpowers/scripts/plan-context.py render --phase implement` or `--phase review` to materialize the selected context before implementation or review.
-9. Keep sidecar records concise: path, reason, and summary-first unless full text is truly needed.
+4. SessionStart automatically attempts `python3 superpowers/scripts/workflow-gate.py planning --json` for the current plan; do not ask the user to run `/check-workflow planning` during the normal path.
+5. Before implementation, automatically run `python3 superpowers/scripts/workflow-gate.py implement --json`. If it returns `block`, stop and repair the plan or sidecar state before coding.
+6. Before review, automatically run `python3 superpowers/scripts/workflow-gate.py review --json`. If it returns `warn` only because `review.jsonl` is empty, decide whether `plan.jsonl` is sufficient before adding review-specific context.
+7. During implementation, consume `plan.jsonl` plus `implement.jsonl` instead of re-selecting specs from scratch.
+8. During review, consume `plan.jsonl` plus `review.jsonl` instead of re-selecting specs from scratch.
+9. Only fall back to fresh `.superpowers/spec/index.md` discovery when the sidecar is missing, invalid, or clearly insufficient for the current work.
+10. Use `python3 superpowers/scripts/plan-context.py render --phase implement` or `--phase review` to materialize the selected context before implementation or review.
+11. Keep sidecar records concise: path, reason, and summary-first unless full text is truly needed.
+12. Treat `/check-workflow` as a manual diagnostic command for ambiguous or failed automatic preparation, not as a required daily step.

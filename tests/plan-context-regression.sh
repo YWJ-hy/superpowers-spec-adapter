@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TARGET_INPUT="${1:-${ROOT}/../superpowers}"
+TARGET_INPUT="$(cd "${TARGET_INPUT}" && pwd)"
 PROJECT_ROOT="${2:-${ROOT}/..}"
 PLAN_PATH="docs/superpowers/plans/plan-context-regression.md"
 PLAN_ABS="${PROJECT_ROOT}/${PLAN_PATH}"

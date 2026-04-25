@@ -57,7 +57,7 @@ Superpowers 插件目录
 
 ## 3. 用户视角的完整推荐执行顺序
 
-本节按“第一次接入项目 → 日常任务 → 任务完成后沉淀知识”的顺序，说明用户在 Claude Code 等工具中使用 Superpowers + adapter 时，推荐如何调用所有 adapter command。
+本节按“第一次接入项目 → 日常任务 → 任务完成后沉淀知识”的顺序，说明用户在 Claude Code 等工具中使用 Superpowers + adapter 时，哪些入口需要手动调用，哪些能力会由 hook / skill 自动触发。
 
 ### 3.1 总览顺序
 
@@ -70,21 +70,20 @@ Superpowers 插件目录
 | 4 | 导入已有 spec | `/import-spec` | 有旧 spec 时才需要 | 把已有规范迁移到 adapter 的 `.superpowers/spec/` 格式 |
 | 5 | 初始化 starter spec | `/init-spec` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 spec 知识 |
 | 6 | 描述需求并进入 Superpowers plan 流程 | Superpowers 创建或选定 plan | 复杂任务或需要计划推进时 | 先由 Superpowers 生成或确定 `docs/superpowers/plans/<stem>.md` |
-| 7 | 自动初始化 sidecar 并挑选 spec | `/check-workflow planning` | 已经有 Superpowers plan 时 | 自动创建 plan sidecar，并把推荐 spec context 写入 `plan.jsonl` |
-| 8 | 阶段前检查 | `/check-workflow` | 进入 implement / review / completion 前推荐使用 | 检查当前 Superpowers + adapter 工作流是否可继续 |
-| 9 | 按需读取 spec | `spec-progressive-disclosure` skill | 任务需要规范上下文时 | 从 index 到 leaf spec 渐进读取，不全文加载 |
-| 10 | 任务后更新 spec | `/update-spec` | 任务产生长期可复用知识时 | 将 durable implementation knowledge 回写 `.superpowers/spec/` |
-| 11 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
+| 7 | 自动初始化 sidecar 并挑选 spec | SessionStart hook + `plan-context-sidecar` skill | 有 current plan 时自动 | 自动创建 plan sidecar，并把推荐 spec context 写入 `plan.jsonl` |
+| 8 | 阶段前检查 | `plan-context-sidecar` skill 自动执行 workflow gate | 进入 implement / review 时自动 | 检查当前 Superpowers + adapter 工作流是否可继续 |
+| 9 | 手动诊断 | `/check-workflow` | 自动化失败或状态不确定时才需要 | 解释并修复 plan / sidecar / context 状态 |
+| 10 | 按需读取 spec | `spec-progressive-disclosure` skill | 任务需要规范上下文时 | 从 index 到 leaf spec 渐进读取，不全文加载 |
+| 11 | 任务后更新 spec | `/update-spec` | 任务产生长期可复用知识时 | 将 durable implementation knowledge 回写 `.superpowers/spec/` |
+| 12 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
 
 用户日常在 Claude Code 中主要记住这条链：
 
 ```text
 描述需求
 → Superpowers 判断是否需要 plan，并创建或选定 plan
-→ /check-workflow planning（已有 plan 时自动准备 sidecar 和 plan.jsonl）
-→ /check-workflow（后续阶段前）
+→ SessionStart hook / plan-context-sidecar 自动准备 sidecar 和 plan.jsonl
 → 正常使用 Superpowers 执行任务，并按需读取 spec
-→ /check-workflow（收尾前）
 → /update-spec（有长期知识时）
 ```
 
@@ -95,7 +94,7 @@ Superpowers 插件目录
 → /init-spec（首次生成 starter spec）
 ```
 
-关键点：用户不需要手动执行 `/plan-context`。Superpowers 已经创建或选定 plan 之后，使用 `/check-workflow planning` 自动初始化 sidecar、挑选相关 spec，并写入 `plan.jsonl`。底层 `plan-context.py` 仍作为执行层用于渲染和校验 sidecar，但不再暴露为用户 slash command。
+关键点：用户不需要手动执行 `/plan-context`，日常也不需要手动执行 `/check-workflow planning`。Superpowers 已经创建或选定 plan，并且 `.superpowers/current-plan` 指向该 plan 之后，SessionStart hook 会尝试自动初始化 sidecar、挑选相关 spec，并写入 `plan.jsonl`。底层 `workflow-gate.py` 和 `plan-context.py` 仍作为执行层用于准备、渲染和校验 sidecar。
 
 ### 3.2 安装 adapter
 
@@ -163,7 +162,7 @@ Superpowers 插件目录
 
 这一步用于第一次从当前项目结构中生成轻量的 starter spec。后续开发中不要把它当作日常维护入口，日常沉淀知识应使用 `/update-spec`。
 
-### 3.6 Superpowers 创建或选定 plan 后，由 `/check-workflow planning` 自动准备 sidecar
+### 3.6 Superpowers 创建或选定 plan 后，自动准备 sidecar
 
 用户开启 Claude Code session 后，应先描述需求。只有当 Superpowers 已经为这个需求创建或选定了 plan，例如已经存在下面的文件时：
 
@@ -171,54 +170,49 @@ Superpowers 插件目录
 docs/superpowers/plans/<stem>.md
 ```
 
-才需要进入 plan sidecar 准备阶段。
+plan sidecar 才会参与工作流。
 
-如果当前任务由 Superpowers plan 驱动，建议在 plan 存在后使用：
+如果当前任务由 Superpowers plan 驱动，adapter 的自动路径会：
 
-```text
-/check-workflow planning
-```
-
-它会自动：
-
-- 初始化对应 sidecar。
-- 根据 plan 标题或传入 hint，从 `.superpowers/spec/` 的索引图中推荐相关 spec。
+- 读取 `.superpowers/current-plan` 指向的 plan。
+- 在 SessionStart hook 中尝试初始化对应 sidecar。
+- 根据 plan 标题，从 `.superpowers/spec/` 的索引图中推荐相关 spec。
 - 把 planning 阶段选中的 spec context 写入 `plan.jsonl`。
-- 设置 `.superpowers/current-plan`。
+- 在进入 implementation / review 前由 `plan-context-sidecar` skill 自动运行对应 workflow gate。
 
 职责边界：
 
-- `/check-workflow planning`：用户入口，负责自动准备 sidecar 和 planning-selected context。
-- `spec-progressive-disclosure` / selector 执行层：帮助发现或推荐“哪些 spec 和当前任务相关”。
+- SessionStart hook：自动准备 current plan 的 sidecar 和 planning-selected context。
+- `plan-context-sidecar` skill：进入 implement / review 前自动检查 gate，并渲染已选 context。
+- `/check-workflow`：手动诊断入口，用于自动准备失败、current plan 不明确、sidecar 损坏或上下文不足时。
 - `plan-context.py`：底层执行层，用于 sidecar 渲染、校验和测试，不再作为用户 slash command 暴露。
 
 如果任务不使用 Superpowers plan，可以跳过这个阶段，但仍然可以按需读取 `.superpowers/spec/`。
 
-### 3.7 日常任务前检查 workflow 状态
-
-在进入规划、实现、评审或收尾阶段前，使用：
-
-```text
-/check-workflow
-```
+### 3.7 自动检查 workflow 状态，必要时使用 `/check-workflow` 诊断
 
 有 plan 的推荐调用顺序：
 
 ```text
 描述需求
 → Superpowers 创建或选定 plan
-→ /check-workflow planning（自动初始化 sidecar，并写入 planning spec context）
-→ /check-workflow implement
+→ SessionStart hook 自动初始化 sidecar，并写入 planning spec context
+→ plan-context-sidecar skill 自动检查 implement gate
 → 执行实现
-→ /check-workflow review
+→ plan-context-sidecar skill 自动检查 review gate
 → 执行评审
-→ /check-workflow completion
-→ /update-spec（如果提示存在 durable knowledge）
+→ /update-spec（如果任务产生 durable knowledge）
 ```
 
 无 plan 的简单任务可以跳过 planning sidecar 准备阶段，必要时只按需读取 `.superpowers/spec/` 并在任务结束后考虑 `/update-spec`。
 
-它会通过 adapter 的执行层检查：
+当自动化返回阻断或状态不确定时，再使用：
+
+```text
+/check-workflow
+```
+
+它会通过 adapter 的执行层诊断：
 
 - 当前 plan 是否存在
 - plan sidecar 是否初始化
@@ -284,13 +278,13 @@ flowchart TD
     J --> K
 
     K --> L{Superpowers 是否创建或选定 plan?}
-    L -->|是| M[/check-workflow planning 自动准备 sidecar]
+    L -->|是| M[SessionStart / skill 自动准备 sidecar]
     L -->|否| N[跳过 plan sidecar 准备]
-    M --> O[/check-workflow 后续阶段检查]
+    M --> O[workflow gate 自动检查阶段状态]
     N --> O
 
     O --> P{是否可以进入当前阶段?}
-    P -->|否| Q[按提示修复 plan / sidecar / context]
+    P -->|否| Q[/check-workflow 手动诊断并修复状态]
     Q --> O
     P -->|是| R[执行 Superpowers 常规任务]
 
@@ -300,10 +294,9 @@ flowchart TD
     T --> U[按索引进入子目录 index.md 和 leaf spec]
     U --> V
 
-    V --> W[/check-workflow completion]
-    W --> X{是否产生 durable knowledge?}
-    X -->|否| Y[结束]
-    X -->|是| Z[/update-spec]
+    V --> W{是否产生 durable knowledge?}
+    W -->|否| Y[结束]
+    W -->|是| Z[/update-spec]
     Z --> AA[更新 leaf spec 并刷新 index 链]
     AA --> Y
 ```
@@ -335,7 +328,7 @@ docs/superpowers/plans/<stem>.context/
 └── state.json
 ```
 
-用户通常不需要直接编辑这些文件，也不需要手动执行 `/plan-context`；`/check-workflow planning` 会自动初始化 sidecar 并写入 planning context。
+用户通常不需要直接编辑这些文件，也不需要手动执行 `/plan-context`；SessionStart hook 和 `plan-context-sidecar` skill 会自动初始化 sidecar 并写入 planning context。`/check-workflow` 只在自动化失败或状态不明确时作为诊断入口使用。
 
 推荐语义：
 
@@ -355,8 +348,8 @@ docs/superpowers/plans/<stem>.context/
 | 初始化 spec 模板 | `./manage.sh bootstrap-spec /path/to/project --template standard` | 创建 `.superpowers/spec/` |
 | 导入已有 spec | `/import-spec` | 有旧规范目录时在 Claude Code 中执行 |
 | 初次生成 starter spec | `/init-spec` | 在 Claude Code 中执行 |
-| 自动准备 plan sidecar | `/check-workflow planning` | 有 Superpowers plan 时在 Claude Code 中执行 |
-| 检查阶段状态 | `/check-workflow` | 在 Claude Code 中执行 |
+| 自动准备 plan sidecar | SessionStart hook + `plan-context-sidecar` skill | 有 current plan 时自动执行 |
+| 诊断 workflow 状态 | `/check-workflow` | 自动化失败或状态不明确时在 Claude Code 中执行 |
 | 沉淀长期知识 | `/update-spec` | 在 Claude Code 中执行 |
 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者使用 |
 

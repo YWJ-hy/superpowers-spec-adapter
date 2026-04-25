@@ -10,6 +10,10 @@ if [[ ! -f "$PLUGIN_ROOT/scripts/plan-context.py" ]]; then
   exit 0
 fi
 
+if [[ -f "$PLUGIN_ROOT/scripts/workflow-gate.py" ]]; then
+  (cd "$PROJECT_DIR" && python3 "$PLUGIN_ROOT/scripts/workflow-gate.py" planning --json >/dev/null 2>&1) || true
+fi
+
 if ! context=$(cd "$PROJECT_DIR" && python3 "$PLUGIN_ROOT/scripts/plan-context.py" current 2>/dev/null); then
   exit 0
 fi
@@ -28,7 +32,7 @@ escape_for_json() {
   printf '%s' "$s"
 }
 
-escaped=$(escape_for_json "<current-plan-context>\n${context}\nTo render selected context:\n- python3 superpowers/scripts/plan-context.py render --phase implement\n- python3 superpowers/scripts/plan-context.py render --phase review\n</current-plan-context>")
+escaped=$(escape_for_json "<current-plan-context>\n${context}\nSessionStart already attempted automatic planning sidecar preparation for the current plan.\nBefore implementation or review, run the matching workflow gate automatically and render selected context:\n- python3 superpowers/scripts/workflow-gate.py implement --json\n- python3 superpowers/scripts/workflow-gate.py review --json\n- python3 superpowers/scripts/plan-context.py render --phase implement\n- python3 superpowers/scripts/plan-context.py render --phase review\nUse /check-workflow only as a manual diagnostic command when automatic preparation is blocked or ambiguous.\n</current-plan-context>")
 
 if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
   printf '{\n  "additional_context": "%s"\n}\n' "$escaped"
