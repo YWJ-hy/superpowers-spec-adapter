@@ -6,13 +6,13 @@ ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TARGET_INPUT="${1:-${ROOT}/../superpowers}"
 PROJECT_ROOT="${2:-${ROOT}/..}"
 
-recommend_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec_update_check.py" --summary "normalize backend error contract" --changed-file "src/backend/api/error_handler.py")"
+recommend_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec_update_check.py" --summary "normalize api error contract" --changed-file "src/api/error_handler.py")"
 case "${recommend_output}" in
   *"STRONGLY_RECOMMEND_UPDATE"* ) : ;;
   *) printf 'Expected strong recommend output from spec_update_check\n' >&2; exit 1 ;;
 esac
 
-json_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec_update_check.py" --summary "normalize backend error contract" --changed-file "src/backend/api/error_handler.py" --json)"
+json_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec_update_check.py" --summary "normalize api error contract" --changed-file "src/api/error_handler.py" --json)"
 python3 - <<'PY' "${json_output}"
 import json, sys
 payload = json.loads(sys.argv[1])

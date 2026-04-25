@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REPO="${SUPERPOWER_SPEC_TEMPLATE_REPO:-YWJ-hy/superpowers-spec-adapter}"
+REF="${SUPERPOWER_SPEC_TEMPLATE_REF:-main}"
+TEMPLATE_NAME=""
+
 usage() {
-  printf 'Usage: %s <project-root> [--preset web|backend|fullstack] [categories...]\n' "$0" >&2
+  printf 'Usage: %s <project-root> [--template name] [--ref ref]\n' "$0" >&2
   exit 1
 }
 
@@ -14,175 +18,160 @@ fi
 REPO_ROOT="$(cd "$1" && pwd)"
 shift
 SPEC_ROOT="$REPO_ROOT/.superpowers/spec"
-ENTRY_INDEX="$SPEC_ROOT/index.md"
-IGNORE_FILE="$SPEC_ROOT/.adapter-ignore"
-PRESET=""
-CATEGORY_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --preset)
-      PRESET="${2:-}"
+    --template)
+      TEMPLATE_NAME="${2:-}"
+      shift 2
+      ;;
+    --ref)
+      REF="${2:-}"
       shift 2
       ;;
     *)
-      CATEGORY_ARGS+=("$1")
-      shift
+      printf 'Unknown argument: %s\n' "$1" >&2
+      usage
       ;;
   esac
 done
 
-mkdir -p "$SPEC_ROOT"
-
-if [[ ! -f "$ENTRY_INDEX" ]]; then
-  cat > "$ENTRY_INDEX" <<'EOF'
-# Project Specs
-
-Use this file as the entry point for project-specific specs.
-
-<!-- superpower-adapter:auto:start -->
-<!-- superpower-adapter:auto:end -->
-EOF
-  printf 'Created %s\n' "$ENTRY_INDEX"
-else
-  printf 'Kept existing %s\n' "$ENTRY_INDEX"
-fi
-
-if [[ ! -f "$IGNORE_FILE" ]]; then
-  cat > "$IGNORE_FILE" <<'EOF'
-# one directory name per line
-# default directories are already ignored by the adapter:
-# draft
-# archive
-# examples
-EOF
-  printf 'Created %s\n' "$IGNORE_FILE"
-else
-  printf 'Kept existing %s\n' "$IGNORE_FILE"
-fi
-
-create_category() {
-  local name="$1"
-  local title
-  title="$(python3 - <<'PY' "$name"
-import sys
-name = sys.argv[1].replace('-', ' ').replace('_', ' ')
-print(name.title())
-PY
-)"
-  local dir="$SPEC_ROOT/$name"
-  local index="$dir/index.md"
-  mkdir -p "$dir"
-  if [[ ! -f "$index" ]]; then
-    case "$name" in
-      backend)
-        cat > "$index" <<'EOF'
-# Backend Specs
-
-Document server-side rules that affect correctness, contracts, persistence, validation, and operational behavior.
-
-Suggested topics:
-- API contracts
-- Error handling
-- Database access
-- Background jobs
-- Configuration and env wiring
-- Logging and observability
-
-<!-- superpower-adapter:auto:start -->
-<!-- superpower-adapter:auto:end -->
-EOF
-        ;;
-      frontend)
-        cat > "$index" <<'EOF'
-# Frontend Specs
-
-Document UI and client-side rules that affect structure, state, data fetching, accessibility, and user-facing behavior.
-
-Suggested topics:
-- Component patterns
-- State management
-- Data fetching
-- Form behavior
-- Accessibility
-- Styling conventions
-
-<!-- superpower-adapter:auto:start -->
-<!-- superpower-adapter:auto:end -->
-EOF
-        ;;
-      guides)
-        cat > "$index" <<'EOF'
-# Guides
-
-Use guides for cross-cutting checklists and thinking prompts, not low-level implementation contracts.
-
-Suggested topics:
-- Cross-layer changes
-- Release readiness
-- Debugging checklists
-- Migration review
-- Performance review
-- Security review
-
-<!-- superpower-adapter:auto:start -->
-<!-- superpower-adapter:auto:end -->
-EOF
-        ;;
-      *)
-        cat > "$index" <<EOF
-# ${title} Specs
-
-Summarize the scope of ${name} rules here.
-
-<!-- superpower-adapter:auto:start -->
-<!-- superpower-adapter:auto:end -->
-EOF
-        ;;
-    esac
-    printf 'Created %s\n' "$index"
+fetch_url() {
+  local url="$1"
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "$url"
   else
-    printf 'Kept existing %s\n' "$index"
+    curl -fsSL -H "Accept: application/vnd.github+json" "$url"
   fi
 }
 
-PRESET_CATEGORIES=()
-case "$PRESET" in
-  "")
-    ;;
-  web)
-    PRESET_CATEGORIES=(frontend guides)
-    ;;
-  backend)
-    PRESET_CATEGORIES=(backend guides)
-    ;;
-  fullstack)
-    PRESET_CATEGORIES=(backend frontend guides)
-    ;;
-  *)
-    printf 'Unknown preset: %s\n' "$PRESET" >&2
+list_templates() {
+  local api_url="https://api.github.com/repos/${REPO}/contents/spec-template?ref=${REF}"
+  local json
+  if ! json="$(fetch_url "$api_url")"; then
+    printf 'Failed to list templates from https://github.com/%s/tree/%s/spec-template\n' "$REPO" "$REF" >&2
+    return 1
+  fi
+  python3 -c '
+import json
+import sys
+
+try:
+    items = json.loads(sys.argv[1])
+except json.JSONDecodeError as exc:
+    raise SystemExit(f"Invalid GitHub API response: {exc}")
+if isinstance(items, dict) and items.get("message"):
+    raise SystemExit(items["message"])
+for item in items:
+    if item.get("type") == "dir" and item.get("name"):
+        print(item["name"])
+' "$json"
+}
+
+select_template() {
+  local templates=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && templates+=("$line")
+  done < <(list_templates)
+
+  if [[ ${#templates[@]} -eq 0 ]]; then
+    printf 'No templates found under spec-template in %s@%s\n' "$REPO" "$REF" >&2
     exit 1
-    ;;
-esac
+  fi
 
-ALL_CATEGORIES=()
-for category in "${PRESET_CATEGORIES[@]-}"; do
-  [[ -n "$category" ]] && ALL_CATEGORIES+=("$category")
-done
-for category in "${CATEGORY_ARGS[@]-}"; do
-  [[ -n "$category" ]] && ALL_CATEGORIES+=("$category")
-done
+  if [[ -n "$TEMPLATE_NAME" ]]; then
+    for template in "${templates[@]}"; do
+      if [[ "$template" == "$TEMPLATE_NAME" ]]; then
+        printf '%s\n' "$TEMPLATE_NAME"
+        return
+      fi
+    done
+    printf 'Unknown template: %s\n' "$TEMPLATE_NAME" >&2
+    printf 'Available templates:\n' >&2
+    for template in "${templates[@]}"; do
+      printf '- %s\n' "$template" >&2
+    done
+    exit 1
+  fi
 
-SEEN=""
-for category in "${ALL_CATEGORIES[@]-}"; do
-  [[ -z "$category" ]] && continue
-  case " $SEEN " in
-    *" $category "*)
+  if [[ ! -t 0 ]]; then
+    printf 'Missing --template in non-interactive mode. Available templates:\n' >&2
+    for template in "${templates[@]}"; do
+      printf '- %s\n' "$template" >&2
+    done
+    exit 1
+  fi
+
+  printf 'Available templates:\n' >&2
+  local index=1
+  for template in "${templates[@]}"; do
+    printf '%d) %s\n' "$index" "$template" >&2
+    index=$((index + 1))
+  done
+
+  local choice=""
+  read -r -p 'Select template number: ' choice
+  if ! [[ "$choice" =~ ^[0-9]+$ ]] || (( choice < 1 || choice > ${#templates[@]} )); then
+    printf 'Invalid template selection: %s\n' "$choice" >&2
+    exit 1
+  fi
+  printf '%s\n' "${templates[$((choice - 1))]}"
+}
+
+copy_template() {
+  local template_dir="$1"
+  local conflicts=()
+  local files=()
+
+  while IFS= read -r source; do
+    files+=("$source")
+    local relative="${source#$template_dir/}"
+    local target="$SPEC_ROOT/$relative"
+    if [[ -e "$target" ]] && ! cmp -s "$source" "$target"; then
+      conflicts+=(".superpowers/spec/$relative")
+    fi
+  done < <(find "$template_dir" -type f | sort)
+
+  if [[ ${#conflicts[@]} -gt 0 ]]; then
+    printf 'Refusing to overwrite existing user files:\n' >&2
+    for conflict in "${conflicts[@]}"; do
+      printf '- %s\n' "$conflict" >&2
+    done
+    printf 'No files were changed.\n' >&2
+    exit 1
+  fi
+
+  mkdir -p "$SPEC_ROOT"
+  for source in "${files[@]}"; do
+    local relative="${source#$template_dir/}"
+    local target="$SPEC_ROOT/$relative"
+    if [[ -e "$target" ]]; then
+      printf 'Kept identical %s\n' "$target"
       continue
-      ;;
-  esac
-  SEEN="$SEEN $category"
-  create_category "$category"
-done
+    fi
+    mkdir -p "$(dirname "$target")"
+    cp "$source" "$target"
+    printf 'Created %s\n' "$target"
+  done
+}
 
-printf 'bootstrap-spec complete\n'
+SELECTED_TEMPLATE="$(select_template)"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+ARCHIVE_URL="https://codeload.github.com/${REPO}/tar.gz/${REF}"
+fetch_url "$ARCHIVE_URL" | tar -xz -C "$TMP_DIR"
+ARCHIVE_ROOT="$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+TEMPLATE_DIR="$ARCHIVE_ROOT/spec-template/$SELECTED_TEMPLATE"
+
+if [[ ! -d "$TEMPLATE_DIR" ]]; then
+  printf 'Template directory not found in archive: spec-template/%s\n' "$SELECTED_TEMPLATE" >&2
+  exit 1
+fi
+if [[ ! -f "$TEMPLATE_DIR/index.md" ]]; then
+  printf 'Template is missing index.md: %s\n' "$SELECTED_TEMPLATE" >&2
+  exit 1
+fi
+
+copy_template "$TEMPLATE_DIR"
+printf 'bootstrap-spec complete: imported template %s\n' "$SELECTED_TEMPLATE"

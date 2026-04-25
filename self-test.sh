@@ -21,10 +21,20 @@ REPO_ROOT="$(cd "$REPO_ROOT_INPUT" && pwd)"
 "$SCRIPT_DIR/verify.sh" "$TARGET_INPUT"
 (cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Adapter Self Test" "Validate one-shot spec updates." "Self-test rule")
 (cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Adapter Self Test" "Validate one-shot spec updates again." "Self-test rule updated")
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/init-spec.py" . "self-test")
+python3 - <<'PY' "$REPO_ROOT"
+from pathlib import Path
+import sys
+path = Path(sys.argv[1]) / '.superpowers' / 'tmp-import-source.md'
+path.write_text('# External Import Self Test\n\nOriginal detail must be preserved.\n', encoding='utf-8')
+PY
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_import.py" .superpowers/tmp-import-source.md --target imported/debugging.md)
+rm -f "$REPO_ROOT/.superpowers/tmp-import-source.md"
 bash "$SCRIPT_DIR/tests/plan-context-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/plan-context-regression.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/spec-select-context-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/spec-update-check-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/spec-index-graph-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 python3 "$SCRIPT_DIR/lib/hook_patch.py" verify "$TARGET_DIR"
 "$SCRIPT_DIR/status.sh" "$TARGET_INPUT"
 

@@ -12,7 +12,7 @@ Rules:
 2. During planning, start with `.superpowers/spec/index.md`, follow the index chain, and record the minimum relevant spec files into the plan sidecar `plan.jsonl`.
 3. During implementation or review, consume the existing sidecar context first instead of re-selecting specs from scratch.
 4. Only read fresh spec indexes or leaf files outside the sidecar when the sidecar is missing, invalid, or clearly insufficient for the current task.
-5. Do not read the whole `.superpowers/spec/` tree unless the human explicitly asks for a full audit.
+5. Do not read the whole `.superpowers/spec/` tree unless the human explicitly asks for a full audit; discover specs only by following links from index files.
 6. If a task changes behavior, contracts, or conventions, update the relevant spec through the `update-spec` workflow.
 
 Suggested flow:

@@ -91,7 +91,7 @@ If implementation is blocked because `plan.jsonl` is empty, do not start coding 
 Example:
 
 ```bash
-python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/backend/example.md --reason "Needed for implementation safety"
+python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/topic/example.md --reason "Needed for implementation safety"
 ```
 
 ---
@@ -120,7 +120,7 @@ This checks that:
 Review may return `WARN` if `review.jsonl` is empty. In that case, decide whether the planning-selected context is already sufficient. If not, add review-specific context first:
 
 ```bash
-python3 superpowers/scripts/plan-context.py add --phase review --spec .superpowers/spec/backend/example.md --reason "Needed for review criteria"
+python3 superpowers/scripts/plan-context.py add --phase review --spec .superpowers/spec/topic/example.md --reason "Needed for review criteria"
 ```
 
 ---
@@ -151,7 +151,7 @@ This checks that:
 If completion returns a durable-knowledge warning, consider updating `.superpowers/spec/`:
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads"
+python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads"
 ```
 
 ---
@@ -286,7 +286,7 @@ Example:
 ```bash
 python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
 python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/<stem>.md --set-current
-python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/backend/example.md --reason "Required for planning"
+python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/topic/example.md --reason "Required for planning"
 python3 superpowers/scripts/workflow-gate.py implement
 python3 superpowers/scripts/plan-context.py render --phase implement
 python3 superpowers/scripts/workflow-gate.py review

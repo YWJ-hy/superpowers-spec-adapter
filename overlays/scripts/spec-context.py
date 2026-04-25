@@ -8,57 +8,40 @@ from pathlib import Path
 import sys
 
 from spec_common import (
-    child_directory_summary,
+    build_spec_index_graph,
+    is_indexed_spec_path,
     is_path_within,
-    load_ignored_dir_names,
     read_text,
-    relevant_child_directories,
-    relevant_markdown_files,
     repo_root,
     summary_from_markdown,
 )
 
 
-def render_tree(directory: Path, spec_root: Path, depth: int, ignored_dir_names: set[str], level: int = 0) -> list[str]:
-    if level > depth:
-        return []
-
+def render_tree(spec_root: Path, depth: int) -> list[str]:
+    graph = build_spec_index_graph(spec_root)
     lines: list[str] = []
-    if level == 0:
-        entry = spec_root / "index.md"
-        if entry.is_file():
-            lines.append(f"- `index.md` — {summary_from_markdown(entry)}")
-
-    for child in relevant_child_directories(directory, ignored_dir_names):
-        index_path = child / "index.md"
-        rel = index_path.relative_to(spec_root).as_posix()
-        indent = "  " * (level + 1)
-        summary = child_directory_summary(child, ignored_dir_names)
+    for path in graph.files:
+        rel = path.relative_to(spec_root).as_posix()
+        level = len(path.relative_to(spec_root).parts) - 1
+        if level > depth:
+            continue
+        indent = "  " * level
+        summary = summary_from_markdown(path)
         if summary:
             lines.append(f"{indent}- `{rel}` — {summary}")
         else:
             lines.append(f"{indent}- `{rel}`")
-        if level < depth:
-            lines.extend(render_tree(child, spec_root, depth, ignored_dir_names, level + 1))
 
-    if level < depth:
-        indent = "  " * (level + 1)
-        for file_path in relevant_markdown_files(directory):
-            rel = file_path.relative_to(spec_root).as_posix()
-            summary = summary_from_markdown(file_path)
-            if summary:
-                lines.append(f"{indent}- `{rel}` — {summary}")
-            else:
-                lines.append(f"{indent}- `{rel}`")
-
+    for warning in graph.warnings:
+        lines.append(f"- warning: {warning}")
     return lines
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file", help="Read one spec file relative to .superpowers/spec")
-    parser.add_argument("--category", help="Read a category index relative to .superpowers/spec")
-    parser.add_argument("--tree", action="store_true", help="Render a lightweight recursive summary tree")
+    parser.add_argument("--file", help="Read one indexed spec file relative to .superpowers/spec")
+    parser.add_argument("--category", help="Compatibility alias: read an indexed directory index relative to .superpowers/spec")
+    parser.add_argument("--tree", action="store_true", help="Render a lightweight index-driven summary tree")
     parser.add_argument("--depth", type=int, default=2, help="Maximum tree depth for --tree")
     args = parser.parse_args()
 
@@ -73,20 +56,25 @@ def main() -> int:
         if not is_path_within(spec_root.resolve(), target) or not target.is_file():
             print(f"Spec file not found: {args.file}", file=sys.stderr)
             return 1
+        if not is_indexed_spec_path(spec_root, target, include_indexes=True):
+            print(f"Spec file is not indexed: {args.file}", file=sys.stderr)
+            return 1
         print(read_text(target))
         return 0
 
     if args.category:
         target = (spec_root / args.category / "index.md").resolve()
         if not is_path_within(spec_root.resolve(), target) or not target.is_file():
-            print(f"Category index not found: {args.category}", file=sys.stderr)
+            print(f"Indexed path not found: {args.category}", file=sys.stderr)
+            return 1
+        if not is_indexed_spec_path(spec_root, target, include_indexes=True):
+            print(f"Spec index is not indexed: {args.category}", file=sys.stderr)
             return 1
         print(read_text(target))
         return 0
 
     if args.tree:
-        ignored_dir_names = load_ignored_dir_names(spec_root)
-        tree = render_tree(spec_root, spec_root, max(args.depth, 0), ignored_dir_names)
+        tree = render_tree(spec_root, max(args.depth, 0))
         if not tree:
             print("- No spec indexes discovered yet")
         else:

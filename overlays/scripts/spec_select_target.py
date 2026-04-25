@@ -4,46 +4,53 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import sys
 
-from spec_common import repo_root, relevant_markdown_files, relevant_child_directories, load_ignored_dir_names
+from spec_common import build_spec_index_graph, repo_root, summary_from_markdown
 
 
-def gather_leaf_specs(directory: Path, ignored: set[str]) -> list[Path]:
-    results = list(relevant_markdown_files(directory))
-    for child in relevant_child_directories(directory, ignored):
-        results.extend(gather_leaf_specs(child, ignored))
-    return sorted(results)
+def tokenize(value: str) -> list[str]:
+    return [token for token in re.split(r'[^a-z0-9]+', value.lower()) if token]
+
+
+def score_candidate(path: Path, rel: str, summary: str, tokens: list[str]) -> float:
+    score = 0.0
+    filename = path.name.lower()
+    rel_lower = rel.lower()
+    summary_lower = summary.lower()
+    for token in tokens:
+        if token in filename:
+            score += 4.0
+        elif token in rel_lower:
+            score += 3.0
+        if token in summary_lower:
+            score += 2.0
+    return score
 
 
 def choose_target(spec_root: Path, hint: str) -> str:
-    ignored = load_ignored_dir_names(spec_root)
-    leaves = gather_leaf_specs(spec_root, ignored)
-    if not leaves:
+    graph = build_spec_index_graph(spec_root)
+    if not graph.leaves:
         return '<create-new-leaf-spec>'
 
-    hint_l = hint.lower()
-    for path in leaves:
+    tokens = tokenize(hint)
+    if not tokens:
+        return graph.leaves[0].relative_to(spec_root).as_posix()
+
+    rows: list[tuple[float, str]] = []
+    for path in graph.leaves:
         rel = path.relative_to(spec_root).as_posix()
-        if hint_l and hint_l in rel.lower():
-            return rel
+        summary = summary_from_markdown(path)
+        score = score_candidate(path, rel, summary, tokens)
+        if score > 0:
+            rows.append((score, rel))
 
-    keyword_map = [
-        ('error', 'error-handling.md'),
-        ('contract', 'contract.md'),
-        ('api', 'contract.md'),
-        ('component', 'component.md'),
-        ('frontend', 'frontend/'),
-        ('backend', 'backend/'),
-    ]
-    for key, needle in keyword_map:
-        if key in hint_l:
-            for path in leaves:
-                rel = path.relative_to(spec_root).as_posix()
-                if needle in rel:
-                    return rel
+    if rows:
+        rows.sort(key=lambda item: (-item[0], item[1]))
+        return rows[0][1]
 
-    return leaves[0].relative_to(spec_root).as_posix()
+    return graph.leaves[0].relative_to(spec_root).as_posix()
 
 
 def main() -> int:

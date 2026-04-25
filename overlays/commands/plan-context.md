@@ -23,7 +23,7 @@ python3 superpowers/scripts/plan-context.py current
 Add planning-selected spec context:
 
 ```bash
-python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/backend/example.md --reason "Explains the contract this plan changes"
+python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/topic/example.md --reason "Explains the contract this plan changes"
 ```
 
 Add implementation-only context:

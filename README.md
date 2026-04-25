@@ -27,38 +27,58 @@ Install-related commands still target the user's installed Superpowers Claude Co
 
 ## Bootstrap specs
 
-Initialize the minimum project spec structure without overwriting existing files:
+Import a spec template into a target project without overwriting existing user files:
 
 ```bash
 ./superpower-adapter/manage.sh bootstrap-spec /path/to/project
 ```
 
-Optionally create starter category indexes in the same command:
+In non-interactive environments, pass a named template:
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project backend frontend guides
+./superpower-adapter/manage.sh bootstrap-spec /path/to/project --template standard
 ```
 
-Or use presets:
+Templates are listed from `https://github.com/YWJ-hy/superpowers-spec-adapter/tree/main/spec-template`. Each directory under `spec-template/` is a template name. The selected template is imported into `.superpowers/spec/` and must contain an entry `index.md`.
+
+Template structure is index-driven:
+- `index.md` is the entry index for the template.
+- Any child directory can contain its own `index.md`.
+- Leaf spec files are discoverable only when linked from `index.md` or a child index.
+- `index.md` may link to same-level or deep files/directories; scripts do not assume fixed spec directories.
+
+Existing files are never overwritten. If a target file exists with different content, bootstrap exits with a conflict list before copying anything.
+
+## Initialize starter spec knowledge
+
+After bootstrapping the directory structure, initialize first-pass spec content from the current project:
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset web
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset fullstack
+./superpower-adapter/manage.sh init-spec /path/to/project
+./superpower-adapter/manage.sh init-spec /path/to/project "payments and order workflow"
 ```
 
-Presets:
-- `web` -> `frontend guides`
-- `backend` -> `backend guides`
-- `fullstack` -> `backend frontend guides`
+This command:
+- ensures `.superpowers/spec/` exists
+- uses the existing `.superpowers/spec` topic files as the initialization targets
+- analyzes the visible repository shape
+- appends first-pass initialization knowledge without overwriting existing user-authored spec files
+- refreshes the progressive-disclosure index chain
 
-Preset categories and explicit category arguments can be combined.
-Preset-backed categories also get richer starter `index.md` content for `backend`, `frontend`, and `guides`.
+Use this only to help the user initialize spec knowledge.
+During ongoing development, continue writing durable knowledge with `update-spec`.
 
-This creates:
-- `.superpowers/spec/index.md`
-- `.superpowers/spec/.adapter-ignore`
-- optional category directories with `index.md`
+## Import existing specs
+
+Convert a user-provided spec directory into adapter `.superpowers/spec` format without losing the original content:
+
+```bash
+python3 superpowers/scripts/spec_import.py path/to/original-spec-dir
+python3 superpowers/scripts/spec_import.py path/to/original-spec-dir --hint "api contract"
+```
+
+The import recursively scans source spec files, routes each file to an adapter leaf spec, appends into existing `.superpowers/spec` files when they already exist, and preserves every full source file between imported-original markers.
+Use this for one-time conversion of existing spec directories; use `update-spec` for ongoing durable knowledge updates.
 
 ## Update specs
 
@@ -67,16 +87,16 @@ From a project root that contains or should contain `.superpowers/spec/`:
 1. use the one-shot command when you already know the hint, title, why, and rules
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
+python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
 ```
 
 2. or use the staged path for more control
 
 ```bash
 python3 superpowers/scripts/spec_select_target.py "error handling"
-python3 superpowers/scripts/spec_update_prompt.py backend/error-handling.md
-python3 superpowers/scripts/spec_update_template.py backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
-python3 superpowers/scripts/spec_apply_update.py backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
+python3 superpowers/scripts/spec_update_prompt.py <target-spec-relative-path>
+python3 superpowers/scripts/spec_update_template.py <target-spec-relative-path> "Error normalization" "Prevent inconsistent API error shapes."
+python3 superpowers/scripts/spec_apply_update.py <target-spec-relative-path> "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
 python3 superpowers/scripts/update-spec.py
 ```
 
@@ -146,8 +166,8 @@ python3 superpowers/scripts/spec_select_context.py "error handling" --phase revi
 Before deciding whether to update `.superpowers/spec/`, run:
 
 ```bash
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+python3 superpowers/scripts/spec_update_check.py --summary "normalize api error contract"
+python3 superpowers/scripts/spec_update_check.py --summary "normalize api error contract" --changed-file src/api/error_handler.py --json
 ```
 
 This returns `NO_UPDATE_NEEDED`, `RECOMMEND_UPDATE`, or `STRONGLY_RECOMMEND_UPDATE`.
@@ -180,7 +200,7 @@ Useful commands:
 
 ```bash
 python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/<stem>.md --set-current
-python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/backend/example.md --reason "Why this spec matters"
+python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/topic/example.md --reason "Why this spec matters"
 python3 superpowers/scripts/plan-context.py render --phase implement
 python3 superpowers/scripts/plan-context.py render --phase review
 python3 superpowers/scripts/plan-context.py verify --current

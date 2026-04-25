@@ -19,10 +19,8 @@ from plan_context_common import (
     validate_plan_location,
 )
 from spec_common import (
-    load_ignored_dir_names,
+    build_spec_index_graph,
     repo_root,
-    relevant_child_directories,
-    relevant_markdown_files,
     summary_from_markdown,
 )
 
@@ -67,42 +65,21 @@ def score_candidate(path: Path, rel: str, summary: str, tokens: list[str], phase
     return score, reasons
 
 
-def collect_candidates(spec_root: Path, ignored_dir_names: set[str]) -> list[Path]:
-    candidates: list[Path] = []
-
-    root_index = spec_root / 'index.md'
-    if root_index.is_file():
-        candidates.append(root_index)
-
-    for directory in relevant_child_directories(spec_root, ignored_dir_names):
-        index_path = directory / 'index.md'
-        if index_path.is_file():
-            candidates.append(index_path)
-
-    for path in sorted(spec_root.rglob('*.md')):
-        if not path.is_file():
-            continue
-        if any(part.startswith('.') for part in path.relative_to(spec_root).parts):
-            continue
-        if any(part in ignored_dir_names for part in path.relative_to(spec_root).parts[:-1]):
-            continue
-        if path not in candidates:
-            candidates.append(path)
-
-    return candidates
+def collect_candidates(spec_root: Path) -> list[Path]:
+    graph = build_spec_index_graph(spec_root)
+    return graph.files
 
 
-def select_candidates(spec_root: Path, hint: str, phase: str, limit: int, categories: list[str]) -> list[dict]:
-    ignored_dir_names = load_ignored_dir_names(spec_root)
+def select_candidates(spec_root: Path, hint: str, phase: str, limit: int, prefixes: list[str]) -> list[dict]:
     tokens = tokenize(hint)
-    category_set = {item.lower() for item in categories}
+    prefix_set = {item.strip('/').lower() for item in prefixes if item.strip('/')}
     rows: list[dict] = []
 
-    for path in collect_candidates(spec_root, ignored_dir_names):
+    for path in collect_candidates(spec_root):
         rel = path.relative_to(spec_root).as_posix()
         rel_for_output = f'.superpowers/spec/{rel}'
-        parts = path.relative_to(spec_root).parts
-        if category_set and (not parts or parts[0].lower() not in category_set):
+        rel_lower = rel.lower()
+        if prefix_set and not any(rel_lower == prefix or rel_lower.startswith(prefix + '/') for prefix in prefix_set):
             continue
 
         summary = summary_from_markdown(path)
@@ -128,11 +105,11 @@ def render_text(hint: str, phase: str, candidates: list[dict], wrote_count: int 
         f'Hint: {hint}',
         f'Phase: {phase}',
         '',
-        'Recommended spec candidates:',
+        'Recommended indexed spec candidates:',
     ]
 
     if not candidates:
-        lines.append('- No matching spec candidates found')
+        lines.append('- No matching indexed spec candidates found')
         return '\n'.join(lines)
 
     for index, item in enumerate(candidates, start=1):
@@ -191,7 +168,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument('hint')
     parser.add_argument('--phase', choices=('plan', 'implement', 'review'), default='plan')
-    parser.add_argument('--category', action='append', default=[])
+    parser.add_argument('--category', action='append', default=[], help='Compatibility alias for --under')
+    parser.add_argument('--under', action='append', default=[], help='Only include indexed specs under this path prefix')
     parser.add_argument('--limit', type=int, default=5)
     parser.add_argument('--json', action='store_true')
     parser.add_argument('--write-sidecar', action='store_true')
@@ -214,7 +192,7 @@ def main() -> int:
         hint=args.hint,
         phase=args.phase,
         limit=max(args.limit, 1),
-        categories=args.category,
+        prefixes=[*args.category, *args.under],
     )
 
     wrote_count = 0

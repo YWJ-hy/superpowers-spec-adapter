@@ -31,12 +31,12 @@ Do not treat `index.md` files as the main place for detailed rules. Keep detaile
 
 | Trigger | Example | Target Spec |
 |---|---|---|
-| Implemented a feature | Added a new request flow | Relevant `backend/*.md` or `frontend/*.md` |
-| Fixed a bug | Found non-obvious error handling behavior | Relevant leaf spec such as `backend/error-handling.md` |
-| Made a design decision | Chose one contract shape over another | Relevant leaf spec + design-decision section |
-| Found a reusable pattern | Better way to structure components or APIs | Relevant leaf spec |
-| Found a gotcha | Learned that X must happen before Y | Relevant leaf spec or `guides/*.md` |
-| Need a checklist | Something people should remember to consider | `guides/*.md` |
+| Implemented a feature | Added a new request flow | Relevant indexed leaf spec |
+| Fixed a bug | Found non-obvious error handling behavior | Relevant indexed leaf spec |
+| Made a design decision | Chose one contract shape over another | Relevant indexed leaf spec + design-decision section |
+| Found a reusable pattern | Better way to structure components or APIs | Relevant indexed leaf spec |
+| Found a gotcha | Learned that X must happen before Y | Relevant indexed leaf spec or guide |
+| Need a checklist | Something people should remember to consider | Indexed guide spec |
 
 ---
 
@@ -44,14 +44,14 @@ Do not treat `index.md` files as the main place for detailed rules. Keep detaile
 
 Use this rule:
 
-- **This is how to implement safely** → `backend/*.md` or `frontend/*.md`
-- **This is what to think about before implementing** → `guides/*.md`
+- **This is how to implement safely** → a relevant indexed leaf spec
+- **This is what to think about before implementing** → an indexed guide/checklist spec
 
 Examples:
-- request/response contract shape → backend spec
-- UI component state rule → frontend spec
-- release readiness reminder → guide
-- migration review checklist → guide
+- request/response contract shape → indexed contract spec
+- UI component state rule → indexed UI spec
+- release readiness reminder → indexed release guide
+- migration review checklist → indexed migration guide
 
 ---
 
@@ -139,7 +139,7 @@ Before finishing the update:
 If you already know the hint, title, why, and rules:
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
+python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
 ```
 
 This will:

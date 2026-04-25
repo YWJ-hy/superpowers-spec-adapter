@@ -9,9 +9,20 @@ PLAN_PATH="docs/superpowers/plans/plan-context-regression.md"
 PLAN_ABS="${PROJECT_ROOT}/${PLAN_PATH}"
 CONTEXT_DIR="${PROJECT_ROOT}/docs/superpowers/plans/plan-context-regression.context"
 CURRENT_PLAN="${PROJECT_ROOT}/.superpowers/current-plan"
-SPEC_PATH="${PROJECT_ROOT}/.superpowers/spec/backend/error-handling.md"
+SPEC_ROOT="${PROJECT_ROOT}/.superpowers/spec"
+SPEC_PATH="${SPEC_ROOT}/quality/error-rules.md"
+UNINDEXED_SPEC="${SPEC_ROOT}/quality/unindexed.md"
 
-mkdir -p "${PROJECT_ROOT}/docs/superpowers/plans"
+mkdir -p "${PROJECT_ROOT}/docs/superpowers/plans" "${SPEC_ROOT}/quality"
+cat > "${SPEC_ROOT}/index.md" <<'EOF'
+# Project Specs
+
+<!-- superpower-adapter:auto:start -->
+- `quality/error-rules.md`
+<!-- superpower-adapter:auto:end -->
+EOF
+printf '# Error Rules\n\nStable error handling behavior.\n' > "${SPEC_PATH}"
+printf '# Unindexed\n\nNot selectable.\n' > "${UNINDEXED_SPEC}"
 printf '# Plan Context Regression Test\n\n- [ ] Verify dedupe, render budget, and workflow gate\n' > "${PLAN_ABS}"
 rm -rf "${CONTEXT_DIR}"
 rm -f "${CURRENT_PLAN}"
@@ -23,9 +34,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-python3 "${TARGET_INPUT}/scripts/plan-context.py" init "${PLAN_ABS}" --set-current
-python3 "${TARGET_INPUT}/scripts/plan-context.py" add --phase plan --plan "${PLAN_ABS}" --spec "${SPEC_PATH}" --reason "Initial regression context" --mode summary
-python3 "${TARGET_INPUT}/scripts/plan-context.py" add --phase plan --plan "${PLAN_ABS}" --spec "${SPEC_PATH}" --reason "Upgraded regression context" --mode full
+(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" init "${PLAN_PATH}" --set-current)
+if (cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" add --phase plan --plan "${PLAN_PATH}" --spec "${UNINDEXED_SPEC}" --reason "Should fail" --mode summary 2>/dev/null); then
+  printf 'Expected unindexed spec add to fail\n' >&2
+  exit 1
+fi
+(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" add --phase plan --plan "${PLAN_PATH}" --spec "${SPEC_PATH}" --reason "Initial regression context" --mode summary)
+(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" add --phase plan --plan "${PLAN_PATH}" --spec "${SPEC_PATH}" --reason "Upgraded regression context" --mode full)
 
 python3 - <<'PY' "${CONTEXT_DIR}/plan.jsonl"
 import json, sys
@@ -40,15 +55,15 @@ if row.get('reason') != 'Upgraded regression context':
     raise SystemExit(f"Expected merged reason, got {row.get('reason')}")
 PY
 
-python3 "${TARGET_INPUT}/scripts/workflow-gate.py" implement --plan "${PLAN_ABS}" > /dev/null
+(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/workflow-gate.py" implement --plan "${PLAN_PATH}" > /dev/null)
 
-render_output="$(python3 "${TARGET_INPUT}/scripts/plan-context.py" render --phase implement --plan "${PLAN_ABS}" --max-full 0)"
+render_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" render --phase implement --plan "${PLAN_PATH}" --max-full 0)"
 case "${render_output}" in
   *"Downgraded to summary"*) : ;;
   *) printf 'Expected render output to mention downgrade to summary\n' >&2; exit 1 ;;
 esac
 
-render_json="$(python3 "${TARGET_INPUT}/scripts/plan-context.py" render --phase implement --plan "${PLAN_ABS}" --json --max-full 0)"
+render_json="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" render --phase implement --plan "${PLAN_PATH}" --json --max-full 0)"
 python3 - <<'PY' "${render_json}"
 import json, sys
 payload = json.loads(sys.argv[1])
@@ -67,7 +82,7 @@ if not budget.get('downgraded'):
     raise SystemExit('Expected downgraded list to be non-empty')
 PY
 
-completion_output="$(python3 "${TARGET_INPUT}/scripts/workflow-gate.py" completion --plan "${PLAN_ABS}" --summary "normalize backend error contract" || true)"
+completion_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/workflow-gate.py" completion --plan "${PLAN_PATH}" --summary "normalize api error contract" || true)"
 case "${completion_output}" in
   *"Status: WARN"* ) : ;;
   *) printf 'Expected completion gate to warn about durable knowledge\n' >&2; exit 1 ;;

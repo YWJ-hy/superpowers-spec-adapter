@@ -28,7 +28,7 @@ from plan_context_common import (
     validate_plan_location,
     write_jsonl,
 )
-from spec_common import is_path_within, read_text, repo_root, summary_from_markdown
+from spec_common import is_indexed_spec_path, is_path_within, read_text, repo_root, summary_from_markdown
 
 
 def die(message: str) -> int:
@@ -329,6 +329,8 @@ def resolve_spec_path(root: Path, value: str) -> Path:
         raise ValueError(f'Spec path must live under {DEFAULT_SPEC_ROOT.as_posix()}: {value}')
     if not spec.is_file():
         raise ValueError(f'Spec file not found: {value}')
+    if not is_indexed_spec_path(spec_root, spec, include_indexes=True):
+        raise ValueError(f'Spec file is not referenced by {DEFAULT_SPEC_ROOT.as_posix()}/index.md: {value}')
     return spec
 
 
@@ -487,6 +489,10 @@ def verify_jsonl_records(root: Path, context_dir: Path, filename: str) -> list[s
             continue
         if not target.is_file():
             problems.append(f'{filename}: referenced file missing: {rel}')
+            continue
+        spec_root = (root / DEFAULT_SPEC_ROOT).resolve()
+        if is_path_within(spec_root, target) and not is_indexed_spec_path(spec_root, target, include_indexes=True):
+            problems.append(f'{filename}: referenced spec is not indexed: {rel}')
     return problems
 
 

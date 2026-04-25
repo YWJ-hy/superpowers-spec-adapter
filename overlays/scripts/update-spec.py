@@ -3,107 +3,73 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from spec_common import (
-    child_directory_summary,
-    is_ignored_directory,
-    load_ignored_dir_names,
-    relevant_child_directories,
-    relevant_markdown_files,
+    AUTO_END,
+    AUTO_START,
+    ENTRY_STUB,
+    build_spec_index_graph,
     repo_root,
     summary_from_markdown,
-    has_relevant_content,
 )
 
-AUTO_START = "<!-- superpower-adapter:auto:start -->"
-AUTO_END = "<!-- superpower-adapter:auto:end -->"
-ENTRY_STUB = "# Project Specs\n\nUse this file as the entry point for project-specific specs.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
-CHILD_STUB = "# Spec Index\n\nSummarize this section and keep links to narrower spec files below.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
+
+def ensure_root_index(spec_root: Path) -> Path:
+    index_path = spec_root / "index.md"
+    if not index_path.exists():
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.write_text(ENTRY_STUB, encoding="utf-8")
+    return index_path
 
 
-def ensure_index(path: Path, stub: str) -> None:
-    if not path.exists():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(stub, encoding="utf-8")
+def update_backtick_summary(line: str, index_path: Path, spec_root: Path) -> str:
+    match = re.search(r"`([^`]+)`", line)
+    if not match:
+        return line
+    raw = match.group(1)
+    clean = raw.split("#", 1)[0].strip()
+    if not clean or "://" in clean or clean.startswith("/"):
+        return line
+    target = (index_path.parent / clean).resolve()
+    if clean.endswith("/") or (target.exists() and target.is_dir()):
+        target = (target / "index.md").resolve()
+    if not target.is_file() or not target.suffix == ".md":
+        return line
+    try:
+        target.relative_to(spec_root.resolve())
+    except ValueError:
+        return line
+    summary = summary_from_markdown(target)
+    prefix = line.split(" — ", 1)[0]
+    return prefix + (f" — {summary}" if summary else "")
 
 
-def replace_auto_section(text: str, content: str) -> str:
+def refresh_auto_section(index_path: Path, spec_root: Path) -> None:
+    text = index_path.read_text(encoding="utf-8")
     if AUTO_START not in text or AUTO_END not in text:
-        text = text.rstrip() + "\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
+        return
     start = text.index(AUTO_START) + len(AUTO_START)
     end = text.index(AUTO_END)
-    body = "\n" + content.rstrip() + "\n" if content.strip() else "\n"
-    return text[:start] + body + text[end:]
-
-
-def index_stub_for(path: Path, spec_root: Path) -> str:
-    return ENTRY_STUB if path == spec_root / "index.md" else CHILD_STUB
-
-
-def ensure_directory_indexes(spec_root: Path, ignored_dir_names: set[str]) -> list[Path]:
-    indexes = [spec_root / "index.md"]
-    ensure_index(indexes[0], ENTRY_STUB)
-
-    for directory in sorted(path for path in spec_root.rglob("*") if path.is_dir() and not is_ignored_directory(path, ignored_dir_names)):
-        if has_relevant_content(directory, ignored_dir_names):
-            index_path = directory / "index.md"
-            ensure_index(index_path, CHILD_STUB)
-            indexes.append(index_path)
-
-    return indexes
-
-
-def render_index(index_path: Path, ignored_dir_names: set[str]) -> str:
-    directory = index_path.parent
-    child_dirs = relevant_child_directories(directory, ignored_dir_names)
-    leaf_files = relevant_markdown_files(directory)
-    lines: list[str] = []
-
-    if child_dirs:
-        lines.extend(["## Auto-discovered child indexes", ""])
-        for child in child_dirs:
-            child_index = child / "index.md"
-            rel = child_index.relative_to(directory).as_posix()
-            summary = child_directory_summary(child, ignored_dir_names)
-            if summary:
-                lines.append(f"- `{rel}` — {summary}")
-            else:
-                lines.append(f"- `{rel}`")
-        lines.append("")
-
-    if leaf_files:
-        lines.extend(["## Auto-discovered leaf files", ""])
-        for file_path in leaf_files:
-            rel = file_path.relative_to(directory).as_posix()
-            summary = summary_from_markdown(file_path)
-            if summary:
-                lines.append(f"- `{rel}` — {summary}")
-            else:
-                lines.append(f"- `{rel}`")
-        lines.append("")
-
-    if not child_dirs and not leaf_files:
-        lines.extend(["## Auto-discovered contents", "", "- No child indexes or leaf spec files discovered yet", ""])
-
-    content = "\n".join(lines).rstrip()
-    existing = index_path.read_text(encoding="utf-8")
-    return replace_auto_section(existing, content)
+    lines = [update_backtick_summary(line, index_path, spec_root) for line in text[start:end].splitlines()]
+    body = "\n" + "\n".join(lines).strip() + "\n" if any(line.strip() for line in lines) else "\n"
+    index_path.write_text(text[:start] + body + text[end:], encoding="utf-8")
 
 
 def main() -> int:
     root = repo_root(Path.cwd())
     spec_root = root / ".superpowers" / "spec"
     spec_root.mkdir(parents=True, exist_ok=True)
+    ensure_root_index(spec_root)
 
-    ignored_dir_names = load_ignored_dir_names(spec_root)
-    indexes = ensure_directory_indexes(spec_root, ignored_dir_names)
+    graph = build_spec_index_graph(spec_root)
+    for index_path in graph.indexes:
+        refresh_auto_section(index_path, spec_root)
 
-    for index_path in indexes:
-        ensure_index(index_path, index_stub_for(index_path, spec_root))
-        index_path.write_text(render_index(index_path, ignored_dir_names), encoding="utf-8")
-
-    print(f"Updated spec indexes under {spec_root}")
+    for warning in graph.warnings:
+        print(f"Warning: {warning}")
+    print(f"Updated indexed spec references under {spec_root}")
     return 0
 
 

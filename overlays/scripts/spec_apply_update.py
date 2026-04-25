@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-from spec_common import repo_root, is_path_within
+from spec_common import append_index_reference, is_indexed_spec_path, is_path_within, repo_root
 
 
 SECTION_PREFIX = '## Update: '
@@ -134,10 +134,16 @@ def main() -> int:
     target = (spec_root / target_rel).resolve()
     if not is_path_within(spec_root.resolve(), target):
         raise SystemExit(f'Invalid target: {target_rel}')
+    if target.suffix != '.md':
+        raise SystemExit(f'Target must be a markdown file: {target_rel}')
+    if target.name == 'index.md':
+        raise SystemExit('Use leaf spec files for durable update bodies; index.md is reserved for navigation')
 
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
         target.write_text(f'# {title}\n\n', encoding='utf-8')
+    if not is_indexed_spec_path(spec_root, target, include_indexes=False):
+        append_index_reference(spec_root, target)
 
     existing = target.read_text(encoding='utf-8')
     updated = merge_update_block(existing, title, why, rules)

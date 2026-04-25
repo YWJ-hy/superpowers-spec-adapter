@@ -11,9 +11,9 @@ Rules:
 1. Keep the plan markdown file as the primary plan artifact. Do not migrate it into a directory-based plan format.
 2. Treat `docs/superpowers/plans/<stem>.context/` as the durable sidecar context bundle for that plan.
 3. Treat `.superpowers/current-plan` as the current-plan pointer when it exists.
-4. During planning, select the minimum relevant spec files from `.superpowers/spec/` and record them into `plan.jsonl`.
+4. During planning, select the minimum relevant spec files reachable from `.superpowers/spec/index.md` and record them into `plan.jsonl`.
 5. During implementation, consume `plan.jsonl` plus `implement.jsonl` instead of re-selecting specs from scratch.
 6. During review, consume `plan.jsonl` plus `review.jsonl` instead of re-selecting specs from scratch.
-7. Only fall back to fresh `.superpowers/spec` discovery when the sidecar is missing, invalid, or clearly insufficient for the current work.
+7. Only fall back to fresh `.superpowers/spec/index.md` discovery when the sidecar is missing, invalid, or clearly insufficient for the current work.
 8. Use `python3 superpowers/scripts/plan-context.py render --phase implement` or `--phase review` to materialize the selected context before implementation or review.
 9. Keep sidecar records concise: path, reason, and summary-first unless full text is truly needed.

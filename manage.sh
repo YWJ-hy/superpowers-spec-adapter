@@ -11,7 +11,8 @@ usage() {
   printf '  %s uninstall [superpowers-target]\n' "$0" >&2
   printf '  %s verify [superpowers-target]\n' "$0" >&2
   printf '  %s status [superpowers-target]\n' "$0" >&2
-  printf '  %s bootstrap-spec <project-root> [--preset web|backend|fullstack] [categories...]\n' "$0" >&2
+  printf '  %s bootstrap-spec <project-root> [--template name] [--ref ref]\n' "$0" >&2
+  printf '  %s init-spec <project-root> [analysis-hint]\n' "$0" >&2
   printf '  %s doctor <project-root> [superpowers-target]\n' "$0" >&2
   printf '  %s export-manifest <project-root> [output-path] [superpowers-target]\n' "$0" >&2
   printf '  %s self-test <project-root> [superpowers-target]\n' "$0" >&2
@@ -49,6 +50,10 @@ case "$COMMAND" in
   bootstrap-spec)
     require_project_root "${1:-}"
     exec "$SCRIPT_DIR/bootstrap-spec.sh" "$@"
+    ;;
+  init-spec)
+    require_project_root "${1:-}"
+    exec "$SCRIPT_DIR/init-spec.sh" "$@"
     ;;
   doctor)
     require_project_root "${1:-}"

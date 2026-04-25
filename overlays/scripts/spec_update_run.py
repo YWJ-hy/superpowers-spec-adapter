@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
 
-from spec_common import repo_root
+
+def slugify(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
+    return slug or "spec-update"
 
 
 def main() -> int:
@@ -25,6 +29,8 @@ def main() -> int:
         [sys.executable, str(scripts / 'spec_select_target.py'), hint],
         text=True,
     ).strip()
+    if target == '<create-new-leaf-spec>':
+        target = f'updates/{slugify(title)}.md'
 
     subprocess.check_call(
         [sys.executable, str(scripts / 'spec_apply_update.py'), target, title, why, *rules]

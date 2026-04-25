@@ -3,9 +3,41 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
+import re
 
 DEFAULT_IGNORED_DIR_NAMES = {"draft", "archive", "examples"}
+AUTO_START = "<!-- superpower-adapter:auto:start -->"
+AUTO_END = "<!-- superpower-adapter:auto:end -->"
+ENTRY_STUB = "# Project Specs\n\nUse this file as the entry point for project-specific specs.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
+
+
+@dataclass(frozen=True)
+class IndexReference:
+    source: Path
+    raw: str
+    target: Path
+    kind: str
+
+
+@dataclass
+class SpecIndexGraph:
+    spec_root: Path
+    indexes: list[Path] = field(default_factory=list)
+    leaves: list[Path] = field(default_factory=list)
+    directories: list[Path] = field(default_factory=list)
+    missing: list[str] = field(default_factory=list)
+    invalid: list[str] = field(default_factory=list)
+    cycles: list[str] = field(default_factory=list)
+
+    @property
+    def files(self) -> list[Path]:
+        return [*self.indexes, *self.leaves]
+
+    @property
+    def warnings(self) -> list[str]:
+        return [*self.invalid, *self.missing, *self.cycles]
 
 
 def repo_root(start: Path) -> Path:
@@ -113,3 +145,196 @@ def is_path_within(root: Path, target: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def rel_posix(root: Path, target: Path) -> str:
+    return target.relative_to(root).as_posix()
+
+
+def replace_auto_section(text: str, content: str) -> str:
+    if AUTO_START not in text or AUTO_END not in text:
+        text = text.rstrip() + "\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
+    start = text.index(AUTO_START) + len(AUTO_START)
+    end = text.index(AUTO_END)
+    body = "\n" + content.rstrip() + "\n" if content.strip() else "\n"
+    return text[:start] + body + text[end:]
+
+
+def _candidate_refs(text: str) -> list[str]:
+    refs: list[str] = []
+    refs.extend(match.group(1).strip() for match in re.finditer(r"\[[^\]]+\]\(([^)]+)\)", text))
+    refs.extend(match.group(1).strip() for match in re.finditer(r"`([^`]+)`", text))
+    for line in text.splitlines():
+        stripped = line.strip()
+        match = re.match(r"^[-*]\s+([^\s`][^\s]*(?:\.md|/))\s*(?:$|[—#])", stripped)
+        if match:
+            refs.append(match.group(1).strip())
+    return list(dict.fromkeys(refs))
+
+
+def _is_external_ref(raw: str) -> bool:
+    lowered = raw.lower()
+    return (
+        not raw
+        or raw.startswith("#")
+        or "://" in raw
+        or lowered.startswith("mailto:")
+        or raw.startswith("/")
+    )
+
+
+def _has_hidden_part(path: Path) -> bool:
+    return any(part.startswith(".") and part not in {".", ".."} for part in path.parts)
+
+
+def _resolve_reference(index_path: Path, spec_root: Path, raw: str, ignored_dir_names: set[str]) -> tuple[Path | None, str, str | None]:
+    clean = raw.split("#", 1)[0].strip()
+    if _is_external_ref(clean):
+        return None, "invalid", f"Ignored unsupported reference from {rel_posix(spec_root, index_path)}: {raw}"
+
+    rel_path = Path(clean)
+    if any(part == ".." for part in rel_path.parts):
+        return None, "invalid", f"Rejected escaping reference from {rel_posix(spec_root, index_path)}: {raw}"
+    if _has_hidden_part(rel_path):
+        return None, "invalid", f"Rejected hidden-path reference from {rel_posix(spec_root, index_path)}: {raw}"
+    if any(part in ignored_dir_names for part in rel_path.parts[:-1]):
+        return None, "invalid", f"Rejected ignored-directory reference from {rel_posix(spec_root, index_path)}: {raw}"
+
+    candidate = (index_path.parent / rel_path).resolve()
+    if not is_path_within(spec_root.resolve(), candidate):
+        return None, "invalid", f"Rejected out-of-spec reference from {rel_posix(spec_root, index_path)}: {raw}"
+
+    is_directory_ref = clean.endswith("/") or (candidate.exists() and candidate.is_dir())
+    if is_directory_ref:
+        candidate = candidate / "index.md"
+        kind = "index"
+    elif candidate.name == "index.md":
+        kind = "index"
+    elif candidate.suffix == ".md":
+        kind = "leaf"
+    else:
+        return None, "invalid", f"Rejected non-markdown reference from {rel_posix(spec_root, index_path)}: {raw}"
+
+    return candidate.resolve(), kind, None
+
+
+def parse_index_references(index_path: Path, spec_root: Path) -> list[IndexReference]:
+    ignored_dir_names = load_ignored_dir_names(spec_root)
+    text = index_path.read_text(encoding="utf-8") if index_path.is_file() else ""
+    references: list[IndexReference] = []
+    for raw in _candidate_refs(text):
+        target, kind, _ = _resolve_reference(index_path, spec_root, raw, ignored_dir_names)
+        if target is not None:
+            references.append(IndexReference(index_path, raw, target, kind))
+    return references
+
+
+def build_spec_index_graph(spec_root: Path) -> SpecIndexGraph:
+    graph = SpecIndexGraph(spec_root=spec_root.resolve())
+    ignored_dir_names = load_ignored_dir_names(spec_root)
+    root_index = (spec_root / "index.md").resolve()
+    visited: set[Path] = set()
+    visiting: set[Path] = set()
+    seen_leaves: set[Path] = set()
+    seen_dirs: set[Path] = set()
+
+    def add_index(index_path: Path) -> None:
+        if index_path in visiting:
+            graph.cycles.append(f"Cycle detected at {rel_posix(spec_root.resolve(), index_path)}")
+            return
+        if index_path in visited:
+            return
+        if not index_path.is_file():
+            graph.missing.append(f"Missing index: {rel_posix(spec_root.resolve(), index_path)}")
+            return
+
+        visiting.add(index_path)
+        visited.add(index_path)
+        graph.indexes.append(index_path)
+        try:
+            text = index_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            graph.invalid.append(f"Could not read {rel_posix(spec_root.resolve(), index_path)}: {exc}")
+            visiting.remove(index_path)
+            return
+
+        for raw in _candidate_refs(text):
+            target, kind, error = _resolve_reference(index_path, spec_root.resolve(), raw, ignored_dir_names)
+            if error:
+                graph.invalid.append(error)
+                continue
+            if target is None:
+                continue
+            if kind == "index":
+                directory = target.parent
+                if directory not in seen_dirs:
+                    seen_dirs.add(directory)
+                    graph.directories.append(directory)
+                if target.exists():
+                    add_index(target)
+                else:
+                    graph.missing.append(f"Missing index referenced from {rel_posix(spec_root.resolve(), index_path)}: {raw}")
+            elif target.exists() and target.is_file():
+                if target not in seen_leaves:
+                    seen_leaves.add(target)
+                    graph.leaves.append(target)
+            else:
+                graph.missing.append(f"Missing spec referenced from {rel_posix(spec_root.resolve(), index_path)}: {raw}")
+
+        visiting.remove(index_path)
+
+    if root_index.is_file():
+        add_index(root_index)
+    else:
+        graph.missing.append("Missing index: index.md")
+
+    graph.indexes.sort(key=lambda path: (path != root_index, rel_posix(spec_root.resolve(), path)))
+    graph.leaves.sort(key=lambda path: rel_posix(spec_root.resolve(), path))
+    graph.directories.sort(key=lambda path: rel_posix(spec_root.resolve(), path))
+    return graph
+
+
+def iter_indexed_spec_files(spec_root: Path, include_indexes: bool = False) -> list[Path]:
+    graph = build_spec_index_graph(spec_root)
+    return graph.files if include_indexes else graph.leaves
+
+
+def is_indexed_spec_path(spec_root: Path, path: Path, include_indexes: bool = True) -> bool:
+    target = path.resolve()
+    graph = build_spec_index_graph(spec_root)
+    candidates = graph.files if include_indexes else graph.leaves
+    return target in {item.resolve() for item in candidates}
+
+
+def append_index_reference(spec_root: Path, target: Path) -> None:
+    spec_root = spec_root.resolve()
+    target = target.resolve()
+    if not is_path_within(spec_root, target):
+        raise ValueError(f"Target is outside spec root: {target}")
+    if target.suffix != ".md" or target.name == "index.md":
+        raise ValueError(f"Target must be a non-index markdown spec: {rel_posix(spec_root, target)}")
+
+    root_index = spec_root / "index.md"
+    if not root_index.exists():
+        root_index.parent.mkdir(parents=True, exist_ok=True)
+        root_index.write_text(ENTRY_STUB, encoding="utf-8")
+
+    rel = target.relative_to(spec_root).as_posix()
+    if is_indexed_spec_path(spec_root, target, include_indexes=False):
+        return
+
+    text = root_index.read_text(encoding="utf-8")
+    line = f"- `{rel}`"
+    if line in text:
+        return
+
+    if AUTO_START in text and AUTO_END in text:
+        start = text.index(AUTO_START) + len(AUTO_START)
+        end = text.index(AUTO_END)
+        existing = [item.rstrip() for item in text[start:end].splitlines() if item.strip()]
+        existing.append(line)
+        content = "\n".join(dict.fromkeys(existing))
+        root_index.write_text(replace_auto_section(text, content), encoding="utf-8")
+        return
+
+    root_index.write_text(text.rstrip() + "\n\n" + AUTO_START + f"\n{line}\n" + AUTO_END + "\n", encoding="utf-8")
