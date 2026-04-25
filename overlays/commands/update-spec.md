@@ -55,6 +55,55 @@ Examples:
 
 ---
 
+## Required Analysis Before Writing
+
+Before changing any file, analyze the user's spec idea first.
+
+### 1. Split the idea into atomic points
+
+The user may provide multiple durable ideas in one message. Split them into separate update candidates before choosing targets.
+
+Examples:
+- "Modal content must expose validate, and list pages must keep pagination local" = two candidates.
+- "API errors should include code and message" = one candidate with two fields in one contract.
+
+For each candidate, identify:
+- the durable rule or decision
+- the reason it matters
+- likely keywords for target selection
+- whether it is implementation guidance, checklist guidance, or a design decision
+
+### 2. Check whether the same meaning already exists
+
+For each candidate, search existing indexed specs before writing:
+
+```bash
+python3 superpowers/scripts/spec_select_context.py "<candidate keywords>" --json
+```
+
+Then read the top relevant indexed candidates before deciding to update.
+A spec is already covered when an existing indexed file states the same durable rule, even if the wording differs.
+
+If the same meaning already exists:
+- do not update any spec file for that candidate
+- tell the user which file already covers it
+- quote or summarize the existing matching rule
+
+If the idea is only partially covered:
+- update only the missing part
+- mention the existing coverage and the delta being added
+
+### 3. Choose one target per remaining candidate
+
+Each candidate should update exactly one indexed leaf spec unless it genuinely spans unrelated areas.
+Prefer the most specific indexed leaf that owns the rule. Use broader guide specs only when the candidate is a checklist or thinking prompt.
+
+### 4. Ask before writing if target ownership is ambiguous
+
+If two or more candidate files are equally plausible and the difference affects long-term spec organization, ask the user which target should own it instead of guessing.
+
+---
+
 ## What Good Spec Content Looks Like
 
 ### Design Decision
@@ -123,6 +172,9 @@ Examples:
 
 Before finishing the update:
 
+- [ ] Did you split multi-point user input into atomic candidates?
+- [ ] Did you search existing indexed specs for the same meaning before writing?
+- [ ] Did you skip candidates that are already covered and tell the user where?
 - [ ] Is the content durable and reusable?
 - [ ] Did you choose the right target spec file?
 - [ ] Is the content specific instead of generic?
@@ -136,7 +188,7 @@ Before finishing the update:
 
 ### Preferred one-shot path
 
-If you already know the hint, title, why, and rules:
+After completing the required analysis, if exactly one candidate still needs an update and you know the hint, title, why, and rules:
 
 ```bash
 python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
@@ -147,9 +199,11 @@ This will:
 2. append a structured update block to the body
 3. refresh the index chain
 
+Do not use this path before duplicate-checking the candidate against existing indexed specs.
+
 ### Staged path
 
-If you want more control:
+If you want more control after duplicate-checking the candidate:
 
 ```bash
 python3 superpowers/scripts/spec_select_target.py "error handling"
