@@ -10,6 +10,13 @@ When you learn something valuable from implementation, debugging, review, or dis
 
 ---
 
+## Standalone Adapter Command
+
+Treat `/update-spec` as a standalone adapter command, not as a Superpowers development workflow step.
+When the user explicitly invokes this command, only analyze and update `.superpowers/spec/`, then report the result.
+Do not invoke Superpowers planning, implementation, review, completion, or verification commands/skills before or after this command.
+Do not invoke `superpowers:verification-before-completion` or similar completion checks for this command.
+
 ## Spec First Rule
 
 In this adapter, spec content should capture **durable implementation knowledge**, not generic prose.

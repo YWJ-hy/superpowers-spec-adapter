@@ -14,6 +14,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Load spec details progressively instead of reading the full tree
 - Keep planning-selected spec context in a plan sidecar directory alongside `docs/superpowers/plans/*.md`
 - Check workflow readiness before planning, implementation, review, or completion
+- Keep `/import-spec`, `/init-spec`, and `/update-spec` as standalone adapter commands that do not trigger Superpowers completion verification
 - Recommend spec candidates from `.superpowers/spec/` and optionally write them into the plan sidecar
 - Check whether a task likely produced durable implementation knowledge before updating spec
 - Reinstall the same overlay after upgrading `superpowers/`
@@ -69,6 +70,7 @@ This command:
 
 Use this only to help the user initialize spec knowledge.
 During ongoing development, continue writing durable knowledge with `update-spec`.
+The installed `/init-spec` command is standalone: after it initializes spec content and refreshes indexes, it should stop without invoking Superpowers completion verification or other development workflow checks.
 
 ## Import existing specs
 
@@ -81,11 +83,12 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 
 The import recursively scans source spec files, routes each file to an adapter leaf spec, and refreshes `.superpowers/spec` indexes.
 Use this for one-time conversion of existing spec directories; use `update-spec` for ongoing durable knowledge updates.
+The installed `/import-spec` command is standalone: after it imports specs and refreshes indexes, it should stop without invoking Superpowers completion verification or other development workflow checks.
 For adapter debugging, run the installed execution-layer script from the Superpowers plugin directory rather than a project-relative `superpowers/scripts` path.
 
 ## Update specs
 
-For normal use in Claude Code or similar tools, use the installed Superpowers command `/update-spec`; see [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md). The Python commands below are the execution layer behind the adapter command and are mainly useful for adapter development or debugging.
+For normal use in Claude Code or similar tools, use the installed Superpowers command `/update-spec`; see [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md). The installed `/update-spec` command is standalone: after it checks duplicates, writes durable spec knowledge, and refreshes indexes, it should stop without invoking Superpowers completion verification or other development workflow checks. The Python commands below are the execution layer behind the adapter command and are mainly useful for adapter development or debugging.
 
 Resolve the installed Superpowers target first, then run execution-layer scripts from a project root that contains or should contain `.superpowers/spec/`:
 

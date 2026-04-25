@@ -18,6 +18,9 @@ Analyze the current project shape, infer likely implementation areas, and write 
 ## Non-negotiable rules
 
 - Treat this command as initialization only, not ongoing maintenance.
+- Treat this as a standalone adapter command, not as a Superpowers development workflow step.
+- Do not invoke Superpowers planning, implementation, review, completion, or verification commands/skills before or after this command.
+- Do not invoke `superpowers:verification-before-completion` or similar completion checks for this command.
 - Do not overwrite existing spec files.
 - Keep generated content lightweight, explicit about uncertainty, and grounded in observable project structure.
 - Prefer appending lightweight initialization summaries into existing topic files over inventing detailed contracts that have not been verified.

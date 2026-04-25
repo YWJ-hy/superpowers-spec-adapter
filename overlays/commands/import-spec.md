@@ -13,6 +13,9 @@ The goal is to scan all source spec files, route them into adapter-style leaf sp
 ## Non-negotiable rules
 
 - Treat the user input as a source spec file or source spec directory path.
+- Treat this as a standalone adapter command, not as a Superpowers development workflow step.
+- Do not invoke Superpowers planning, implementation, review, completion, or verification commands/skills before or after this command.
+- Do not invoke `superpowers:verification-before-completion` or similar completion checks for this command.
 - Do not discard, summarize away, or silently omit user-provided spec content.
 - Preserve every imported source file inside the converted target file.
 - Merge into existing `.superpowers/spec` files by appending imported blocks; do not overwrite existing adapter spec content.

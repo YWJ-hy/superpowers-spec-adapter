@@ -16,10 +16,13 @@
 
 用户在 Claude Code 等工具里使用的是 Superpowers 暴露出来的 command / skill 能力，例如：
 
+- `/import-spec`
 - `/init-spec`
 - `/update-spec`
 - `/check-workflow`
 - adapter 安装的 `spec-progressive-disclosure` 与 `plan-context-sidecar` skills
+
+其中 `/import-spec`、`/init-spec`、`/update-spec` 是独立的 adapter command。用户主动调用它们时，只执行对应 spec 导入、初始化或更新功能；不要把它们串进 Superpowers 的 plan、implementation、review、completion、`superpowers:verification-before-completion` 等常规开发流程。
 
 Python 脚本是这些 command / hook 背后的执行层，不是最终用户的主要交互入口。
 
@@ -144,6 +147,8 @@ Superpowers 插件目录
 
 导入流程会尽量把已有内容迁移到 `.superpowers/spec/` 的 leaf spec 中，并保留原始内容。这个 command 只用于一次性迁移；迁移后日常维护使用 `/update-spec`。
 
+`/import-spec` 是独立 adapter command，完成导入和索引刷新后即可结束；不需要也不应该继续触发 Superpowers 的 completion verification 或其他开发流程检查。
+
 如果没有旧 spec，可以跳过这一步。
 
 ### 3.5 在 Claude Code 中初始化项目 spec 知识
@@ -161,6 +166,8 @@ Superpowers 插件目录
 ```
 
 这一步用于第一次从当前项目结构中生成轻量的 starter spec。后续开发中不要把它当作日常维护入口，日常沉淀知识应使用 `/update-spec`。
+
+`/init-spec` 是独立 adapter command，完成初始化和索引刷新后即可结束；不需要也不应该继续触发 Superpowers 的 completion verification 或其他开发流程检查。
 
 ### 3.6 Superpowers 创建或选定 plan 后，自动准备 sidecar
 
@@ -256,6 +263,8 @@ plan sidecar 才会参与工作流。
 - 一次性修复流水账
 - 可以从代码直接看出来的普通结构
 - 没有验证过的猜测
+
+`/update-spec` 是独立 adapter command，完成重复检查、目标选择、spec 写入和索引刷新后即可结束；不需要也不应该继续触发 Superpowers 的 completion verification 或其他开发流程检查。
 
 ---
 
