@@ -11,7 +11,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from spec_common import append_index_reference, is_indexed_spec_path, is_path_within, repo_root
+from spec_common import append_index_reference, is_indexed_spec_path, is_path_within, load_ignored_dir_names, repo_root
 from spec_select_target import choose_target
 
 SECTION_PREFIX = "## Update: "
@@ -167,16 +167,36 @@ def ensure_title(path: Path, title: str) -> None:
     path.write_text(f"# {title}\n\n", encoding="utf-8")
 
 
+def normalized_import_rel(source_rel: str, ignored_names: set[str]) -> str:
+    path = Path(source_rel)
+    stem_parts = list(path.with_suffix('').parts)
+    if stem_parts and stem_parts[-1].lower() == 'index':
+        if len(stem_parts) > 1:
+            stem_parts[-1] = f'{stem_parts[-2]}-index'
+        else:
+            stem_parts[-1] = 'imported-index'
+    parts: list[str] = []
+    for part in stem_parts:
+        slug = slugify(part)
+        if slug in ignored_names or slug.startswith('.'):
+            slug = f'imported-{slug}'
+        parts.append(slug)
+    return '/'.join(parts) + '.md'
+
+
 def target_from_args(spec_root: Path, item: ImportItem, args: argparse.Namespace, multi: bool) -> Path:
+    ignored_names = load_ignored_dir_names(spec_root)
     if args.target:
         target = (spec_root / args.target).resolve()
         if target.suffix != ".md":
-            target = target / f"{slugify(item.title)}.md"
+            target = target / normalized_import_rel(item.source_rel, ignored_names)
+    elif multi:
+        target = (spec_root / "imported" / normalized_import_rel(item.source_rel, ignored_names)).resolve()
     else:
         hint = " ".join(part for part in [args.hint, item.source_rel, item.title] if part)
         chosen = choose_target(spec_root, hint)
         if chosen == "<create-new-leaf-spec>":
-            chosen = f"imported/{slugify(item.source_rel if multi else item.title)}.md"
+            chosen = f"imported/{slugify(item.title)}.md"
         target = (spec_root / chosen).resolve()
 
     if not is_path_within(spec_root.resolve(), target):
