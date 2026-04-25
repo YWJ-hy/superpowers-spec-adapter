@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from pathlib import Path
 
 from plan_context_common import (
@@ -32,6 +33,11 @@ EXIT_OK = 0
 EXIT_BLOCK = 1
 EXIT_WARN = 2
 EXIT_USAGE = 64
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def script_command(script_name: str) -> str:
+    return f"python3 {shlex.quote(str(SCRIPT_DIR / script_name))}"
 
 
 def add_check(results: list[dict], name: str, status: str, message: str = '', next_steps: list[str] | None = None) -> None:
@@ -307,7 +313,7 @@ def check_phase_records(root: Path, plan_path: Path, phase: str, strict: bool) -
         next_steps = []
         if phase != 'plan':
             next_steps = [
-                f'Use python3 superpowers/scripts/spec_select_context.py "<task hint>" --phase {phase} --write-sidecar when phase-specific context is needed'
+                f'Use {script_command("spec_select_context.py")} "<task hint>" --phase {phase} --write-sidecar when phase-specific context is needed'
             ]
         return {
             'name': f'{phase}_records',
@@ -435,7 +441,7 @@ def check_update_spec_candidate(args: argparse.Namespace) -> dict:
         'status': 'warn',
         'message': 'This task may have produced durable implementation knowledge',
         'nextSteps': [
-            'Consider running python3 superpowers/scripts/spec_update_run.py ...'
+            f'Consider running {script_command("spec_update_run.py")} ...'
         ],
     }
 

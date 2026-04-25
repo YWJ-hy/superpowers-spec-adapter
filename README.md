@@ -72,36 +72,41 @@ During ongoing development, continue writing durable knowledge with `update-spec
 
 ## Import existing specs
 
-Convert a user-provided spec directory into adapter `.superpowers/spec` format without losing the original content:
+For normal use in Claude Code or similar tools, use the installed Superpowers command:
 
-```bash
-python3 superpowers/scripts/spec_import.py path/to/original-spec-dir
-python3 superpowers/scripts/spec_import.py path/to/original-spec-dir --hint "api contract"
+```text
+/import-spec path/to/original-spec-dir
+/import-spec path/to/original-spec-dir --hint "api contract"
 ```
 
-The import recursively scans source spec files, routes each file to an adapter leaf spec, appends into existing `.superpowers/spec` files when they already exist, and preserves every full source file between imported-original markers.
+The import recursively scans source spec files, routes each file to an adapter leaf spec, and refreshes `.superpowers/spec` indexes.
 Use this for one-time conversion of existing spec directories; use `update-spec` for ongoing durable knowledge updates.
+For adapter debugging, run the installed execution-layer script from the Superpowers plugin directory rather than a project-relative `superpowers/scripts` path.
 
 ## Update specs
 
 For normal use in Claude Code or similar tools, use the installed Superpowers command `/update-spec`; see [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md). The Python commands below are the execution layer behind the adapter command and are mainly useful for adapter development or debugging.
 
-From a project root that contains or should contain `.superpowers/spec/`:
+Resolve the installed Superpowers target first, then run execution-layer scripts from a project root that contains or should contain `.superpowers/spec/`:
+
+```bash
+TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
+```
 
 1. use the one-shot command when you already know the hint, title, why, and rules
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
+python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
 ```
 
 2. or use the staged path for more control
 
 ```bash
-python3 superpowers/scripts/spec_select_target.py "error handling"
-python3 superpowers/scripts/spec_update_prompt.py <target-spec-relative-path>
-python3 superpowers/scripts/spec_update_template.py <target-spec-relative-path> "Error normalization" "Prevent inconsistent API error shapes."
-python3 superpowers/scripts/spec_apply_update.py <target-spec-relative-path> "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
-python3 superpowers/scripts/update-spec.py
+python3 "$TARGET_DIR/scripts/spec_select_target.py" "error handling"
+python3 "$TARGET_DIR/scripts/spec_update_prompt.py" <target-spec-relative-path>
+python3 "$TARGET_DIR/scripts/spec_update_template.py" <target-spec-relative-path> "Error normalization" "Prevent inconsistent API error shapes."
+python3 "$TARGET_DIR/scripts/spec_apply_update.py" <target-spec-relative-path> "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
+python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
 3. indexes are refreshed automatically in the one-shot path
@@ -109,7 +114,7 @@ python3 superpowers/scripts/update-spec.py
 Repeated updates with the same `Update` title now merge: `Why` is refreshed, `Rules / Contracts` are merged/deduped, and existing validation notes are preserved.
 
 ```bash
-python3 superpowers/scripts/update-spec.py
+python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
 The script maintains only sections between:
@@ -141,10 +146,10 @@ The adapter now ships a shared `spec_common.py` helper so `update-spec.py` and `
 The workflow gate is normally invoked by the adapter's SessionStart hook and `plan-context-sidecar` skill. Use it manually when automatic preparation is blocked or ambiguous:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
-python3 superpowers/scripts/workflow-gate.py implement --json
-python3 superpowers/scripts/workflow-gate.py review --json
-python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/<stem>.md
+python3 "$TARGET_DIR/scripts/workflow-gate.py" implement --json
+python3 "$TARGET_DIR/scripts/workflow-gate.py" review --json
+python3 "$TARGET_DIR/scripts/workflow-gate.py" completion --summary "<task summary>"
 ```
 
 This surfaces `OK`, `WARN`, or `BLOCK` so the agent can repair missing plan state or sidecar state before proceeding.
@@ -154,15 +159,15 @@ This surfaces `OK`, `WARN`, or `BLOCK` so the agent can repair missing plan stat
 Recommend spec candidates for the current task:
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --limit 5
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --json
 ```
 
 You can also write the selected candidates directly into the sidecar for the current or explicit plan:
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase review --plan docs/superpowers/plans/<stem>.md --write-sidecar --limit 3
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --write-sidecar
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase review --plan docs/superpowers/plans/<stem>.md --write-sidecar --limit 3
 ```
 
 ## Spec update check
@@ -170,8 +175,8 @@ python3 superpowers/scripts/spec_select_context.py "error handling" --phase revi
 Before deciding whether to update `.superpowers/spec/`, run:
 
 ```bash
-python3 superpowers/scripts/spec_update_check.py --summary "normalize api error contract"
-python3 superpowers/scripts/spec_update_check.py --summary "normalize api error contract" --changed-file src/api/error_handler.py --json
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize api error contract"
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize api error contract" --changed-file src/api/error_handler.py --json
 ```
 
 This returns `NO_UPDATE_NEEDED`, `RECOMMEND_UPDATE`, or `STRONGLY_RECOMMEND_UPDATE`.
@@ -203,10 +208,10 @@ Track the active plan with:
 Useful diagnostic commands:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
-python3 superpowers/scripts/plan-context.py render --phase implement
-python3 superpowers/scripts/plan-context.py render --phase review
-python3 superpowers/scripts/plan-context.py verify --current
+python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase review
+python3 "$TARGET_DIR/scripts/plan-context.py" verify --current
 ```
 
 SessionStart and the `plan-context-sidecar` skill normally initialize the sidecar, recommend indexed specs, and write planning context into `plan.jsonl` automatically for the current plan. `plan-context.py` remains an execution-layer helper, not a user-facing slash command.

@@ -78,7 +78,7 @@ For each candidate, identify:
 For each candidate, search existing indexed specs before writing:
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "<candidate keywords>" --json
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_select_context.py "<candidate keywords>" --json
 ```
 
 Then read the top relevant indexed candidates before deciding to update.
@@ -191,7 +191,7 @@ Before finishing the update:
 After completing the required analysis, if exactly one candidate still needs an update and you know the hint, title, why, and rules:
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads" "Keep user-facing messages stable"
 ```
 
 This will:
@@ -206,11 +206,11 @@ Do not use this path before duplicate-checking the candidate against existing in
 If you want more control after duplicate-checking the candidate:
 
 ```bash
-python3 superpowers/scripts/spec_select_target.py "error handling"
-python3 superpowers/scripts/spec_update_prompt.py <target-spec-relative-path>
-python3 superpowers/scripts/spec_update_template.py <target-spec-relative-path> "Title" "Why it matters"
-python3 superpowers/scripts/spec_apply_update.py <target-spec-relative-path> "Title" "Why it matters" "Rule 1" "Rule 2"
-python3 superpowers/scripts/update-spec.py
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_select_target.py "error handling"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_update_prompt.py <target-spec-relative-path>
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_update_template.py <target-spec-relative-path> "Title" "Why it matters"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_apply_update.py <target-spec-relative-path> "Title" "Why it matters" "Rule 1" "Rule 2"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-spec.py
 ```
 
 ---

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shlex
 import sys
 
 from spec_common import repo_root
@@ -13,6 +14,7 @@ def main() -> int:
     root = repo_root(Path.cwd())
     spec_root = root / '.superpowers' / 'spec'
     target = sys.argv[1] if len(sys.argv) > 1 else '<choose-target-spec>'
+    update_script = shlex.quote(str(Path(__file__).resolve().parent / 'update-spec.py'))
     print(f'''Update the spec body before refreshing indexes.
 
 Project spec root:
@@ -29,7 +31,7 @@ Recommended workflow:
    - cross-cutting guides when the content is about what to consider rather than how to implement
 4. Keep index.md files lightweight; put detailed content in leaf spec files.
 5. After updating the spec body, run:
-   python3 superpowers/scripts/update-spec.py
+   python3 {update_script}
 
 Suggested target:
 - {target}

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
+from pathlib import Path
 
 STATUS_NO_UPDATE = 'no_update_needed'
 STATUS_RECOMMEND = 'recommend_update'
@@ -34,6 +36,11 @@ INTERESTING_PATHS = [
     'schema',
     'validator',
 ]
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def script_command(script_name: str) -> str:
+    return f"python3 {shlex.quote(str(SCRIPT_DIR / script_name))}"
 
 
 def evaluate(summary: str, changed_files: list[str]) -> dict:
@@ -60,7 +67,7 @@ def evaluate(summary: str, changed_files: list[str]) -> dict:
 
     next_steps = []
     if status != STATUS_NO_UPDATE:
-        next_steps.append('Consider running python3 superpowers/scripts/spec_update_run.py ...')
+        next_steps.append(f'Consider running {script_command("spec_update_run.py")} ...')
 
     return {
         'status': status,

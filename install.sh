@@ -43,7 +43,18 @@ copy_overlay() {
     exit 1
   fi
 
-  cp "$source" "$target"
+  python3 - <<'PY' "$source" "$target" "$TARGET_DIR"
+from pathlib import Path
+import shlex
+import sys
+
+source = Path(sys.argv[1])
+target = Path(sys.argv[2])
+target_dir = shlex.quote(sys.argv[3])
+text = source.read_text(encoding='utf-8')
+text = text.replace('__SUPERPOWER_ADAPTER_PLUGIN_ROOT__', target_dir)
+target.write_text(text, encoding='utf-8')
+PY
   printf 'Installed %s\n' "$target_rel"
 }
 
@@ -83,6 +94,7 @@ chmod +x \
   "$TARGET_DIR/scripts/update-spec.py" \
   "$TARGET_DIR/scripts/spec-context.py" \
   "$TARGET_DIR/scripts/spec_import.py" \
+  "$TARGET_DIR/scripts/init-spec.py" \
   "$TARGET_DIR/scripts/plan-context.py" \
   "$TARGET_DIR/scripts/workflow-gate.py" \
   "$TARGET_DIR/scripts/spec_select_context.py" \

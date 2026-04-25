@@ -29,12 +29,17 @@ path = Path(sys.argv[1]) / '.superpowers' / 'tmp-import-source.md'
 path.write_text('# External Import Self Test\n\nOriginal detail must be preserved.\n', encoding='utf-8')
 PY
 (cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_import.py" .superpowers/tmp-import-source.md --target imported/external-import-self-test.md --merge-existing)
+if [[ ! -f "$REPO_ROOT/.superpowers/spec/imported/external-import-self-test.md" ]]; then
+  printf 'Expected single-file import target to be used as a file path\n' >&2
+  exit 1
+fi
 rm -f "$REPO_ROOT/.superpowers/tmp-import-source.md"
 bash "$SCRIPT_DIR/tests/plan-context-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/plan-context-regression.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/spec-select-context-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/spec-update-check-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/spec-index-graph-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/spec-import-command-path-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 python3 "$SCRIPT_DIR/lib/hook_patch.py" verify "$TARGET_DIR"
 "$SCRIPT_DIR/status.sh" "$TARGET_INPUT"
 

@@ -166,7 +166,11 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 
 ## 5. 日常怎么用 spec
 
-在 Claude Code 等工具中，日常优先通过 adapter 安装到 Superpowers 的 slash command 使用这些能力，例如 `/init-spec`、`/check-workflow` 和 `/update-spec`。plan sidecar 由 `/check-workflow planning` 自动准备；下面列出的 Python 命令是这些 command 背后的执行层，主要用于理解、排查或 adapter 开发。
+在 Claude Code 等工具中，日常优先通过 adapter 安装到 Superpowers 的 slash command 使用这些能力，例如 `/init-spec`、`/check-workflow` 和 `/update-spec`。plan sidecar 由 `/check-workflow planning` 自动准备；下面列出的 Python 命令是这些 command 背后的执行层，主要用于理解、排查或 adapter 开发。执行这些调试命令前，先解析安装后的 Superpowers 目录：
+
+```bash
+TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
+```
 
 ### 5.1 如果任务由 Superpowers plan 驱动，由 `/check-workflow planning` 自动准备 sidecar
 
@@ -179,7 +183,7 @@ docs/superpowers/plans/2026-04-22-example.md
 Superpowers 创建或选定 plan 后，执行 planning gate：
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
 ```
 
 这会自动创建：
@@ -217,10 +221,10 @@ Git 建议：
 ### 5.3 在进入新阶段前先做 gate 检查
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
-python3 superpowers/scripts/workflow-gate.py implement
-python3 superpowers/scripts/workflow-gate.py review
-python3 superpowers/scripts/workflow-gate.py completion --summary "normalize backend error contract"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" implement
+python3 "$TARGET_DIR/scripts/workflow-gate.py" review
+python3 "$TARGET_DIR/scripts/workflow-gate.py" completion --summary "normalize backend error contract"
 ```
 
 返回值语义：
@@ -234,40 +238,40 @@ python3 superpowers/scripts/workflow-gate.py completion --summary "normalize bac
 只推荐候选：
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --limit 5
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --json
 ```
 
 直接写入 sidecar：
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase review --plan docs/superpowers/plans/2026-04-22-example.md --write-sidecar --limit 3
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --write-sidecar
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase review --plan docs/superpowers/plans/2026-04-22-example.md --write-sidecar --limit 3
 ```
 
 ### 5.5 在实现和评审前渲染 sidecar context
 
 ```bash
-python3 superpowers/scripts/plan-context.py render --phase implement
-python3 superpowers/scripts/plan-context.py render --phase review
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase review
 ```
 
 如果你想控制全文展开预算：
 
 ```bash
-python3 superpowers/scripts/plan-context.py render --phase implement --max-full 2 --max-chars 12000
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement --max-full 2 --max-chars 12000
 ```
 
 如果你想拿机器可消费结构：
 
 ```bash
-python3 superpowers/scripts/plan-context.py render --phase implement --json
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement --json
 ```
 
 可以用下面的命令校验当前 plan sidecar 是否完整：
 
 ```bash
-python3 superpowers/scripts/plan-context.py verify --current
+python3 "$TARGET_DIR/scripts/plan-context.py" verify --current
 ```
 
 ### 5.6 什么时候该更新 spec
@@ -290,8 +294,8 @@ python3 superpowers/scripts/plan-context.py verify --current
 ### 5.7 先判断要不要回写 spec
 
 ```bash
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract"
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
 ```
 
 常见返回值：
@@ -305,7 +309,7 @@ python3 superpowers/scripts/spec_update_check.py --summary "normalize backend er
 如果你已经知道 hint、标题、why 和规则内容，直接用：
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py \
+python3 "$TARGET_DIR/scripts/spec_update_run.py" \
   "error handling" \
   "Error normalization" \
   "Prevent inconsistent backend error shapes." \
@@ -325,25 +329,25 @@ python3 superpowers/scripts/spec_update_run.py \
 #### 选目标 spec
 
 ```bash
-python3 superpowers/scripts/spec_select_target.py "error handling"
+python3 "$TARGET_DIR/scripts/spec_select_target.py" "error handling"
 ```
 
 #### 生成更新提示
 
 ```bash
-python3 superpowers/scripts/spec_update_prompt.py backend/error-handling.md
+python3 "$TARGET_DIR/scripts/spec_update_prompt.py" backend/error-handling.md
 ```
 
 #### 生成更新模板
 
 ```bash
-python3 superpowers/scripts/spec_update_template.py backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
+python3 "$TARGET_DIR/scripts/spec_update_template.py" backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
 ```
 
 #### 自动写入正文
 
 ```bash
-python3 superpowers/scripts/spec_apply_update.py \
+python3 "$TARGET_DIR/scripts/spec_apply_update.py" \
   backend/error-handling.md \
   "Error normalization" \
   "Prevent inconsistent backend error shapes." \
@@ -354,7 +358,7 @@ python3 superpowers/scripts/spec_apply_update.py \
 #### 刷新索引链
 
 ```bash
-python3 superpowers/scripts/update-spec.py
+python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
 ### 5.10 更新 spec 时要注意什么
@@ -488,7 +492,7 @@ adapter 会把 overlay 重新安装回新的插件版本。
 ### 日常沉淀 spec
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py \
+python3 "$TARGET_DIR/scripts/spec_update_run.py" \
   "error handling" \
   "Error normalization" \
   "Prevent inconsistent backend error shapes." \

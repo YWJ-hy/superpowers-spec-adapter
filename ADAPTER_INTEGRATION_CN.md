@@ -122,20 +122,26 @@ superpowers/
 - **先做 spec 更新决策**：什么时候更新、写到哪里、写成什么样
 - **再走执行层**：一键入口或分阶段脚本
 
+本文中的 `$TARGET_DIR` 指安装后的 Superpowers 插件目录，可通过下面的命令解析：
+
+```bash
+TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
+```
+
 1. **正文更新层**
    - 可以直接走一键入口：
 
    ```bash
-   python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
+   python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
    ```
 
    - 也可以走分阶段路径：
 
    ```bash
-   python3 superpowers/scripts/spec_select_target.py "error handling"
-   python3 superpowers/scripts/spec_update_prompt.py backend/error-handling.md
-   python3 superpowers/scripts/spec_update_template.py backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
-   python3 superpowers/scripts/spec_apply_update.py backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
+   python3 "$TARGET_DIR/scripts/spec_select_target.py" "error handling"
+   python3 "$TARGET_DIR/scripts/spec_update_prompt.py" backend/error-handling.md
+   python3 "$TARGET_DIR/scripts/spec_update_template.py" backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
+   python3 "$TARGET_DIR/scripts/spec_apply_update.py" backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
    ```
 
    这五者分别负责：
@@ -154,7 +160,7 @@ superpowers/
 
 ### 2.4 `update-spec.py` 做了什么
 
-`superpowers/scripts/update-spec.py` 负责自动维护索引链：
+`update-spec.py` 执行层脚本负责自动维护索引链：
 
 - 如果缺少 `.superpowers/spec/index.md`，先创建
 - 为有内容的子目录自动补 `index.md`
@@ -176,7 +182,7 @@ superpowers/
 
 ### 2.5 `spec-context.py` 做了什么
 
-`superpowers/scripts/spec-context.py` 提供三种读取方式：
+`spec-context.py` 执行层脚本提供三种读取方式：
 
 - `--file <path>`
   - 读取一个具体 spec 文件
@@ -188,7 +194,7 @@ superpowers/
 默认 SessionStart 使用的是：
 
 ```bash
-python3 superpowers/scripts/spec-context.py --tree --depth 2
+python3 "$TARGET_DIR/scripts/spec-context.py" --tree --depth 2
 ```
 
 所以启动时看到的是**轻量摘要树**，不是全文。
@@ -311,15 +317,15 @@ docs/superpowers/plans/YYYY-MM-DD-<feature>.context/
 日常入口是 SessionStart hook 和 `plan-context-sidecar` skill：hook 会对 `.superpowers/current-plan` 指向的 plan 自动尝试 sidecar 初始化和 planning context 写入，skill 会在 implement / review 前自动运行 gate。`/check-workflow` 保留为自动化失败或状态不明确时的手动诊断入口，底层仍可直接执行：
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
 ```
 
 `plan-context.py` 保留为执行层 helper，可用于渲染和校验：
 
 ```bash
-python3 superpowers/scripts/plan-context.py render --phase implement
-python3 superpowers/scripts/plan-context.py render --phase review
-python3 superpowers/scripts/plan-context.py verify --current
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement
+python3 "$TARGET_DIR/scripts/plan-context.py" render --phase review
+python3 "$TARGET_DIR/scripts/plan-context.py" verify --current
 ```
 
 在第一阶段补强后，`plan-context.py` 执行层还新增了：
@@ -338,10 +344,10 @@ python3 superpowers/scripts/plan-context.py verify --current
 `workflow-gate.py` 把原先主要依赖 skill 文本约束的流程检查，补成了可执行的前置 gate：
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
-python3 superpowers/scripts/workflow-gate.py implement
-python3 superpowers/scripts/workflow-gate.py review
-python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" implement
+python3 "$TARGET_DIR/scripts/workflow-gate.py" review
+python3 "$TARGET_DIR/scripts/workflow-gate.py" completion --summary "<task summary>"
 ```
 
 返回语义：
@@ -373,9 +379,9 @@ python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary
 示例：
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --limit 5
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --json
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --write-sidecar
 ```
 
 这让读侧能力从“只靠 skill 告诉 agent 应该怎么选”，进一步变成“程序先推荐候选，再由 agent 或脚本把选择结果写进 sidecar”。
@@ -390,8 +396,8 @@ python3 superpowers/scripts/spec_select_context.py "error handling" --phase impl
 示例：
 
 ```bash
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract"
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
 ```
 
 当前输出等级：
@@ -441,7 +447,7 @@ flowchart TD
     H --> L{任务是否产生新规则/新经验?}
     L -->|否| M[结束]
     L -->|是| N[更新相关 spec markdown]
-    N --> O[运行 superpowers/scripts/update-spec.py]
+    N --> O[运行 update-spec.py 执行层脚本]
     O --> P[刷新各级 index 自动区]
     P --> M
 
@@ -467,13 +473,13 @@ flowchart TD
     C -.定义忽略目录.-> F
     D --> E
 
-    E --> F[/python3 superpowers/scripts/update-spec.py/]
+    E --> F[/python3 "$TARGET_DIR/scripts/update-spec.py"/]
     F --> G[扫描 .superpowers/spec]
     G --> H[应用默认忽略 + .adapter-ignore]
     H --> I[补齐缺失的子目录 index.md]
     I --> J[刷新各级 index 自动区]
 
-    J --> K[/python3 superpowers/scripts/spec-context.py --tree --depth 2/]
+    J --> K[/python3 "$TARGET_DIR/scripts/spec-context.py" --tree --depth 2/]
     K --> L[生成轻量递归摘要树]
     L --> M[SessionStart hook: session-spec-index]
     M --> N[注入启动上下文]
@@ -504,7 +510,7 @@ flowchart TD
 
 ## 5. 如何使用
 
-用户日常使用 adapter 时，应优先通过安装到 Superpowers 的 command / skill 入口完成操作；本节中直接列出的 Python 命令用于说明 command 背后的执行层和排查方式，不应被视为普通用户的主要交互入口。
+用户日常使用 adapter 时，应优先通过安装到 Superpowers 的 command / skill 入口完成操作；本节中直接列出的 Python 命令用于说明 command 背后的执行层和排查方式，不应被视为普通用户的主要交互入口。执行这些调试命令前，先按上文解析 `$TARGET_DIR`。
 
 ### 5.1 首次安装 adapter
 
@@ -562,7 +568,7 @@ preset 含义：
 如果你已经知道 hint、title、why 和 rules，推荐直接使用一键入口：
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
+python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
 ```
 
 如果你需要更细粒度控制，再走分阶段路径：
@@ -570,21 +576,21 @@ python3 superpowers/scripts/spec_update_run.py "error handling" "Error normaliza
 先选目标 spec：
 
 ```bash
-python3 superpowers/scripts/spec_select_target.py "error handling"
+python3 "$TARGET_DIR/scripts/spec_select_target.py" "error handling"
 ```
 
 再生成正文更新提示、模板，或直接自动写入正文：
 
 ```bash
-python3 superpowers/scripts/spec_update_prompt.py backend/error-handling.md
-python3 superpowers/scripts/spec_update_template.py backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
-python3 superpowers/scripts/spec_apply_update.py backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
+python3 "$TARGET_DIR/scripts/spec_update_prompt.py" backend/error-handling.md
+python3 "$TARGET_DIR/scripts/spec_update_template.py" backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
+python3 "$TARGET_DIR/scripts/spec_apply_update.py" backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads" "Keep user-facing messages stable"
 ```
 
 最后刷新索引链：
 
 ```bash
-python3 superpowers/scripts/update-spec.py
+python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
 更新时应始终记住：
@@ -598,7 +604,7 @@ python3 superpowers/scripts/update-spec.py
 ### 5.5 查看递归摘要树
 
 ```bash
-python3 superpowers/scripts/spec-context.py --tree --depth 2
+python3 "$TARGET_DIR/scripts/spec-context.py" --tree --depth 2
 ```
 
 ### 5.6 定向查看 spec
@@ -606,13 +612,13 @@ python3 superpowers/scripts/spec-context.py --tree --depth 2
 读取具体文件：
 
 ```bash
-python3 superpowers/scripts/spec-context.py --file backend/error-handling.md
+python3 "$TARGET_DIR/scripts/spec-context.py" --file backend/error-handling.md
 ```
 
 读取目录索引：
 
 ```bash
-python3 superpowers/scripts/spec-context.py --category backend
+python3 "$TARGET_DIR/scripts/spec-context.py" --category backend
 ```
 
 ### 5.7 阶段前诊断
@@ -620,25 +626,25 @@ python3 superpowers/scripts/spec-context.py --category backend
 日常阶段前检查由 SessionStart hook 和 `plan-context-sidecar` skill 自动触发；需要排查状态时可手动运行：
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
-python3 superpowers/scripts/workflow-gate.py implement --json
-python3 superpowers/scripts/workflow-gate.py review --json
-python3 superpowers/scripts/workflow-gate.py completion --summary "normalize backend error contract"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+python3 "$TARGET_DIR/scripts/workflow-gate.py" implement --json
+python3 "$TARGET_DIR/scripts/workflow-gate.py" review --json
+python3 "$TARGET_DIR/scripts/workflow-gate.py" completion --summary "normalize backend error contract"
 ```
 
 ### 5.8 用 selector 选 spec
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --limit 5
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --json
-python3 superpowers/scripts/spec_select_context.py "error handling" --phase implement --write-sidecar
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --limit 5
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --json
+python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --write-sidecar
 ```
 
 ### 5.9 在回写前先做 update 检查
 
 ```bash
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract"
-python3 superpowers/scripts/spec_update_check.py --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract"
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
 ```
 
 ### 5.10 日常检查

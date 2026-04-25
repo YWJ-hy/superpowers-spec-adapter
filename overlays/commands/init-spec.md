@@ -39,7 +39,7 @@ Treat it as an optional focus hint for what part of the repository should be pri
 3. Run the initialization script:
 
 ```bash
-python3 superpowers/scripts/init-spec.py . "$ARGUMENTS"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/init-spec.py . "$ARGUMENTS"
 ```
 
 4. Read the generated files that were added during initialization.

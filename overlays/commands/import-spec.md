@@ -34,7 +34,7 @@ The user input should identify the source spec directory path. It may also inclu
 When the user provides a source spec directory:
 
 ```bash
-python3 superpowers/scripts/spec_import.py path/to/original-spec-dir
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_import.py path/to/original-spec-dir
 ```
 
 The script will:
@@ -49,19 +49,19 @@ The script will:
 If the whole directory should be biased toward a topic:
 
 ```bash
-python3 superpowers/scripts/spec_import.py path/to/original-spec-dir --hint "api contract"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_import.py path/to/original-spec-dir --hint "api contract"
 ```
 
 If all source specs should be placed under a target adapter directory:
 
 ```bash
-python3 superpowers/scripts/spec_import.py path/to/original-spec-dir --target imported
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_import.py path/to/original-spec-dir --target imported
 ```
 
 If a single source file should go to a specific adapter leaf:
 
 ```bash
-python3 superpowers/scripts/spec_import.py path/to/source-spec.md --target imported/source-spec.md
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_import.py path/to/source-spec.md --target imported/source-spec.md
 ```
 
 ## Existing `.superpowers/spec` merge behavior

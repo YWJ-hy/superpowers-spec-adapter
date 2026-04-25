@@ -30,6 +30,18 @@ check_file() {
     printf 'Missing adapter marker: %s\n' "$target" >&2
     exit 1
   fi
+  case "$relative" in
+    commands/*.md|skills/*/SKILL.md)
+      if grep -Fq 'python3 superpowers/scripts/' "$target"; then
+        printf 'Invalid project-relative script path in installed file: %s\n' "$target" >&2
+        exit 1
+      fi
+      if grep -Fq '__SUPERPOWER_ADAPTER_PLUGIN_ROOT__' "$target"; then
+        printf 'Unresolved adapter plugin root placeholder in installed file: %s\n' "$target" >&2
+        exit 1
+      fi
+      ;;
+  esac
   printf 'OK %s\n' "$relative"
 }
 

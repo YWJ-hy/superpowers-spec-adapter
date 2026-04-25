@@ -38,7 +38,7 @@ Do not require users to run this in the normal path. Use it when:
 If you know the target plan:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "$ARGUMENTS"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "$ARGUMENTS"
 ```
 
 Use this manually only when SessionStart did not prepare the current plan, or when you need to target an explicit plan. The planning gate initializes the plan sidecar, selects relevant indexed specs from `.superpowers/spec/`, and writes planning context into `plan.jsonl` automatically.
@@ -58,13 +58,13 @@ If automatic selection returns `WARN`, refine the plan summary or rerun planning
 For manual diagnosis before implementation:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py implement
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py implement
 ```
 
 Or target an explicit plan:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py implement --plan docs/superpowers/plans/<stem>.md
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py implement --plan docs/superpowers/plans/<stem>.md
 ```
 
 This checks that:
@@ -77,7 +77,7 @@ This checks that:
 If implementation is blocked because `plan.jsonl` is empty, do not start coding yet. Rerun the planning gate with a better hint so it can automatically select and write planning context:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
 ```
 
 ---
@@ -87,13 +87,13 @@ python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/pl
 For manual diagnosis before review:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py review
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py review
 ```
 
 Or target an explicit plan:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py review --plan docs/superpowers/plans/<stem>.md
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py review --plan docs/superpowers/plans/<stem>.md
 ```
 
 This checks that:
@@ -106,7 +106,7 @@ This checks that:
 Review may return `WARN` if `review.jsonl` is empty. In that case, decide whether the planning-selected context is already sufficient. If not, use the selector execution layer to write review-specific context:
 
 ```bash
-python3 superpowers/scripts/spec_select_context.py "<review keywords>" --phase review --write-sidecar --plan docs/superpowers/plans/<stem>.md
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_select_context.py "<review keywords>" --phase review --write-sidecar --plan docs/superpowers/plans/<stem>.md
 ```
 
 ---
@@ -116,13 +116,13 @@ python3 superpowers/scripts/spec_select_context.py "<review keywords>" --phase r
 For explicit diagnostics before finishing a task:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py completion --summary "<task summary>"
 ```
 
 Optionally include changed files:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py completion \
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py completion \
   --summary "<task summary>" \
   --changed-file src/foo.ts \
   --changed-file src/bar.ts
@@ -137,7 +137,7 @@ This checks that:
 If completion returns a durable-knowledge warning, consider updating `.superpowers/spec/`:
 
 ```bash
-python3 superpowers/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_update_run.py "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads"
 ```
 
 ---
@@ -182,7 +182,7 @@ Typical `BLOCK` cases:
 Usually rerun planning with a more specific hint so the gate can select specs automatically:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
 ```
 
 ### If implement returns `BLOCK`
@@ -218,7 +218,7 @@ If yes, run the `update-spec` workflow.
 Use `--json` when another script or tool should consume the result:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py implement --json
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py implement --json
 ```
 
 The result includes:
@@ -235,7 +235,7 @@ The result includes:
 Use `--strict` to upgrade some warnings into stronger failures:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py review --strict
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py review --strict
 ```
 
 This is useful when you want stronger workflow discipline.
@@ -268,10 +268,10 @@ The normal loop is mostly automatic:
 Manual diagnostic example when automatic preparation is blocked:
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
-python3 superpowers/scripts/workflow-gate.py implement --json
-python3 superpowers/scripts/plan-context.py render --phase implement
-python3 superpowers/scripts/workflow-gate.py review --json
-python3 superpowers/scripts/plan-context.py render --phase review
-python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py implement --json
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/plan-context.py render --phase implement
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py review --json
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/plan-context.py render --phase review
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/workflow-gate.py completion --summary "<task summary>"
 ```

@@ -46,11 +46,15 @@ def normalize_suffix(path: Path) -> Path:
 def plan_import_items(source: Path, target_prefix: Path) -> list[ImportItem]:
     source = source.expanduser().resolve()
     sources = discover_sources(source)
-    root = source if source.is_dir() else source.parent
+    is_source_dir = source.is_dir()
+    root = source if is_source_dir else source.parent
     items: list[ImportItem] = []
     for path in sources:
-        source_rel = path.relative_to(root) if source.is_dir() else Path(path.name)
-        target_rel = normalize_suffix(target_prefix / source_rel)
+        source_rel = path.relative_to(root) if is_source_dir else Path(path.name)
+        if not is_source_dir and target_prefix.suffix:
+            target_rel = normalize_suffix(target_prefix)
+        else:
+            target_rel = normalize_suffix(target_prefix / source_rel)
         items.append(ImportItem(path, source_rel, target_rel))
     return items
 
@@ -130,6 +134,7 @@ def rebuild_indexes(spec_root: Path) -> None:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Convert an existing spec tree into index-driven .superpowers/spec structure.")
     parser.add_argument("source", help="Path to a source spec file or directory")
+    parser.add_argument("--hint", default="", help="Optional topic hint retained for command compatibility")
     parser.add_argument("--target", default="", help="Optional target subdirectory or file under .superpowers/spec")
     parser.add_argument("--merge-existing", action="store_true", help="Allow identical existing files; never overwrites different content")
     return parser.parse_args(argv)
