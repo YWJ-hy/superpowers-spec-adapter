@@ -2,7 +2,11 @@
 
 本文说明这套 `superpower-adapter` 做了什么改造、如何实现 spec 的渐进式披露、如何接入到 `superpowers/` 中，以及如何实际使用。
 
-如果你只想看最终用户操作步骤，请直接看：[`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
+如果你想了解用户在 Claude Code 等工具中如何通过 Superpowers command / skill 使用 adapter，请先看：[`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md)
+
+如果你在开发 adapter 或设计测试，请先看：[`ADAPTER_DEVELOPMENT_CN.md`](./ADAPTER_DEVELOPMENT_CN.md)
+
+如果你只想看快速命令摘要，请看：[`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 ---
 
@@ -51,7 +55,6 @@ superpowers/
 ├── skills/spec-progressive-disclosure/SKILL.md
 ├── skills/plan-context-sidecar/SKILL.md
 ├── commands/update-spec.md
-├── commands/plan-context.md
 ├── commands/check-workflow.md
 ├── scripts/update-spec.py
 ├── scripts/spec-context.py
@@ -305,17 +308,21 @@ docs/superpowers/plans/YYYY-MM-DD-<feature>.context/
 - 评审阶段优先消费 `plan.jsonl + review.jsonl`
 - sidecar 缺失或明显不足时，才回退到 `.superpowers/spec` 的自由发现路径
 
-对应命令：
+用户入口是 `/check-workflow planning`，底层会执行 sidecar 初始化和 planning context 写入：
 
 ```bash
-python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/<stem>.md --set-current
-python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/backend/example.md --reason "Why this spec matters"
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
+```
+
+`plan-context.py` 保留为执行层 helper，可用于渲染和校验：
+
+```bash
 python3 superpowers/scripts/plan-context.py render --phase implement
 python3 superpowers/scripts/plan-context.py render --phase review
 python3 superpowers/scripts/plan-context.py verify --current
 ```
 
-在第一阶段补强后，`plan-context.py` 还新增了：
+在第一阶段补强后，`plan-context.py` 执行层还新增了：
 
 - `add --no-dedupe`
 - `add --replace-existing`
@@ -331,7 +338,7 @@ python3 superpowers/scripts/plan-context.py verify --current
 `workflow-gate.py` 把原先主要依赖 skill 文本约束的流程检查，补成了可执行的前置 gate：
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
 python3 superpowers/scripts/workflow-gate.py implement
 python3 superpowers/scripts/workflow-gate.py review
 python3 superpowers/scripts/workflow-gate.py completion --summary "<task summary>"
@@ -497,6 +504,8 @@ flowchart TD
 
 ## 5. 如何使用
 
+用户日常使用 adapter 时，应优先通过安装到 Superpowers 的 command / skill 入口完成操作；本节中直接列出的 Python 命令用于说明 command 背后的执行层和排查方式，不应被视为普通用户的主要交互入口。
+
 ### 5.1 首次安装 adapter
 
 在当前仓库根目录执行：
@@ -609,7 +618,7 @@ python3 superpowers/scripts/spec-context.py --category backend
 ### 5.7 阶段前检查
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
 python3 superpowers/scripts/workflow-gate.py implement
 python3 superpowers/scripts/workflow-gate.py review
 python3 superpowers/scripts/workflow-gate.py completion --summary "normalize backend error contract"

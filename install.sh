@@ -61,9 +61,28 @@ for item in installed_paths(Path(sys.argv[1])):
 PY
 )
 
+while IFS= read -r relative; do
+  relative="${relative%$'\r'}"
+  [[ -z "$relative" ]] && continue
+  target="$TARGET_DIR/$relative"
+  if [[ -f "$target" ]] && grep -Fq "$MARKER" "$target"; then
+    rm -f "$target"
+    printf 'Removed deprecated %s\n' "$relative"
+  fi
+done < <(python3 - <<'PY' "$SCRIPT_DIR"
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(sys.argv[1]) / 'lib'))
+from adapter_manifest import removed_paths
+for item in removed_paths(Path(sys.argv[1])):
+    print(item)
+PY
+)
+
 chmod +x \
   "$TARGET_DIR/scripts/update-spec.py" \
   "$TARGET_DIR/scripts/spec-context.py" \
+  "$TARGET_DIR/scripts/spec_import.py" \
   "$TARGET_DIR/scripts/plan-context.py" \
   "$TARGET_DIR/scripts/workflow-gate.py" \
   "$TARGET_DIR/scripts/spec_select_context.py" \

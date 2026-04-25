@@ -9,13 +9,19 @@ import re
 from pathlib import Path
 
 from plan_context_common import (
+    DEFAULT_SPEC_ROOT,
     PHASE_FILES,
+    SCHEMA_VERSION,
     append_jsonl,
     context_dir_for_plan,
     get_current_plan,
+    initialize_jsonl_files,
+    load_state,
     now_iso,
     rel_posix,
     resolve_plan_path,
+    save_state,
+    set_current_plan,
     validate_plan_location,
 )
 from spec_common import (
@@ -140,11 +146,28 @@ def load_target_plan(root: Path, plan_arg: str | None) -> Path:
     return plan_path
 
 
-def write_candidates_to_sidecar(root: Path, plan_path: Path, phase: str, candidates: list[dict], default_mode: str) -> int:
+def ensure_sidecar(root: Path, plan_path: Path) -> Path:
     context_dir = context_dir_for_plan(plan_path)
-    if not context_dir.is_dir():
-        raise ValueError(f'Context sidecar not initialized: {rel_posix(root, context_dir)}')
+    context_dir.mkdir(parents=True, exist_ok=True)
+    initialize_jsonl_files(context_dir)
+    existing = load_state(context_dir) or {}
+    timestamp = now_iso()
+    save_state(context_dir, {
+        'schemaVersion': SCHEMA_VERSION,
+        'planPath': rel_posix(root, plan_path),
+        'contextDir': rel_posix(root, context_dir),
+        'currentPhase': existing.get('currentPhase', 'plan'),
+        'createdAt': existing.get('createdAt', timestamp),
+        'updatedAt': timestamp,
+        'selectionPolicy': 'planning-selected',
+        'specRoot': DEFAULT_SPEC_ROOT.as_posix(),
+    })
+    set_current_plan(root, plan_path)
+    return context_dir
 
+
+def write_candidates_to_sidecar(root: Path, plan_path: Path, phase: str, candidates: list[dict], default_mode: str) -> int:
+    context_dir = ensure_sidecar(root, plan_path)
     phase_file = context_dir / PHASE_FILES[phase]
     timestamp = now_iso()
 

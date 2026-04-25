@@ -2,6 +2,8 @@
 
 This adapter keeps Superpowers as the primary workflow framework and adds a replayable overlay for project specs under `.superpowers/spec/`.
 
+Chinese user flow guide: [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md)
+Chinese adapter development guide: [`ADAPTER_DEVELOPMENT_CN.md`](./ADAPTER_DEVELOPMENT_CN.md)
 Chinese integration guide: [`ADAPTER_INTEGRATION_CN.md`](./ADAPTER_INTEGRATION_CN.md)
 Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
@@ -81,6 +83,8 @@ The import recursively scans source spec files, routes each file to an adapter l
 Use this for one-time conversion of existing spec directories; use `update-spec` for ongoing durable knowledge updates.
 
 ## Update specs
+
+For normal use in Claude Code or similar tools, use the installed Superpowers command `/update-spec`; see [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md). The Python commands below are the execution layer behind the adapter command and are mainly useful for adapter development or debugging.
 
 From a project root that contains or should contain `.superpowers/spec/`:
 
@@ -199,12 +203,13 @@ Track the active plan with:
 Useful commands:
 
 ```bash
-python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/<stem>.md --set-current
-python3 superpowers/scripts/plan-context.py add --phase plan --spec .superpowers/spec/topic/example.md --reason "Why this spec matters"
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/<stem>.md --hint "<task keywords>"
 python3 superpowers/scripts/plan-context.py render --phase implement
 python3 superpowers/scripts/plan-context.py render --phase review
 python3 superpowers/scripts/plan-context.py verify --current
 ```
+
+The planning gate initializes the sidecar, sets `.superpowers/current-plan`, recommends indexed specs, and writes planning context into `plan.jsonl`. `plan-context.py` remains an execution-layer helper, not a user-facing slash command.
 
 Git recommendation:
 

@@ -33,8 +33,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" init "${PLAN_PATH}" --set-current > /dev/null)
-
 selector_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec_select_context.py" "error handling" --phase implement --limit 3)"
 case "${selector_output}" in
   *".superpowers/spec/quality/error-rules.md"* ) : ;;

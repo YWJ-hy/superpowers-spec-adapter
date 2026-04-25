@@ -36,8 +36,8 @@ done < <(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(sys.argv[1]) / 'lib'))
-from adapter_manifest import installed_paths
-for item in installed_paths(Path(sys.argv[1])):
+from adapter_manifest import installed_paths, removed_paths
+for item in [*installed_paths(Path(sys.argv[1])), *removed_paths(Path(sys.argv[1]))]:
     print(item)
 PY
 )

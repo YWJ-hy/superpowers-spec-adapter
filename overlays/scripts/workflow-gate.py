@@ -8,17 +8,25 @@ import json
 from pathlib import Path
 
 from plan_context_common import (
+    DEFAULT_SPEC_ROOT,
     PHASE_FILES,
+    SCHEMA_VERSION,
     context_dir_for_plan,
     current_plan_file,
     get_current_plan,
+    initialize_jsonl_files,
     load_jsonl,
     load_state,
+    now_iso,
     rel_posix,
     resolve_plan_path,
+    save_state,
+    set_current_plan,
     validate_plan_location,
+    write_jsonl,
 )
 from spec_common import repo_root
+from spec_select_context import select_candidates
 
 EXIT_OK = 0
 EXIT_BLOCK = 1
@@ -110,32 +118,32 @@ def load_target_plan(root: Path, plan_arg: str | None, missing_current_plan_stat
     return plan_path, checks
 
 
-def check_sidecar_initialized(root: Path, plan_path: Path, strict: bool = False) -> dict:
+def ensure_sidecar_initialized(root: Path, plan_path: Path) -> dict:
     context_dir = context_dir_for_plan(plan_path)
-    if not context_dir.is_dir():
-        level = 'block' if strict else 'warn'
-        return {
-            'name': 'sidecar_initialized',
-            'status': level,
-            'message': f'Context sidecar not initialized: {rel_posix(root, context_dir)}',
-            'nextSteps': [
-                f'python3 superpowers/scripts/plan-context.py init {rel_posix(root, plan_path)} --set-current'
-            ],
-        }
+    created = not context_dir.is_dir()
+    context_dir.mkdir(parents=True, exist_ok=True)
+    initialize_jsonl_files(context_dir)
 
-    state_path = context_dir / 'state.json'
-    if not state_path.is_file():
-        return {
-            'name': 'sidecar_state',
-            'status': 'block',
-            'message': f'Missing state.json: {rel_posix(root, state_path)}',
-            'nextSteps': [],
-        }
+    existing = load_state(context_dir) or {}
+    timestamp = now_iso()
+    state = {
+        'schemaVersion': SCHEMA_VERSION,
+        'planPath': rel_posix(root, plan_path),
+        'contextDir': rel_posix(root, context_dir),
+        'currentPhase': existing.get('currentPhase', 'plan'),
+        'createdAt': existing.get('createdAt', timestamp),
+        'updatedAt': timestamp,
+        'selectionPolicy': 'planning-selected',
+        'specRoot': DEFAULT_SPEC_ROOT.as_posix(),
+    }
+    save_state(context_dir, state)
+    set_current_plan(root, plan_path)
 
+    action = 'Initialized' if created else 'Ensured'
     return {
         'name': 'sidecar_initialized',
         'status': 'ok',
-        'message': f'Context sidecar ready: {rel_posix(root, context_dir)}',
+        'message': f'{action} context sidecar: {rel_posix(root, context_dir)}',
         'nextSteps': [],
     }
 
@@ -168,8 +176,7 @@ def check_plan_records(root: Path, plan_path: Path) -> dict:
             'status': 'block',
             'message': 'plan.jsonl has no planning-selected spec records',
             'nextSteps': [
-                'Read .superpowers/spec/index.md and select the minimum relevant specs',
-                'Then add them with python3 superpowers/scripts/plan-context.py add --phase plan ...',
+                'Run check-workflow planning with --hint to auto-select relevant specs',
             ],
         }
 
@@ -177,6 +184,97 @@ def check_plan_records(root: Path, plan_path: Path) -> dict:
         'name': 'plan_records',
         'status': 'ok',
         'message': f'Found {len(rows)} planning-selected records',
+        'nextSteps': [],
+    }
+
+
+def plan_hint(root: Path, plan_path: Path, hint_arg: str | None) -> str:
+    if hint_arg and hint_arg.strip():
+        return hint_arg.strip()
+    try:
+        text = plan_path.read_text(encoding='utf-8')
+    except OSError:
+        text = ''
+    title = ''
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            title = stripped.lstrip('#').strip()
+            break
+    if title:
+        return title
+    return plan_path.stem.replace('-', ' ')
+
+
+def upsert_selector_records(path: Path, records: list[dict]) -> int:
+    existing = load_jsonl(path)
+    by_key = {(item.get('path', ''), item.get('phase', '')): index for index, item in enumerate(existing)}
+    changed = 0
+    for record in records:
+        key = (record.get('path', ''), record.get('phase', ''))
+        if key in by_key:
+            current = existing[by_key[key]]
+            merged = dict(current)
+            merged.update({
+                'reason': record.get('reason', current.get('reason', '')),
+                'mode': record.get('mode', current.get('mode', 'summary')),
+                'selectedBy': record.get('selectedBy', current.get('selectedBy', 'selector')),
+                'updatedAt': record.get('updatedAt', now_iso()),
+            })
+            existing[by_key[key]] = merged
+        else:
+            existing.append(record)
+        changed += 1
+    write_jsonl(path, existing)
+    return changed
+
+
+def auto_select_plan_context(root: Path, plan_path: Path, hint_arg: str | None, limit: int) -> dict:
+    spec_root = root / DEFAULT_SPEC_ROOT
+    if not spec_root.is_dir():
+        return {
+            'name': 'planning_context_auto_selected',
+            'status': 'warn',
+            'message': f'No {DEFAULT_SPEC_ROOT.as_posix()} directory found',
+            'nextSteps': [],
+        }
+
+    hint = plan_hint(root, plan_path, hint_arg)
+    candidates = select_candidates(
+        spec_root=spec_root,
+        hint=hint,
+        phase='plan',
+        limit=max(limit, 1),
+        prefixes=[],
+    )
+    if not candidates:
+        return {
+            'name': 'planning_context_auto_selected',
+            'status': 'warn',
+            'message': f'No indexed spec candidates matched hint: {hint}',
+            'nextSteps': ['Refine the plan summary or pass --hint with task keywords'],
+        }
+
+    context_dir = context_dir_for_plan(plan_path)
+    plan_jsonl = context_dir / PHASE_FILES['plan']
+    timestamp = now_iso()
+    records = []
+    for item in candidates:
+        records.append({
+            'type': 'spec',
+            'path': item['path'],
+            'reason': item['reason'],
+            'phase': 'plan',
+            'mode': item.get('mode') or 'summary',
+            'selectedBy': 'workflow-gate',
+            'createdAt': timestamp,
+            'updatedAt': timestamp,
+        })
+    wrote_count = upsert_selector_records(plan_jsonl, records)
+    return {
+        'name': 'planning_context_auto_selected',
+        'status': 'ok',
+        'message': f'Wrote {wrote_count} planning context records from hint: {hint}',
         'nextSteps': [],
     }
 
@@ -209,7 +307,7 @@ def check_phase_records(root: Path, plan_path: Path, phase: str, strict: bool) -
         next_steps = []
         if phase != 'plan':
             next_steps = [
-                f'Add phase-specific context with python3 superpowers/scripts/plan-context.py add --phase {phase} ...'
+                f'Use python3 superpowers/scripts/spec_select_context.py "<task hint>" --phase {phase} --write-sidecar when phase-specific context is needed'
             ]
         return {
             'name': f'{phase}_records',
@@ -369,7 +467,9 @@ def cmd_planning(args: argparse.Namespace) -> int:
     if plan_path is None:
         return emit_result(args, build_result('planning', checks))
 
-    checks.append(check_sidecar_initialized(root, plan_path, strict=False))
+    checks.append(ensure_sidecar_initialized(root, plan_path))
+    checks.append(auto_select_plan_context(root, plan_path, args.hint, args.limit))
+    checks.append(check_plan_records(root, plan_path))
     return emit_result(args, build_result('planning', checks))
 
 
@@ -382,7 +482,7 @@ def cmd_implement(args: argparse.Namespace) -> int:
     if plan_path is None:
         return emit_result(args, build_result('implement', checks))
 
-    checks.append(check_sidecar_initialized(root, plan_path, strict=True))
+    checks.append(ensure_sidecar_initialized(root, plan_path))
     if aggregate_status(checks) == 'block':
         return emit_result(args, build_result('implement', checks))
 
@@ -400,7 +500,7 @@ def cmd_review(args: argparse.Namespace) -> int:
     if plan_path is None:
         return emit_result(args, build_result('review', checks))
 
-    checks.append(check_sidecar_initialized(root, plan_path, strict=True))
+    checks.append(ensure_sidecar_initialized(root, plan_path))
     if aggregate_status(checks) == 'block':
         return emit_result(args, build_result('review', checks))
 
@@ -418,7 +518,7 @@ def cmd_completion(args: argparse.Namespace) -> int:
     checks.extend(plan_checks)
 
     if plan_path is not None:
-        checks.append(check_sidecar_initialized(root, plan_path, strict=False))
+        checks.append(ensure_sidecar_initialized(root, plan_path))
         if aggregate_status(checks) != 'block':
             checks.append(check_sidecar_state(root, plan_path, expected_phase=None, strict=False))
 
@@ -435,6 +535,8 @@ def build_parser() -> argparse.ArgumentParser:
         subparser.add_argument('--plan')
         subparser.add_argument('--json', action='store_true')
         subparser.add_argument('--strict', action='store_true')
+        subparser.add_argument('--hint')
+        subparser.add_argument('--limit', type=int, default=5)
 
     planning_parser = subparsers.add_parser('planning')
     add_common(planning_parser)

@@ -8,11 +8,12 @@
     "skills/spec-progressive-disclosure/SKILL.md",
     "skills/plan-context-sidecar/SKILL.md",
     "commands/update-spec.md",
-    "commands/plan-context.md",
     "commands/check-workflow.md",
+    "commands/import-spec.md",
     "scripts/update-spec.py",
     "scripts/spec-context.py",
     "scripts/spec_common.py",
+    "scripts/spec_import.py",
     "scripts/plan_context_common.py",
     "scripts/plan-context.py",
     "scripts/workflow-gate.py",
@@ -25,6 +26,9 @@
     "scripts/spec_update_run.py",
     "hooks/session-spec-index",
     "hooks/session-plan-context"
+  ],
+  "removedPaths": [
+    "commands/plan-context.md"
   ],
   "optionalPatchedPaths": [
     "hooks/hooks.json",

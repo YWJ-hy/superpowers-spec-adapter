@@ -94,7 +94,7 @@ if missing_index_links:
 if plan_context.get('currentPlanPointerExists') and not plan_context.get('currentPlanExists'):
     print('  - .superpowers/current-plan points to a missing plan file. Reset it or recreate the plan.')
 if plan_context.get('currentPlanExists') and not plan_context.get('contextDirExists'):
-    print('  - Current plan exists but its sidecar context directory is missing. Run plan-context init.')
+    print('  - Current plan exists but its sidecar context directory is missing. Run check-workflow planning to prepare it automatically.')
 if plan_context.get('contextDirExists') and not plan_context.get('stateFileExists'):
     print('  - Current plan sidecar exists but state.json is missing. Re-initialize the sidecar.')
 missing_jsonl = [name for name, exists in plan_context.get('jsonlFiles', {}).items() if not exists]

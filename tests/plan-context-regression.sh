@@ -34,7 +34,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
-(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" init "${PLAN_PATH}" --set-current)
+(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/workflow-gate.py" planning --plan "${PLAN_PATH}" --hint "error handling" > /dev/null)
+python3 - <<'PY' "${CONTEXT_DIR}/plan.jsonl"
+import json, sys
+rows = [json.loads(line) for line in open(sys.argv[1], encoding='utf-8') if line.strip()]
+if not rows:
+    raise SystemExit('Expected planning gate to auto-select context records')
+if any(row.get('selectedBy') != 'workflow-gate' for row in rows):
+    raise SystemExit('Expected planning gate records to use selectedBy=workflow-gate')
+PY
 if (cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/plan-context.py" add --phase plan --plan "${PLAN_PATH}" --spec "${UNINDEXED_SPEC}" --reason "Should fail" --mode summary 2>/dev/null); then
   printf 'Expected unindexed spec add to fail\n' >&2
   exit 1
@@ -46,9 +54,10 @@ python3 - <<'PY' "${CONTEXT_DIR}/plan.jsonl"
 import json, sys
 path = sys.argv[1]
 rows = [json.loads(line) for line in open(path, encoding='utf-8') if line.strip()]
-if len(rows) != 1:
-    raise SystemExit(f'Expected 1 deduped row, got {len(rows)}')
-row = rows[0]
+matching = [row for row in rows if row.get('path') == '.superpowers/spec/quality/error-rules.md']
+if len(matching) != 1:
+    raise SystemExit(f'Expected 1 deduped error-rules row, got {len(matching)} from {rows}')
+row = matching[0]
 if row.get('mode') != 'full':
     raise SystemExit(f"Expected merged mode full, got {row.get('mode')}")
 if row.get('reason') != 'Upgraded regression context':
@@ -68,9 +77,10 @@ python3 - <<'PY' "${render_json}"
 import json, sys
 payload = json.loads(sys.argv[1])
 records = payload.get('records', [])
-if len(records) != 1:
-    raise SystemExit(f'Expected 1 record in JSON render, got {len(records)}')
-record = records[0]
+matching = [record for record in records if record.get('path') == '.superpowers/spec/quality/error-rules.md']
+if len(matching) != 1:
+    raise SystemExit(f'Expected error-rules record in JSON render, got {records}')
+record = matching[0]
 if record.get('mode') != 'summary':
     raise SystemExit(f"Expected downgraded summary mode, got {record.get('mode')}")
 if 'summary' not in record:

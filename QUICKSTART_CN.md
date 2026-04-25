@@ -12,6 +12,14 @@
 8. 怎么做发布前检查
 9. Superpowers 升级后怎么重装
 
+如果你需要从 Claude Code 等工具中的用户操作流程开始，请先看：
+
+- [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md)
+
+如果你在开发 adapter，请先看测试原则：
+
+- [`ADAPTER_DEVELOPMENT_CN.md`](./ADAPTER_DEVELOPMENT_CN.md)
+
 如果你需要完整设计说明、流程图和实现细节，请看：
 
 - [`ADAPTER_INTEGRATION_CN.md`](./ADAPTER_INTEGRATION_CN.md)
@@ -158,7 +166,9 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 
 ## 5. 日常怎么用 spec
 
-### 5.1 如果任务由 Superpowers plan 驱动，先初始化 plan sidecar
+在 Claude Code 等工具中，日常优先通过 adapter 安装到 Superpowers 的 slash command 使用这些能力，例如 `/init-spec`、`/check-workflow` 和 `/update-spec`。plan sidecar 由 `/check-workflow planning` 自动准备；下面列出的 Python 命令是这些 command 背后的执行层，主要用于理解、排查或 adapter 开发。
+
+### 5.1 如果任务由 Superpowers plan 驱动，由 `/check-workflow planning` 自动准备 sidecar
 
 保留原生 plan 文件路径不变，例如：
 
@@ -166,13 +176,13 @@ adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
 docs/superpowers/plans/2026-04-22-example.md
 ```
 
-为它初始化 sidecar：
+Superpowers 创建或选定 plan 后，执行 planning gate：
 
 ```bash
-python3 superpowers/scripts/plan-context.py init docs/superpowers/plans/2026-04-22-example.md --set-current
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
 ```
 
-这会创建：
+这会自动创建：
 
 ```text
 docs/superpowers/plans/2026-04-22-example.context/
@@ -188,7 +198,7 @@ docs/superpowers/plans/2026-04-22-example.context/
 .superpowers/current-plan
 ```
 
-在 planning 阶段，把选中的 spec 写入 `plan.jsonl`；实现和评审阶段优先消费 sidecar，而不是重新从 `.superpowers/spec` 自由选择。
+planning gate 会把自动推荐的 spec 写入 `plan.jsonl`；实现和评审阶段优先消费 sidecar，而不是重新从 `.superpowers/spec` 自由选择。
 
 Git 建议：
 - 建议把 `docs/superpowers/plans/<stem>.context/` 一起提交，保证 planning-selected context 可复现
@@ -207,7 +217,7 @@ Git 建议：
 ### 5.3 在进入新阶段前先做 gate 检查
 
 ```bash
-python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/2026-04-22-example.md
+python3 superpowers/scripts/workflow-gate.py planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
 python3 superpowers/scripts/workflow-gate.py implement
 python3 superpowers/scripts/workflow-gate.py review
 python3 superpowers/scripts/workflow-gate.py completion --summary "normalize backend error contract"
