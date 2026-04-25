@@ -4,125 +4,24 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
-import re
-import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from spec_common import append_index_reference, is_indexed_spec_path, is_path_within, load_ignored_dir_names, repo_root
-from spec_select_target import choose_target
+from spec_common import AUTO_END, AUTO_START, ENTRY_STUB, is_path_within, repo_root, summary_from_markdown
 
-SECTION_PREFIX = "## Update: "
-ORIGINAL_START = "<!-- superpower-adapter:imported-original:start -->"
-ORIGINAL_END = "<!-- superpower-adapter:imported-original:end -->"
-SOURCE_MARKER_PREFIX = "<!-- superpower-adapter:import-source:"
 SUPPORTED_SUFFIXES = {".md", ".markdown", ".mdx", ".txt"}
+CHILD_STUB = "# Spec Index\n\nUse this index to navigate the specs in this section.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
 
 
 @dataclass(frozen=True)
 class ImportItem:
     source_path: Path
-    source_rel: str
-    original: str
-    title: str
-    digest: str
+    source_rel: Path
+    target_rel: Path
 
 
-def title_from_markdown(text: str, fallback: str) -> str:
-    lines = text.splitlines()
-    for index, line in enumerate(lines):
-        stripped = line.strip()
-        if stripped.startswith("#"):
-            title = stripped.lstrip("#").strip()
-            if title:
-                return title
-        if stripped and index + 1 < len(lines):
-            underline = lines[index + 1].strip()
-            if underline and set(underline) <= {"="}:
-                return stripped
-    return fallback
-
-
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "imported-spec"
-
-
-def first_non_empty_lines(text: str, limit: int = 5) -> list[str]:
-    lines: list[str] = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or stripped.startswith("<!--"):
-            continue
-        lines.append(stripped)
-        if len(lines) >= limit:
-            break
-    return lines
-
-
-def extract_heading_topics(text: str) -> list[str]:
-    topics: list[str] = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("#"):
-            continue
-        title = stripped.lstrip("#").strip()
-        if title and title not in topics:
-            topics.append(title)
-    return topics
-
-
-def fenced_block(text: str) -> str:
-    fence = "```"
-    if fence in text:
-        fence = "````"
-    return f"{fence}markdown\n{text.rstrip()}\n{fence}"
-
-
-def digest_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
-
-
-def source_marker(source_rel: str, digest: str) -> str:
-    return f"{SOURCE_MARKER_PREFIX}{digest}:{source_rel} -->"
-
-
-def render_import_block(item: ImportItem) -> str:
-    snippets = first_non_empty_lines(item.original)
-    topics = extract_heading_topics(item.original)
-    lines = [
-        source_marker(item.source_rel, item.digest),
-        f"## Update: Imported Spec - {item.title}",
-        "",
-        "### Why",
-        f"- Imported from `{item.source_rel}` so the user's existing spec can be used through the adapter spec workflow.",
-        "- The converted section preserves the original content below to prevent information loss during format normalization.",
-        "",
-        "### Rules / Contracts",
-    ]
-    if topics:
-        lines.append(f"- Imported source headings: {', '.join(topics[:8])}")
-    for snippet in snippets:
-        lines.append(f"- Source detail preserved for review: {snippet}")
-    if not topics and not snippets:
-        lines.append("- Source content was preserved in the original-content archive below for manual review.")
-    lines.extend([
-        "- Review this imported block and promote verified durable rules into more specific update-spec entries when needed.",
-        "",
-        "### Validation / Notes",
-        "- This import intentionally keeps the original source text verbatim below.",
-        "- Do not delete the original-content archive until the user confirms the conversion retained all important details.",
-        "",
-        "## Imported Original Spec",
-        "",
-        ORIGINAL_START,
-        fenced_block(item.original),
-        ORIGINAL_END,
-        "",
-    ])
-    return "\n".join(lines)
+def title_from_path(path: Path) -> str:
+    return path.name.replace("-", " ").replace("_", " ").title()
 
 
 def discover_sources(source: Path) -> list[Path]:
@@ -130,140 +29,138 @@ def discover_sources(source: Path) -> list[Path]:
         return [source]
     if not source.is_dir():
         raise SystemExit(f"Missing source spec path: {source}")
-    results = [
+    return sorted(
         path
         for path in source.rglob("*")
         if path.is_file()
         and path.suffix.lower() in SUPPORTED_SUFFIXES
         and ".git" not in path.parts
         and "node_modules" not in path.parts
-    ]
-    return sorted(results)
+    )
 
 
-def read_import_items(source: Path) -> list[ImportItem]:
+def normalize_suffix(path: Path) -> Path:
+    return path.with_suffix(".md") if path.suffix.lower() != ".md" else path
+
+
+def plan_import_items(source: Path, target_prefix: Path) -> list[ImportItem]:
     source = source.expanduser().resolve()
     sources = discover_sources(source)
-    if not sources:
-        raise SystemExit(f"No supported spec files found under: {source}")
-
     root = source if source.is_dir() else source.parent
     items: list[ImportItem] = []
     for path in sources:
-        original = path.read_text(encoding="utf-8")
-        fallback = path.stem.replace("-", " ").replace("_", " ").title()
-        try:
-            source_rel = path.relative_to(root).as_posix()
-        except ValueError:
-            source_rel = path.name
-        items.append(ImportItem(path, source_rel, original, title_from_markdown(original, fallback), digest_text(original)))
+        source_rel = path.relative_to(root) if source.is_dir() else Path(path.name)
+        target_rel = normalize_suffix(target_prefix / source_rel)
+        items.append(ImportItem(path, source_rel, target_rel))
     return items
 
 
-def ensure_title(path: Path, title: str) -> None:
-    if path.exists():
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"# {title}\n\n", encoding="utf-8")
-
-
-def normalized_import_rel(source_rel: str, ignored_names: set[str]) -> str:
-    path = Path(source_rel)
-    stem_parts = list(path.with_suffix('').parts)
-    if stem_parts and stem_parts[-1].lower() == 'index':
-        if len(stem_parts) > 1:
-            stem_parts[-1] = f'{stem_parts[-2]}-index'
-        else:
-            stem_parts[-1] = 'imported-index'
-    parts: list[str] = []
-    for part in stem_parts:
-        slug = slugify(part)
-        if slug in ignored_names or slug.startswith('.'):
-            slug = f'imported-{slug}'
-        parts.append(slug)
-    return '/'.join(parts) + '.md'
-
-
-def target_from_args(spec_root: Path, item: ImportItem, args: argparse.Namespace, multi: bool) -> Path:
-    ignored_names = load_ignored_dir_names(spec_root)
-    if args.target:
-        target = (spec_root / args.target).resolve()
-        if target.suffix != ".md":
-            target = target / normalized_import_rel(item.source_rel, ignored_names)
-    elif multi:
-        target = (spec_root / "imported" / normalized_import_rel(item.source_rel, ignored_names)).resolve()
-    else:
-        hint = " ".join(part for part in [args.hint, item.source_rel, item.title] if part)
-        chosen = choose_target(spec_root, hint)
-        if chosen == "<create-new-leaf-spec>":
-            chosen = f"imported/{slugify(item.title)}.md"
-        target = (spec_root / chosen).resolve()
-
+def copy_item(spec_root: Path, item: ImportItem, merge_existing: bool) -> bool:
+    target = (spec_root / item.target_rel).resolve()
     if not is_path_within(spec_root.resolve(), target):
-        raise SystemExit(f"Invalid target path: {target}")
-    return target
-
-
-def import_item(target: Path, item: ImportItem, merge_existing: bool) -> bool:
-    ensure_title(target, item.title)
-    existing = target.read_text(encoding="utf-8")
-    marker = source_marker(item.source_rel, item.digest)
-    if marker in existing:
-        return False
-
-    block_title = f"Imported Spec - {item.title}"
-    if f"{SECTION_PREFIX}{block_title}" in existing and not merge_existing:
-        raise SystemExit(f"Import title already exists in target: {target}")
-
-    if existing and not existing.endswith("\n"):
-        existing += "\n"
-    if existing.strip():
-        existing += "\n"
-    existing += render_import_block(item)
-    target.write_text(existing.rstrip() + "\n", encoding="utf-8")
+        raise SystemExit(f"Invalid target path: {item.target_rel.as_posix()}")
+    if target.exists():
+        existing = target.read_text(encoding="utf-8")
+        incoming = item.source_path.read_text(encoding="utf-8")
+        if existing == incoming:
+            return False
+        if not merge_existing:
+            raise SystemExit(f"Target already exists: {item.target_rel.as_posix()}")
+        raise SystemExit(f"Refusing to overwrite existing spec file: {item.target_rel.as_posix()}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(item.source_path.read_text(encoding="utf-8"), encoding="utf-8")
     return True
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Import external spec files into adapter .superpowers/spec format.")
-    parser.add_argument("source", help="Path to a source spec file or a directory containing source spec files")
-    parser.add_argument("--target", help="Target file or directory under .superpowers/spec. If omitted, each source is routed by hint/title/path.")
-    parser.add_argument("--hint", help="Hint used to choose targets when --target is omitted")
-    parser.add_argument("--merge-existing", action="store_true", default=True, help="Append into existing adapter spec files instead of failing when the target already exists")
+def replace_auto_section(text: str, content: str) -> str:
+    if AUTO_START not in text or AUTO_END not in text:
+        text = text.rstrip() + "\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
+    start = text.index(AUTO_START) + len(AUTO_START)
+    end = text.index(AUTO_END)
+    body = "\n" + content.rstrip() + "\n" if content.strip() else "\n"
+    return text[:start] + body + text[end:]
+
+
+def ensure_index_file(index_path: Path, title: str) -> None:
+    if index_path.exists():
+        return
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    if index_path.name == "index.md" and index_path.parent.name == "spec":
+        index_path.write_text(ENTRY_STUB, encoding="utf-8")
+    else:
+        index_path.write_text(f"# {title}\n\nUse this index to navigate the specs in this section.\n\n{AUTO_START}\n{AUTO_END}\n", encoding="utf-8")
+
+
+def index_entry(base_dir: Path, target: Path) -> str:
+    rel = target.relative_to(base_dir).as_posix()
+    if target.name == "index.md":
+        rel = target.parent.relative_to(base_dir).as_posix().rstrip("/") + "/"
+    summary = summary_from_markdown(target)
+    return f"- `{rel}`" + (f" — {summary}" if summary else "")
+
+
+def rebuild_indexes(spec_root: Path) -> None:
+    directories = {spec_root}
+    for path in spec_root.rglob("*.md"):
+        directories.add(path.parent)
+        for parent in path.parent.parents:
+            if parent == spec_root.parent:
+                break
+            if is_path_within(spec_root.resolve(), parent.resolve()):
+                directories.add(parent)
+
+    for directory in sorted(directories, key=lambda item: len(item.relative_to(spec_root).parts) if item != spec_root else 0):
+        title = "Project Specs" if directory == spec_root else title_from_path(directory)
+        ensure_index_file(directory / "index.md", title)
+
+    for directory in sorted(directories, key=lambda item: item.relative_to(spec_root).as_posix() if item != spec_root else ""):
+        index_path = directory / "index.md"
+        children: list[Path] = []
+        for child in sorted(directory.iterdir()):
+            if child.name.startswith("."):
+                continue
+            if child.is_dir() and (child / "index.md").is_file():
+                children.append(child / "index.md")
+            elif child.is_file() and child.suffix == ".md" and child.name != "index.md":
+                children.append(child)
+        content = "\n".join(index_entry(directory, child) for child in children)
+        index_path.write_text(replace_auto_section(index_path.read_text(encoding="utf-8"), content), encoding="utf-8")
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Convert an existing spec tree into index-driven .superpowers/spec structure.")
+    parser.add_argument("source", help="Path to a source spec file or directory")
+    parser.add_argument("--target", default="", help="Optional target subdirectory or file under .superpowers/spec")
+    parser.add_argument("--merge-existing", action="store_true", help="Allow identical existing files; never overwrites different content")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv or sys.argv[1:])
+    args = parse_args(argv)
     root = repo_root(Path.cwd())
     spec_root = root / ".superpowers" / "spec"
     spec_root.mkdir(parents=True, exist_ok=True)
 
-    source = Path(args.source)
-    items = read_import_items(source)
+    target_prefix = Path(args.target) if args.target else Path()
+    items = plan_import_items(Path(args.source), target_prefix)
     imported: list[str] = []
     skipped: list[str] = []
-    multi = len(items) > 1 or source.expanduser().resolve().is_dir()
 
     for item in items:
-        target = target_from_args(spec_root, item, args, multi)
-        changed = import_item(target, item, args.merge_existing)
-        if not is_indexed_spec_path(spec_root, target, include_indexes=False):
-            append_index_reference(spec_root, target)
-        rel_target = target.relative_to(spec_root).as_posix()
+        changed = copy_item(spec_root, item, args.merge_existing)
+        row = f"{item.source_rel.as_posix()} -> {item.target_rel.as_posix()}"
         if changed:
-            imported.append(f"{item.source_rel} -> {rel_target}")
+            imported.append(row)
         else:
-            skipped.append(f"{item.source_rel} -> {rel_target}")
+            skipped.append(row)
 
-    update_script = Path(__file__).with_name("update-spec.py")
-    subprocess.run([sys.executable, str(update_script)], cwd=root, check=True)
+    rebuild_indexes(spec_root)
 
     for item in imported:
         print(f"Imported {item}")
     for item in skipped:
-        print(f"Skipped existing import {item}")
-    print(f"Imported {len(imported)} spec file(s), skipped {len(skipped)} existing import(s)")
+        print(f"Skipped identical {item}")
+    print(f"Imported {len(imported)} spec file(s), skipped {len(skipped)} existing file(s)")
     return 0
 
 

@@ -160,15 +160,34 @@ def replace_auto_section(text: str, content: str) -> str:
     return text[:start] + body + text[end:]
 
 
+def _looks_like_spec_ref(value: str) -> bool:
+    clean = value.split("#", 1)[0].strip()
+    return bool(clean) and (clean.endswith("/") or clean.endswith(".md") or clean.endswith(".markdown") or clean.endswith(".mdx"))
+
+
 def _candidate_refs(text: str) -> list[str]:
     refs: list[str] = []
-    refs.extend(match.group(1).strip() for match in re.finditer(r"\[[^\]]+\]\(([^)]+)\)", text))
-    refs.extend(match.group(1).strip() for match in re.finditer(r"`([^`]+)`", text))
+    in_fence = False
     for line in text.splitlines():
         stripped = line.strip()
-        match = re.match(r"^[-*]\s+([^\s`][^\s]*(?:\.md|/))\s*(?:$|[—#])", stripped)
+        if stripped.startswith("```") or stripped.startswith("````"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for match in re.finditer(r"\[[^\]]+\]\(([^)]+)\)", line):
+            raw = match.group(1).strip()
+            if _looks_like_spec_ref(raw):
+                refs.append(raw)
+        for match in re.finditer(r"`([^`]+)`", line):
+            raw = match.group(1).strip()
+            if _looks_like_spec_ref(raw):
+                refs.append(raw)
+        match = re.match(r"^[-*]\s+([^\s`][^\s]*(?:\.md|\.markdown|\.mdx|/))\s*(?:$|[—#])", stripped)
         if match:
-            refs.append(match.group(1).strip())
+            raw = match.group(1).strip()
+            if _looks_like_spec_ref(raw):
+                refs.append(raw)
     return list(dict.fromkeys(refs))
 
 
