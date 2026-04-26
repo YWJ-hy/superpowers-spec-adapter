@@ -3,64 +3,76 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 from pathlib import Path
-import re
 import sys
 
-from spec_common import build_spec_index_graph, repo_root, summary_from_markdown
+from spec_common import build_spec_index_graph, rel_posix, repo_root, summary_from_markdown
 
 
-def tokenize(value: str) -> list[str]:
-    return [token for token in re.split(r'[^a-z0-9]+', value.lower()) if token]
-
-
-def score_candidate(path: Path, rel: str, summary: str, tokens: list[str]) -> float:
-    score = 0.0
-    filename = path.name.lower()
-    rel_lower = rel.lower()
-    summary_lower = summary.lower()
-    for token in tokens:
-        if token in filename:
-            score += 4.0
-        elif token in rel_lower:
-            score += 3.0
-        if token in summary_lower:
-            score += 2.0
-    return score
-
-
-def choose_target(spec_root: Path, hint: str) -> str:
+def candidate_rows(spec_root: Path) -> list[dict[str, str]]:
     graph = build_spec_index_graph(spec_root)
-    if not graph.leaves:
-        return '<create-new-leaf-spec>'
+    return [
+        {
+            "path": rel_posix(spec_root.resolve(), path),
+            "summary": summary_from_markdown(path),
+            "kind": "leaf",
+        }
+        for path in graph.leaves
+    ]
 
-    tokens = tokenize(hint)
-    if not tokens:
-        return graph.leaves[0].relative_to(spec_root).as_posix()
 
-    rows: list[tuple[float, str]] = []
-    for path in graph.leaves:
-        rel = path.relative_to(spec_root).as_posix()
-        summary = summary_from_markdown(path)
-        score = score_candidate(path, rel, summary, tokens)
-        if score > 0:
-            rows.append((score, rel))
+def render_text(payload: dict) -> str:
+    lines = [
+        "Indexed spec candidates only; no target decision was made.",
+        "Read relevant specs and choose ownership yourself.",
+    ]
+    if payload["hint"]:
+        lines.append(f"Hint: {payload['hint']}")
+    if payload["warnings"]:
+        lines.append("")
+        lines.append("Warnings:")
+        lines.extend(f"- {warning}" for warning in payload["warnings"])
+    lines.append("")
+    lines.append("Candidates:")
+    if not payload["candidates"]:
+        lines.append("- <none>")
+    else:
+        for candidate in payload["candidates"]:
+            summary = f" — {candidate['summary']}" if candidate["summary"] else ""
+            lines.append(f"- `{candidate['path']}`{summary}")
+    return "\n".join(lines)
 
-    if rows:
-        rows.sort(key=lambda item: (-item[0], item[1]))
-        return rows[0][1]
 
-    return graph.leaves[0].relative_to(spec_root).as_posix()
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="List indexed leaf spec candidates without choosing an update target."
+    )
+    parser.add_argument("hint", nargs="?", default="", help="Optional context to echo for the agent; not used for scoring.")
+    parser.add_argument("--json", action="store_true", help="Emit machine-readable candidate data.")
+    return parser
 
 
 def main() -> int:
-    hint = sys.argv[1] if len(sys.argv) > 1 else ''
+    args = build_parser().parse_args()
     root = repo_root(Path.cwd())
-    spec_root = root / '.superpowers' / 'spec'
-    spec_root.mkdir(parents=True, exist_ok=True)
-    print(choose_target(spec_root, hint))
+    spec_root = root / ".superpowers" / "spec"
+    graph = build_spec_index_graph(spec_root)
+    payload = {
+        "decisionMade": False,
+        "hint": args.hint,
+        "specRoot": str(spec_root),
+        "candidates": candidate_rows(spec_root),
+        "warnings": graph.warnings,
+    }
+
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        print(render_text(payload))
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

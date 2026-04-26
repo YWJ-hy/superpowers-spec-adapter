@@ -19,9 +19,14 @@ REPO_ROOT="$(cd "$REPO_ROOT_INPUT" && pwd)"
 
 "$SCRIPT_DIR/install.sh" "$TARGET_INPUT"
 "$SCRIPT_DIR/verify.sh" "$TARGET_INPUT"
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Adapter Self Test" "Validate one-shot spec updates." "Self-test rule")
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Adapter Self Test" "Validate one-shot spec updates again." "Self-test rule updated")
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/init-spec.py" . "self-test")
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_apply_update.py" "updates/adapter-self-test.md" "Adapter Self Test" "Validate mechanical spec writes." "Self-test rule")
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_apply_update.py" "updates/adapter-self-test.md" "Adapter Self Test" "Validate mechanical spec writes again." "Self-test rule updated")
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/update-spec.py")
+if [[ ! -f "$REPO_ROOT/.superpowers/spec/updates/adapter-self-test.md" ]]; then
+  printf 'Expected mechanical update target to exist\n' >&2
+  exit 1
+fi
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/init-spec.py" . "self-test" --json >/dev/null)
 python3 - <<'PY' "$REPO_ROOT"
 from pathlib import Path
 import sys
@@ -37,6 +42,7 @@ fi
 rm -f "$REPO_ROOT/.superpowers/tmp-import-source.md"
 bash "$SCRIPT_DIR/tests/native-skill-patch-smoke.sh" "$TARGET_DIR"
 bash "$SCRIPT_DIR/tests/spec-update-check-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/init-spec-inventory-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/spec-index-graph-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/spec-import-command-path-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 python3 "$SCRIPT_DIR/lib/hook_patch.py" verify "$TARGET_DIR"

@@ -83,10 +83,10 @@
 /init-spec
 /init-spec payments and order workflow
 /import-spec path/to/original-spec-dir
-/import-spec path/to/original-spec-dir --hint "api contract"
+/import-spec path/to/original-spec-dir --target imported
 ```
 
-`/init-spec` 用于首次生成 starter spec；`/import-spec` 用于一次性迁移已有规范。两者都是独立 adapter command，完成后即可结束。
+`/init-spec` 通过项目 inventory 辅助 agent 首次生成轻量 starter spec；`/import-spec` 用于一次性结构迁移已有规范，不做语义融合。两者都是独立 adapter command，完成后即可结束。
 
 ---
 
@@ -156,16 +156,12 @@ python3 "$TARGET_DIR/scripts/spec-context.py" --file quality/error-rules.md
 /update-spec
 ```
 
-执行层调试入口：
+执行层调试入口只用于机械检查，不替 agent 判断是否需要更新或写到哪里：
 
 ```bash
-python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract"
-python3 "$TARGET_DIR/scripts/spec_update_run.py" \
-  "error handling" \
-  "Error normalization" \
-  "Prevent inconsistent backend error shapes." \
-  "Normalize backend error payloads" \
-  "Keep user-facing messages stable"
+python3 "$TARGET_DIR/scripts/spec_select_target.py" --json
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --json
+python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
 ---

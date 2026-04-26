@@ -132,9 +132,9 @@ def rebuild_indexes(spec_root: Path) -> None:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Convert an existing spec tree into index-driven .superpowers/spec structure.")
+    parser = argparse.ArgumentParser(description="Structurally import an existing spec tree into index-driven .superpowers/spec.")
     parser.add_argument("source", help="Path to a source spec file or directory")
-    parser.add_argument("--hint", default="", help="Optional topic hint retained for command compatibility")
+    parser.add_argument("--hint", default="", help="Deprecated compatibility option; ignored by structural import")
     parser.add_argument("--target", default="", help="Optional target subdirectory or file under .superpowers/spec")
     parser.add_argument("--merge-existing", action="store_true", help="Allow identical existing files; never overwrites different content")
     return parser.parse_args(argv)

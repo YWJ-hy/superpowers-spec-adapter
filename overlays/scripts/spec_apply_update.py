@@ -121,7 +121,10 @@ def merge_update_block(existing: str, title: str, why: str, rules: list[str]) ->
 
 def main() -> int:
     if len(sys.argv) < 4:
-        raise SystemExit('Usage: spec_apply_update.py <target-relative-path> <title> <why> [rule ...]')
+        raise SystemExit(
+            'Usage: spec_apply_update.py <agent-decided-target-relative-path> <title> <why> [rule ...]\n'
+            'This is a mechanical writer only; decide target ownership and duplicate coverage before running it.'
+        )
 
     target_rel = sys.argv[1]
     title = sys.argv[2].strip()

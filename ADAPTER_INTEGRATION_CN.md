@@ -39,11 +39,8 @@ superpowers/
 ├── scripts/spec_import.py
 ├── scripts/init-spec.py
 ├── scripts/spec_update_check.py
-├── scripts/spec_update_prompt.py
 ├── scripts/spec_select_target.py
-├── scripts/spec_update_template.py
-├── scripts/spec_apply_update.py
-└── scripts/spec_update_run.py
+└── scripts/spec_apply_update.py
 ```
 
 同时会修改：
@@ -183,33 +180,34 @@ subagent 不应重新从 `.superpowers/spec/` 选择规范，除非主 agent 判
 
 ### `/init-spec`
 
-用于首次从当前项目结构生成 starter spec。
+用于首次从当前项目 inventory 辅助 agent 生成轻量 starter spec。底层脚本只输出机械 inventory，不直接写 spec 内容。
 
 底层脚本：
 
 ```bash
-python3 "$TARGET_DIR/scripts/init-spec.py" . "optional focus"
+python3 "$TARGET_DIR/scripts/init-spec.py" . "optional focus" --json
 ```
 
 ### `/import-spec`
 
-用于一次性导入已有规范目录或文件。
+用于一次性结构导入已有规范目录或文件，不做语义融合。
 
 底层脚本：
 
 ```bash
-python3 "$TARGET_DIR/scripts/spec_import.py" path/to/original-spec-dir --hint "api contract"
+python3 "$TARGET_DIR/scripts/spec_import.py" path/to/original-spec-dir --target imported
 ```
 
 ### `/update-spec`
 
-用于任务完成后沉淀 durable implementation knowledge。
+用于任务完成后沉淀 durable implementation knowledge。该 command 由 agent 读取 indexed specs、语义去重、判断归属并直接编辑 leaf spec；底层脚本只提供候选列表、机械校验和索引刷新。
 
-底层脚本：
+调试脚本示例：
 
 ```bash
-python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract"
-python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Error normalization" "Prevent inconsistent backend error shapes." "Normalize backend error payloads"
+python3 "$TARGET_DIR/scripts/spec_select_target.py" --json
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --json
+python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
 这些 command 都是独立 adapter command，完成后不触发 Superpowers completion verification。

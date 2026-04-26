@@ -129,10 +129,10 @@ Superpowers 插件目录
 
 ```text
 /import-spec path/to/original-spec-dir
-/import-spec path/to/original-spec-dir --hint "api contract"
+/import-spec path/to/original-spec-dir --target imported
 ```
 
-`/import-spec` 是独立 adapter command，完成导入和索引刷新后即可结束。
+`/import-spec` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；如果导入内容需要语义整理，后续使用 `/update-spec`。
 
 ### 4.4 初始化项目 spec 知识
 
@@ -141,7 +141,7 @@ Superpowers 插件目录
 /init-spec payments and order workflow
 ```
 
-这一步用于第一次从当前项目结构中生成轻量的 starter spec。后续开发中不要把它当作日常维护入口，日常沉淀知识应使用 `/update-spec`。
+这一步用于第一次从当前项目 inventory 中辅助 agent 生成轻量 starter spec。脚本只提供语言、依赖、目录、样例文件和 indexed spec 候选；是否写入、写到哪里由 agent 判断。后续开发中不要把它当作日常维护入口，日常沉淀知识应使用 `/update-spec`。
 
 ---
 
@@ -238,7 +238,7 @@ This plan follows these existing project specs:
 - 可以从代码直接看出来的普通结构
 - 没有验证过的猜测
 
-`/update-spec` 是独立 adapter command，完成重复检查、目标选择、spec 写入和索引刷新后即可结束。
+`/update-spec` 是独立 adapter command。调用后，agent 应读取 indexed specs，做语义去重和归属判断，直接更新 leaf spec，并刷新 index；脚本只用于候选展示、路径安全、格式校验和索引刷新。
 
 ---
 

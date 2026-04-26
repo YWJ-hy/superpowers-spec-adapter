@@ -1,7 +1,7 @@
 {
   "adapter": {
     "name": "superpower-adapter",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Pluggable overlay that adds spec-researcher-driven project spec selection and update-spec workflow to Superpowers without making Trellis a runtime dependency."
   },
   "target": {
@@ -23,11 +23,8 @@
       "scripts/spec_import.py",
       "scripts/init-spec.py",
       "scripts/spec_update_check.py",
-      "scripts/spec_update_prompt.py",
       "scripts/spec_select_target.py",
-      "scripts/spec_update_template.py",
-      "scripts/spec_apply_update.py",
-      "scripts/spec_update_run.py"
+      "scripts/spec_apply_update.py"
     ],
     "missingFiles": []
   },
@@ -72,7 +69,8 @@
         "quality/index.md",
         "shared/deep/index.md",
         "shared/index.md",
-        "unindexed/index.md"
+        "unindexed/index.md",
+        "updates/index.md"
       ],
       "leafFiles": [
         "frontend/component-guidelines.md",
@@ -95,7 +93,8 @@
         "platform/api/contract.md",
         "quality/error-rules.md",
         "shared/deep/rule.md",
-        "unindexed/secret.md"
+        "unindexed/secret.md",
+        "updates/adapter-self-test.md"
       ],
       "tree": [
         {
@@ -357,6 +356,21 @@
           "path": "unindexed/secret.md",
           "type": "file",
           "depth": 2
+        },
+        {
+          "path": "updates",
+          "type": "dir",
+          "depth": 1
+        },
+        {
+          "path": "updates/adapter-self-test.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "updates/index.md",
+          "type": "file",
+          "depth": 2
         }
       ]
     },
@@ -372,7 +386,8 @@
         "quality/index.md",
         "shared/deep/index.md",
         "shared/index.md",
-        "unindexed/index.md"
+        "unindexed/index.md",
+        "updates/index.md"
       ],
       "leafFiles": [
         "frontend/component-guidelines.md",
@@ -391,7 +406,8 @@
         "platform/api/contract.md",
         "quality/error-rules.md",
         "shared/deep/rule.md",
-        "unindexed/secret.md"
+        "unindexed/secret.md",
+        "updates/adapter-self-test.md"
       ],
       "tree": [
         {
@@ -581,6 +597,21 @@
         },
         {
           "path": "unindexed/secret.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "updates",
+          "type": "dir",
+          "depth": 1
+        },
+        {
+          "path": "updates/adapter-self-test.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "updates/index.md",
           "type": "file",
           "depth": 2
         }

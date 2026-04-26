@@ -3,18 +3,16 @@
 
 from __future__ import annotations
 
+import argparse
 import json
-import re
 import subprocess
-import sys
 from collections import Counter
 from pathlib import Path
 
-from spec_common import build_spec_index_graph, repo_root, summary_from_markdown
+from spec_common import build_spec_index_graph, rel_posix, repo_root, summary_from_markdown
 
 MAX_SCAN_RESULTS = 400
 MAX_FILE_SAMPLES = 12
-MAX_INITIALIZED_LEAVES = 5
 
 EXTENSION_GROUPS: dict[str, set[str]] = {
     "python": {".py"},
@@ -72,15 +70,15 @@ def detect_languages(files: list[Path]) -> list[str]:
     return [name for name, _ in counts.most_common(3)]
 
 
-def detect_stack(package_json: dict, languages: list[str]) -> set[str]:
+def detect_stack(package_json: dict, languages: list[str]) -> list[str]:
     deps = {
         *(package_json.get("dependencies") or {}).keys(),
         *(package_json.get("devDependencies") or {}).keys(),
     }
     lowered = {dep.lower() for dep in deps}
     stack = set(languages)
-    stack.update(sorted(word for word in lowered if word in STACK_HINTS))
-    return stack
+    stack.update(word for word in lowered if word in STACK_HINTS)
+    return sorted(stack)
 
 
 def dominant_directories(files: list[Path], project_root: Path) -> list[str]:
@@ -106,117 +104,90 @@ def file_samples(files: list[Path], project_root: Path) -> list[str]:
     return samples
 
 
-def append_initialization_block(path: Path, title: str, why: list[str], rules: list[str], notes: list[str] | None = None) -> None:
-    existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    marker = f"## Update: {title}"
-    if marker in existing:
-        return
-
-    lines = [existing.rstrip(), "", marker, "", "### Why"]
-    lines.extend(f"- {item}" for item in why)
-    lines.extend(["", "### Rules / Contracts"])
-    lines.extend(f"- {item}" for item in rules)
-    if notes:
-        lines.extend(["", "### Validation / Notes"])
-        lines.extend(f"- {item}" for item in notes)
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-
-
-def initialize_project_entry(path: Path, hint: str, languages: list[str], stack: set[str], top_dirs: list[str], samples: list[str]) -> None:
-    why = [
-        "This file was initialized from the current repository shape so the first spec pass starts from observed project reality.",
-        "Treat these notes as a starting point for user review rather than an authoritative design document.",
+def indexed_specs(spec_root: Path) -> tuple[list[dict[str, str]], list[str]]:
+    graph = build_spec_index_graph(spec_root)
+    specs = [
+        {
+            "path": rel_posix(spec_root.resolve(), path),
+            "summary": summary_from_markdown(path),
+            "kind": "leaf",
+        }
+        for path in graph.leaves
     ]
-    rules: list[str] = []
-    if hint:
-        rules.append(f"Focus hint: {hint}")
-    if languages:
-        rules.append(f"Primary implementation languages: {', '.join(languages)}")
-    if stack:
-        rules.append(f"Detected stack signals: {', '.join(sorted(stack))}")
-    if top_dirs:
-        rules.append(f"Top-level code directories worth reviewing first: {', '.join(top_dirs)}")
-    if samples:
-        rules.append(f"Example implementation files: {', '.join(samples)}")
-    notes = [
-        "This command initializes spec content for the user; during ongoing development, continue maintaining knowledge with update-spec.",
-        "Replace any incorrect assumptions after reading the relevant code or after user confirmation.",
-    ]
-    append_initialization_block(path, "Initialization Summary", why, rules, notes)
+    return specs, graph.warnings
 
 
-def tokenize(value: str) -> list[str]:
-    return [token for token in re.split(r"[^a-z0-9]+", value.lower()) if token]
-
-
-def score_leaf(path: Path, spec_root: Path, hint: str, stack: set[str]) -> float:
-    rel = path.relative_to(spec_root).as_posix().lower()
-    summary = summary_from_markdown(path).lower()
-    tokens = [*tokenize(hint), *sorted(stack)]
-    score = 0.0
-    for token in tokens:
-        if token and token in rel:
-            score += 3
-        if token and token in summary:
-            score += 2
-    return score
-
-
-def initialize_leaf(path: Path, spec_root: Path, languages: list[str], stack: set[str], top_dirs: list[str], samples: list[str]) -> None:
-    rel = path.relative_to(spec_root).as_posix()
-    why = [
-        f"This indexed spec file was selected during initialization because it is reachable from the spec index graph: {rel}.",
-        "The initial pass should capture observable project signals only, not unverified implementation contracts.",
-    ]
-    rules = [
-        *( [f"Primary implementation languages: {', '.join(languages)}"] if languages else []),
-        *( [f"Detected stack signals: {', '.join(sorted(stack))}"] if stack else []),
-        *( [f"Candidate code directories to inspect first: {', '.join(top_dirs[:3])}"] if top_dirs else []),
-        *( [f"Candidate files to inspect first: {', '.join(samples[:5])}"] if samples else []),
-        "Confirm concrete behavior in code or docs before turning these observations into durable rules.",
-    ]
-    append_initialization_block(
-        path,
-        "Initialization Summary",
-        why,
-        rules,
-        ["Use update-spec to capture verified durable knowledge after implementation or review."],
-    )
-
-
-def main() -> int:
-    if len(sys.argv) < 2:
-        print("Usage: init-spec.py <project-root> [analysis-hint]", file=sys.stderr)
-        return 1
-
-    project_root = repo_root(Path(sys.argv[1]).resolve())
-    hint = sys.argv[2].strip() if len(sys.argv) > 2 else ""
+def build_inventory(project_root_arg: str, hint: str) -> dict:
+    project_root = repo_root(Path(project_root_arg).resolve())
     spec_root = project_root / ".superpowers" / "spec"
-    spec_root.mkdir(parents=True, exist_ok=True)
-
     files = run_find(project_root)
     package_json = read_package_json(project_root)
     languages = detect_languages(files)
     stack = detect_stack(package_json, languages)
-    top_dirs = dominant_directories(files, project_root)
-    samples = file_samples(files, project_root)
+    specs, warnings = indexed_specs(spec_root)
 
-    root_index = spec_root / "index.md"
-    if root_index.is_file():
-        initialize_project_entry(root_index, hint, languages, stack, top_dirs, samples)
+    if not (spec_root / "index.md").is_file():
+        warnings.append("Missing .superpowers/spec/index.md; run bootstrap-spec before initializing starter specs")
 
-    graph = build_spec_index_graph(spec_root)
-    leaves = sorted(graph.leaves, key=lambda path: (-score_leaf(path, spec_root, hint, stack), path.relative_to(spec_root).as_posix()))
-    for leaf in leaves[:MAX_INITIALIZED_LEAVES]:
-        initialize_leaf(leaf, spec_root, languages, stack, top_dirs, samples)
+    return {
+        "projectRoot": str(project_root),
+        "specRoot": str(spec_root),
+        "focusHint": hint,
+        "languages": languages,
+        "stackSignals": stack,
+        "topDirectories": dominant_directories(files, project_root),
+        "sampleFiles": file_samples(files, project_root),
+        "indexedSpecs": specs,
+        "warnings": warnings,
+        "mechanicalOnly": True,
+    }
 
-    update_script = Path(__file__).with_name("update-spec.py")
-    subprocess.run([sys.executable, str(update_script)], cwd=project_root, check=True)
 
-    if leaves:
-        print(f"Initialized spec content under {spec_root}")
+def render_text(inventory: dict) -> str:
+    lines = [
+        "Project inventory only; no spec content was written.",
+        f"Project root: {inventory['projectRoot']}",
+        f"Spec root: {inventory['specRoot']}",
+    ]
+    if inventory["focusHint"]:
+        lines.append(f"Focus hint: {inventory['focusHint']}")
+    lines.extend([
+        "",
+        "Languages: " + (", ".join(inventory["languages"]) or "<none detected>"),
+        "Stack signals: " + (", ".join(inventory["stackSignals"]) or "<none detected>"),
+        "Top directories: " + (", ".join(inventory["topDirectories"]) or "<none detected>"),
+        "",
+        "Sample files:",
+    ])
+    lines.extend(f"- {path}" for path in inventory["sampleFiles"] or ["<none>"])
+    lines.extend(["", "Indexed specs:"])
+    if inventory["indexedSpecs"]:
+        for spec in inventory["indexedSpecs"]:
+            summary = f" — {spec['summary']}" if spec["summary"] else ""
+            lines.append(f"- `{spec['path']}`{summary}")
     else:
-        print(f"Initialized root spec index under {spec_root}; add leaf specs to index.md for deeper initialization")
+        lines.append("- <none>")
+    if inventory["warnings"]:
+        lines.extend(["", "Warnings:"])
+        lines.extend(f"- {warning}" for warning in inventory["warnings"])
+    return "\n".join(lines)
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Output project inventory for agent-led .superpowers/spec initialization.")
+    parser.add_argument("project_root", help="Project root to inspect")
+    parser.add_argument("analysis_hint", nargs="?", default="", help="Optional focus hint for the agent")
+    parser.add_argument("--json", action="store_true", help="Emit JSON inventory")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    inventory = build_inventory(args.project_root, args.analysis_hint.strip())
+    if args.json:
+        print(json.dumps(inventory, ensure_ascii=False, indent=2))
+    else:
+        print(render_text(inventory))
     return 0
 
 

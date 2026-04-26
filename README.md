@@ -54,7 +54,7 @@ Existing files are never overwritten. If a target file exists with different con
 
 ## Initialize starter spec knowledge
 
-After bootstrapping the directory structure, initialize first-pass spec content from the current project:
+After bootstrapping the directory structure, use `/init-spec` in Claude Code to initialize first-pass spec content from a mechanical project inventory. The script behind this command reports languages, stack signals, top directories, sample files, and indexed specs; the agent decides whether to write lightweight starter notes.
 
 ```bash
 ./manage.sh init-spec /path/to/project
@@ -69,10 +69,10 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 
 ```text
 /import-spec path/to/original-spec-dir
-/import-spec path/to/original-spec-dir --hint "api contract"
+/import-spec path/to/original-spec-dir --target imported
 ```
 
-The import recursively scans source spec files, routes each file to an adapter leaf spec, and refreshes `.superpowers/spec` indexes. Use this for one-time conversion of existing spec directories.
+The import recursively scans source spec files, copies each file into `.superpowers/spec` without overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing spec directories; use `/update-spec` later for semantic consolidation.
 
 ## Progressive disclosure
 
@@ -113,14 +113,15 @@ Implementation and review consume this plan section instead of reselecting specs
 
 ## Update specs
 
-For normal use in Claude Code or similar tools, use the installed Superpowers command `/update-spec`. The installed `/update-spec` command is standalone: after it checks duplicates, writes durable spec knowledge, and refreshes indexes, it should stop without invoking Superpowers completion verification or other development workflow checks.
+For normal use in Claude Code or similar tools, use the installed Superpowers command `/update-spec`. The installed `/update-spec` command is standalone: the agent reads indexed specs, checks semantic duplicates, chooses target ownership, edits durable spec knowledge, refreshes indexes, and then stops without invoking Superpowers completion verification or other development workflow checks.
 
-Execution-layer helpers are mainly useful for adapter development or debugging:
+Execution-layer helpers are mainly useful for adapter development or debugging. They are mechanical helpers only:
 
 ```bash
 TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
-python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize api error contract"
-python3 "$TARGET_DIR/scripts/spec_update_run.py" "error handling" "Error normalization" "Prevent inconsistent API error shapes." "Normalize API error payloads"
+python3 "$TARGET_DIR/scripts/spec_select_target.py" --json
+python3 "$TARGET_DIR/scripts/spec_update_check.py" --json
+python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
 ## Export manifest
@@ -148,9 +149,9 @@ This runs:
 - `export-manifest`
 
 The self-test covers:
-- repeated `spec_update_run.py` merge behavior
+- mechanical `spec_apply_update.py` write and merge behavior with an agent-decided target
 - `spec-researcher` installation and native skill patch smoke
-- `spec_update_check.py` durable-knowledge recommendations
+- `spec_update_check.py` index and format validation
 - index-driven spec graph traversal
 - import command path handling
 

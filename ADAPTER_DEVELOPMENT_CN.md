@@ -57,7 +57,7 @@ adapter 分为四层：
 可以直接运行 Python 脚本做快速定位，例如：
 
 ```bash
-python3 overlays/scripts/spec_update_check.py --summary "example"
+python3 overlays/scripts/spec_update_check.py --json
 ```
 
 但这只能说明脚本本身可执行，不能说明用户在 Claude Code 中可以正确使用 `/update-spec` 或 native skill 集成路径。
@@ -73,13 +73,9 @@ python3 overlays/scripts/spec_update_check.py --summary "example"
 3. 对应 command、skill 或 agent 文档仍会引导 agent 走正确流程
 4. 在目标项目中能通过 Superpowers command / skill / agent 集成路径完成用户场景
 
-例如修改 `update-spec` 相关能力时，不应只验证：
+例如修改 `update-spec` 相关能力时，不应只验证某个底层脚本能写入文件；脚本测试只能覆盖候选输出、路径安全、格式校验和索引刷新等机械能力。
 
-```bash
-python3 overlays/scripts/spec_update_run.py ...
-```
-
-还应确认安装后 `/update-spec` 的 command 文档、分析流程、去重要求、目标选择和索引刷新链路仍然一致。
+还应确认安装后 `/update-spec` 的 command 文档会引导 agent 读取 indexed specs、做语义去重、判断目标归属、直接编辑 leaf spec 并刷新索引。
 
 ### 4.3 self-test 是底层回归，不是完整产品验收
 
@@ -96,7 +92,7 @@ python3 overlays/scripts/spec_update_run.py ...
 - command / skill 如何指导 agent 分析、确认、执行和验收？
 - 底层脚本只是执行层，还是被错误地暴露成了用户入口？
 
-只有在用户入口明确后，再实现或调整 `overlays/scripts/*.py`。
+只有在用户入口明确后，再实现或调整 `overlays/scripts/*.py`。涉及 spec 内容判断的 command 应优先由 agent 主导；Python 只做 inventory、copy、validate、refresh 等机械操作，不应独立判断 durable knowledge、target ownership 或 contract 内容。
 
 ---
 

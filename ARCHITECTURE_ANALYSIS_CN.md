@@ -44,12 +44,9 @@
 - `overlays/scripts/update-spec.py`
 - `overlays/scripts/spec_update_check.py`
 - `overlays/scripts/spec_select_target.py`
-- `overlays/scripts/spec_update_prompt.py`
-- `overlays/scripts/spec_update_template.py`
 - `overlays/scripts/spec_apply_update.py`
-- `overlays/scripts/spec_update_run.py`
 
-脚本只作为 command 和测试背后的执行层。
+脚本只作为 command 和测试背后的执行层。`update-spec` 相关脚本只做候选输出、路径安全、格式校验和索引刷新，不替 agent 做语义去重或目标归属判断。
 
 ### 5. Patch / 安装层
 

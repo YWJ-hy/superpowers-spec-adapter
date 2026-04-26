@@ -96,7 +96,9 @@ chmod +x \
   "$TARGET_DIR/scripts/spec-context.py" \
   "$TARGET_DIR/scripts/spec_import.py" \
   "$TARGET_DIR/scripts/init-spec.py" \
-  "$TARGET_DIR/scripts/spec_update_check.py"
+  "$TARGET_DIR/scripts/spec_update_check.py" \
+  "$TARGET_DIR/scripts/spec_select_target.py" \
+  "$TARGET_DIR/scripts/spec_apply_update.py"
 python3 "$HOOK_PATCHER" install "$TARGET_DIR"
 python3 "$NATIVE_SKILL_PATCHER" install "$TARGET_DIR"
 
