@@ -10,7 +10,8 @@ print(json.loads(sys.argv[1])['target'])
 PY
 )"
 OVERLAY_DIR="$SCRIPT_DIR/overlays"
-PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
+HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
+NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -95,12 +96,8 @@ chmod +x \
   "$TARGET_DIR/scripts/spec-context.py" \
   "$TARGET_DIR/scripts/spec_import.py" \
   "$TARGET_DIR/scripts/init-spec.py" \
-  "$TARGET_DIR/scripts/plan-context.py" \
-  "$TARGET_DIR/scripts/workflow-gate.py" \
-  "$TARGET_DIR/scripts/spec_select_context.py" \
-  "$TARGET_DIR/scripts/spec_update_check.py" \
-  "$TARGET_DIR/hooks/session-spec-index" \
-  "$TARGET_DIR/hooks/session-plan-context"
-python3 "$PATCHER" install "$TARGET_DIR"
+  "$TARGET_DIR/scripts/spec_update_check.py"
+python3 "$HOOK_PATCHER" install "$TARGET_DIR"
+python3 "$NATIVE_SKILL_PATCHER" install "$TARGET_DIR"
 
 printf 'superpower-adapter install complete\n'

@@ -1,16 +1,6 @@
 # Superpower Adapter 快速使用手册
 
-这份文档只保留最终用户最需要的内容：
-
-1. 怎么安装
-2. 怎么初始化 spec
-3. 怎么一键更新 spec
-4. 怎么做发布前检查
-5. 怎么做阶段前检查
-6. 怎么用 selector 选 spec
-7. 怎么判断要不要回写 spec
-8. 怎么做发布前检查
-9. Superpowers 升级后怎么重装
+这份文档只保留最终用户最需要的内容：安装、初始化 spec、让 Superpowers 渐进读取项目规范、更新 spec、发布前检查。
 
 如果你需要从 Claude Code 等工具中的用户操作流程开始，请先看：
 
@@ -20,20 +10,18 @@
 
 - [`ADAPTER_DEVELOPMENT_CN.md`](./ADAPTER_DEVELOPMENT_CN.md)
 
-如果你需要完整设计说明、流程图和实现细节，请看：
-
-- [`ADAPTER_INTEGRATION_CN.md`](./ADAPTER_INTEGRATION_CN.md)
-
 ---
 
 ## 1. 这套东西是干什么的
 
-这套 `superpower-adapter` 的作用是：
+`superpower-adapter` 的作用是：
 
-- 让 **Superpowers 继续作为主插件**
-- 给项目增加一套 `.superpowers/spec/` 规范系统
-- 支持 **渐进式披露**：启动时只注入摘要树，真正实现时再按需读取具体 spec
-- 提供一个接近 Trellis 风格的 `update-spec` 体验
+- 让 **Superpowers 继续作为主插件**。
+- 给项目增加一套 `.superpowers/spec/` 规范系统。
+- 支持 **渐进式披露**：Superpowers 写 spec / plan 时由 `spec-researcher` 按需读取具体 spec。
+- 安装 `spec-researcher` agent，帮助 `brainstorming` 和 `writing-plans` 选择相关项目规范。
+- 要求 implementation plan 用 `Referenced Project Specs` 固化执行阶段要遵守的项目规范。
+- 提供 `import-spec`、`init-spec`、`update-spec` 能力。
 
 一句话：
 
@@ -41,240 +29,116 @@
 
 ---
 
-## 2. 安装前提
+## 2. 第一次安装 adapter
 
-在使用前，需要满足：
-
-### 2.1 已安装 Superpowers Claude Code 插件
-
-例如你已经执行过：
+如果当前就在 adapter 仓库根目录，执行：
 
 ```bash
-/plugin install superpowers@claude-plugins-official
+./manage.sh install
+./manage.sh verify
 ```
 
-当前 adapter 默认会优先修改**用户本地已安装的 Superpowers 插件目录**。
-
-如果没有检测到已安装插件，才会回退到当前仓库里的 `./superpowers`。
-
-### 2.2 当前项目根目录可写
-
-因为 spec 会放在：
-
-```text
-.superpowers/spec/
-```
-
----
-
-## 3. 第一次安装 adapter
-
-在当前仓库根目录执行：
-
-```bash
-./superpower-adapter/install.sh
-./superpower-adapter/verify.sh
-```
-
-或者：
+如果 adapter 作为宿主项目中的 `superpower-adapter/` 子目录存在，从宿主项目执行：
 
 ```bash
 ./superpower-adapter/manage.sh install
 ./superpower-adapter/manage.sh verify
 ```
 
-### 安装后会发生什么
+安装后会写入：
 
-adapter 会把 overlay 写进已安装的 Superpowers 插件目录，包括：
-
+- `agents/spec-researcher.md`
+- `commands/import-spec.md`
+- `commands/init-spec.md`
 - `commands/update-spec.md`
-- `hooks/session-spec-index`
-- `scripts/update-spec.py`
-- `scripts/spec-context.py`
-- `scripts/spec_update_run.py`
-- 以及其他相关脚本
+- `skills/spec-progressive-disclosure/SKILL.md`
+- adapter 执行脚本
 
 同时会 patch：
 
-- `hooks/hooks.json`
-- `hooks/hooks-cursor.json`
-
-让 SessionStart 时自动注入 `.superpowers/spec` 的轻量摘要树，以及当前 plan sidecar 的轻量状态。
+- `hooks/hooks.json`（清理旧 adapter SessionStart hook）
+- `hooks/hooks-cursor.json`（清理旧 adapter sessionStart hook）
+- `skills/brainstorming/SKILL.md`
+- `skills/writing-plans/SKILL.md`
+- `skills/executing-plans/SKILL.md`
+- `skills/subagent-driven-development/SKILL.md`
 
 ---
 
-## 4. 初始化 `.superpowers/spec`
-
-### 最小初始化
+## 3. 初始化 `.superpowers/spec`
 
 ```bash
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project
+./manage.sh bootstrap-spec /path/to/project --template standard
 ```
 
-会创建：
+会创建 `.superpowers/spec/index.md` 和模板 leaf spec。已有文件不会被覆盖。
 
-- `.superpowers/spec/index.md`
-- `.superpowers/spec/.adapter-ignore`
+---
 
-### 用 preset 初始化
+## 4. 初始化或导入项目知识
 
-#### Web 项目
+在 Claude Code 中可使用：
 
-```bash
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset web
+```text
+/init-spec
+/init-spec payments and order workflow
+/import-spec path/to/original-spec-dir
+/import-spec path/to/original-spec-dir --hint "api contract"
 ```
 
-生成：
-- `frontend/`
-- `guides/`
-
-#### Backend 项目
-
-```bash
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend
-```
-
-生成：
-- `backend/`
-- `guides/`
-
-#### Fullstack 项目
-
-```bash
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset fullstack
-```
-
-生成：
-- `backend/`
-- `frontend/`
-- `guides/`
-
-### 混合自定义目录
-
-```bash
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset backend api-contracts
-```
-
-这个命令会：
-- 创建 `backend/`
-- 创建 `guides/`
-- 再额外创建 `api-contracts/`
-
-而且**不会覆盖已有文件**。
+`/init-spec` 用于首次生成 starter spec；`/import-spec` 用于一次性迁移已有规范。两者都是独立 adapter command，完成后即可结束。
 
 ---
 
 ## 5. 日常怎么用 spec
 
-在 Claude Code 等工具中，日常优先通过 adapter 安装到 Superpowers 的 slash command 使用这些能力，例如 `/init-spec`、`/check-workflow` 和 `/update-spec`。plan sidecar 由 `/check-workflow planning` 自动准备；下面列出的 Python 命令是这些 command 背后的执行层，主要用于理解、排查或 adapter 开发。执行这些调试命令前，先解析安装后的 Superpowers 目录：
-
-```bash
-TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
-```
-
-### 5.1 如果任务由 Superpowers plan 驱动，由 `/check-workflow planning` 自动准备 sidecar
-
-保留原生 plan 文件路径不变，例如：
+日常优先使用 Superpowers 主流程：
 
 ```text
-docs/superpowers/plans/2026-04-22-example.md
+用户描述需求
+→ brainstorming 调用 spec-researcher 轻量披露项目规范
+→ writing-plans 调用 spec-researcher 正式选择项目规范
+→ plan 写入 Referenced Project Specs
+→ executing-plans / subagent-driven-development 消费 Referenced Project Specs
+→ /update-spec（有长期知识时）
 ```
 
-Superpowers 创建或选定 plan 后，执行 planning gate：
+plan 中应包含：
 
-```bash
-python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
+```markdown
+## Referenced Project Specs
+
+- `.superpowers/spec/quality/error-rules.md`
+  - Applies to Tasks 1 and 3.
+  - Constraints:
+    - Keep error payloads stable.
 ```
 
-这会自动创建：
+执行和评审阶段读取这个小节，不重新选择 spec。
 
-```text
-docs/superpowers/plans/2026-04-22-example.context/
-├── plan.jsonl
-├── implement.jsonl
-├── review.jsonl
-└── state.json
-```
+---
 
-并写入：
-
-```text
-.superpowers/current-plan
-```
-
-planning gate 会把自动推荐的 spec 写入 `plan.jsonl`；实现和评审阶段优先消费 sidecar，而不是重新从 `.superpowers/spec` 自由选择。
-
-Git 建议：
-- 建议把 `docs/superpowers/plans/<stem>.context/` 一起提交，保证 planning-selected context 可复现
-- 建议把 `.superpowers/current-plan` 视为本地工作状态，并加入 `.gitignore`
-
-### 5.2 平时不用全文加载
+## 6. 平时不用全文加载
 
 正常情况下：
 
-- 启动时只拿到摘要树
-- 真正实现时再按需读：
+- `brainstorming` / `writing-plans` 通过 `spec-researcher` 按需读：
   - `.superpowers/spec/index.md`
   - 子目录 `index.md`
   - 具体 leaf spec 文件
+- 执行阶段读取 plan 的 `Referenced Project Specs`。
 
-### 5.3 在进入新阶段前先做 gate 检查
-
-```bash
-python3 "$TARGET_DIR/scripts/workflow-gate.py" planning --plan docs/superpowers/plans/2026-04-22-example.md --hint "error handling"
-python3 "$TARGET_DIR/scripts/workflow-gate.py" implement
-python3 "$TARGET_DIR/scripts/workflow-gate.py" review
-python3 "$TARGET_DIR/scripts/workflow-gate.py" completion --summary "normalize backend error contract"
-```
-
-返回值语义：
-
-- `OK`：可以继续
-- `WARN`：建议补齐，但不一定阻断
-- `BLOCK`：先修复 plan / sidecar / context 问题
-
-### 5.4 用 selector 选 spec
-
-只推荐候选：
+开发调试时可以直接读取执行层输出：
 
 ```bash
-python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --limit 5
-python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --json
+TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
+python3 "$TARGET_DIR/scripts/spec-context.py" --tree --depth 2
+python3 "$TARGET_DIR/scripts/spec-context.py" --file quality/error-rules.md
 ```
 
-直接写入 sidecar：
+---
 
-```bash
-python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase implement --write-sidecar
-python3 "$TARGET_DIR/scripts/spec_select_context.py" "error handling" --phase review --plan docs/superpowers/plans/2026-04-22-example.md --write-sidecar --limit 3
-```
-
-### 5.5 在实现和评审前渲染 sidecar context
-
-```bash
-python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement
-python3 "$TARGET_DIR/scripts/plan-context.py" render --phase review
-```
-
-如果你想控制全文展开预算：
-
-```bash
-python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement --max-full 2 --max-chars 12000
-```
-
-如果你想拿机器可消费结构：
-
-```bash
-python3 "$TARGET_DIR/scripts/plan-context.py" render --phase implement --json
-```
-
-可以用下面的命令校验当前 plan sidecar 是否完整：
-
-```bash
-python3 "$TARGET_DIR/scripts/plan-context.py" verify --current
-```
-
-### 5.6 什么时候该更新 spec
+## 7. 什么时候该更新 spec
 
 当一次任务结束后，如果你学到了下面这些内容，就应该更新 spec：
 
@@ -284,31 +148,18 @@ python3 "$TARGET_DIR/scripts/plan-context.py" verify --current
 - 重要设计决策
 - 项目约定
 - 非显而易见的 gotcha
-- 跨层 checklist（这种通常放到 `guides/`）
+- 跨层 checklist
 
-判断规则：
+推荐入口：
 
-- **这是怎么安全实现** → 写到 `backend/*.md` 或 `frontend/*.md`
-- **这是实现前要考虑什么** → 写到 `guides/*.md`
+```text
+/update-spec
+```
 
-### 5.7 先判断要不要回写 spec
+执行层调试入口：
 
 ```bash
 python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract"
-python3 "$TARGET_DIR/scripts/spec_update_check.py" --summary "normalize backend error contract" --changed-file src/backend/api/error_handler.py --json
-```
-
-常见返回值：
-
-- `NO_UPDATE_NEEDED`
-- `RECOMMEND_UPDATE`
-- `STRONGLY_RECOMMEND_UPDATE`
-
-### 5.8 一键更新 spec（推荐）
-
-如果你已经知道 hint、标题、why 和规则内容，直接用：
-
-```bash
 python3 "$TARGET_DIR/scripts/spec_update_run.py" \
   "error handling" \
   "Error normalization" \
@@ -317,203 +168,28 @@ python3 "$TARGET_DIR/scripts/spec_update_run.py" \
   "Keep user-facing messages stable"
 ```
 
-它会自动：
-
-1. 选择目标 spec 文件
-2. 把结构化更新块写入正文
-3. 刷新索引链
-4. 输出最终命中的 spec 文件
-
-### 5.9 如果你想手动分步控制
-
-#### 选目标 spec
-
-```bash
-python3 "$TARGET_DIR/scripts/spec_select_target.py" "error handling"
-```
-
-#### 生成更新提示
-
-```bash
-python3 "$TARGET_DIR/scripts/spec_update_prompt.py" backend/error-handling.md
-```
-
-#### 生成更新模板
-
-```bash
-python3 "$TARGET_DIR/scripts/spec_update_template.py" backend/error-handling.md "Error normalization" "Prevent inconsistent backend error shapes."
-```
-
-#### 自动写入正文
-
-```bash
-python3 "$TARGET_DIR/scripts/spec_apply_update.py" \
-  backend/error-handling.md \
-  "Error normalization" \
-  "Prevent inconsistent backend error shapes." \
-  "Normalize backend error payloads" \
-  "Keep user-facing messages stable"
-```
-
-#### 刷新索引链
-
-```bash
-python3 "$TARGET_DIR/scripts/update-spec.py"
-```
-
-### 5.10 更新 spec 时要注意什么
-
-- 不要把详细规则都写进 `index.md`
-- `index.md` 负责导航，叶子文件负责正文内容
-- 优先写“未来还会用到”的知识
-- 写清楚 **为什么**，不只是 **是什么**
-- 更新正文后要刷新索引链
-
----
-
-## 6. 忽略目录怎么配
-
-默认忽略这些目录：
-
-- `draft`
-- `archive`
-- `examples`
-
-如果还想忽略更多目录，编辑：
-
-```text
-.superpowers/spec/.adapter-ignore
-```
-
-格式是每行一个目录名，例如：
-
-```text
-# custom ignored dirs
-private-notes
-old-specs
-scratch
-```
-
-这些忽略规则会影响：
-
-- `update-spec.py`
-- `spec-context.py --tree`
-- SessionStart 注入摘要树
-- manifest 的 effective view
-
----
-
-## 7. 检查当前状态
-
-### 查看安装状态
-
-```bash
-./superpower-adapter/manage.sh status
-```
-
-### 做健康检查
-
-```bash
-./superpower-adapter/manage.sh doctor /path/to/project
-```
-
-它会检查：
-
-- adapter 文件是否齐全
-- hook patch 是否存在
-- `.superpowers/spec/index.md` 是否存在
-- ignore 配置是否合理
-- rawView / effectiveView 差异是否异常
-- 有无缺失的 index 链
-
-### 导出快照
-
-```bash
-./superpower-adapter/manage.sh export-manifest /path/to/project ./superpower-adapter/manifest-output.json
-```
-
-这个文件可以用于：
-
-- 升级前后对比
-- 排查忽略规则
-- 记录当前 spec 结构状态
-
 ---
 
 ## 8. 发布前检查
 
-在准备把这套 adapter 视为当前稳定状态前，跑：
-
 ```bash
-./superpower-adapter/manage.sh release-check /path/to/project
+./manage.sh release-check /path/to/project
 ```
 
-它会自动执行：
+这会运行：
 
 - `verify`
 - `doctor`
 - `self-test`
 - `export-manifest`
 
-这是最推荐的最终检查入口。
-
 ---
 
-## 9. Superpowers 升级后怎么做
+## 9. Superpowers 升级后重装
 
-如果 Superpowers 插件升级了，不需要重新手工改插件目录，直接重跑：
-
-```bash
-./superpower-adapter/install.sh
-./superpower-adapter/verify.sh
-```
-
-或者直接：
+Superpowers 升级后在 adapter 仓库根目录重新运行：
 
 ```bash
-./superpower-adapter/manage.sh release-check /path/to/project
+./manage.sh install
+./manage.sh verify
 ```
-
-adapter 会把 overlay 重新安装回新的插件版本。
-
----
-
-## 10. 最短使用路径
-
-如果你只记 4 条命令，记这几条就够了：
-
-### 第一次初始化
-
-```bash
-./superpower-adapter/manage.sh install
-./superpower-adapter/manage.sh bootstrap-spec /path/to/project --preset fullstack
-```
-
-### 日常沉淀 spec
-
-```bash
-python3 "$TARGET_DIR/scripts/spec_update_run.py" \
-  "error handling" \
-  "Error normalization" \
-  "Prevent inconsistent backend error shapes." \
-  "Normalize backend error payloads"
-```
-
-### 发布前检查
-
-```bash
-./superpower-adapter/manage.sh release-check /path/to/project
-```
-
-### 插件升级后重装
-
-```bash
-./superpower-adapter/install.sh
-./superpower-adapter/verify.sh
-```
-
----
-
-## 11. 一句话总结
-
-> 这套 adapter 现在已经可以默认作用于已安装的 Superpowers 插件，并提供一条真正可用的“一键 update-spec”链路：选目标、写正文、刷新索引，一步完成。

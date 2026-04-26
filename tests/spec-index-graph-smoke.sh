@@ -30,7 +30,7 @@ printf '# Deep Rule\n\nDeep indexed behavior.\n' > "${SPEC_ROOT}/shared/deep/rul
 printf '# Secret\n\nUnindexed behavior.\n' > "${SPEC_ROOT}/unindexed/secret.md"
 
 tree_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec-context.py" --tree --depth 5)"
-for expected in "platform/api/contract.md" "guides/index.md" "guides/debugging.md" "shared/deep/rule.md"; do
+for expected in "Spec root: \`.superpowers/spec/\`" ".superpowers/spec/platform/api/contract.md" ".superpowers/spec/guides/index.md" ".superpowers/spec/guides/debugging.md" ".superpowers/spec/shared/deep/rule.md"; do
   case "${tree_output}" in
     *"${expected}"*) : ;;
     *) printf 'Expected index-driven tree to include %s\n%s\n' "${expected}" "${tree_output}" >&2; exit 1 ;;
@@ -41,13 +41,43 @@ case "${tree_output}" in
   *) : ;;
 esac
 
-selector_json="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec_select_context.py" secret --json)"
-python3 - <<'PY' "${selector_json}"
-import json, sys
-payload = json.loads(sys.argv[1])
-paths = [item.get('path') for item in payload.get('candidates', [])]
-if any('unindexed/secret.md' in path for path in paths):
-    raise SystemExit(f'Unindexed file should not be selected: {paths}')
-PY
+cat > "${SPEC_ROOT}/index.md" <<'EOF'
+# Project Specs
+
+<!-- superpower-adapter:auto:start -->
+- `frontend/`
+<!-- superpower-adapter:auto:end -->
+EOF
+mkdir -p "${SPEC_ROOT}/frontend/examples"
+cat > "${SPEC_ROOT}/frontend/index.md" <<'EOF'
+# Frontend Specs
+
+<!-- superpower-adapter:auto:start -->
+- `component-guidelines.md`
+- `hook-guidelines.md`
+- `type-safety.md`
+- `examples/`
+<!-- superpower-adapter:auto:end -->
+EOF
+cat > "${SPEC_ROOT}/frontend/examples/index.md" <<'EOF'
+# Examples
+
+Use this index to navigate the specs in this section.
+EOF
+printf '# Component Guidelines\n\nReusable Vue component props, emits, upload UI, and directory composition.\n' > "${SPEC_ROOT}/frontend/component-guidelines.md"
+printf '# Hook Guidelines\n\nReusable useUpload composables and hook extraction patterns.\n' > "${SPEC_ROOT}/frontend/hook-guidelines.md"
+printf '# Type Safety\n\nTypeScript contracts and Naive UI component declarations.\n' > "${SPEC_ROOT}/frontend/type-safety.md"
+printf '# Example\n\nIgnored example content.\n' > "${SPEC_ROOT}/frontend/examples/example.md"
+component_tree_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/spec-context.py" --tree --depth 4)"
+for expected in ".superpowers/spec/frontend/component-guidelines.md" ".superpowers/spec/frontend/hook-guidelines.md" ".superpowers/spec/frontend/type-safety.md"; do
+  case "${component_tree_output}" in
+    *"${expected}"*) : ;;
+    *) printf 'Expected component tree to include %s\n%s\n' "${expected}" "${component_tree_output}" >&2; exit 1 ;;
+  esac
+done
+case "${component_tree_output}" in
+  *"frontend/examples/example.md"*) printf 'Expected tree to exclude ignored examples leaf\n' >&2; exit 1 ;;
+  *) : ;;
+esac
 
 printf 'spec-index-graph smoke test complete\n'

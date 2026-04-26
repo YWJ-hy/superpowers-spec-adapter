@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch or verify Superpowers SessionStart hook config for superpower-adapter."""
+"""Clean or verify legacy Superpowers SessionStart hook config for superpower-adapter."""
 
 from __future__ import annotations
 
@@ -7,11 +7,13 @@ import json
 import sys
 from pathlib import Path
 
-CLAUDE_COMMANDS = [
+CLAUDE_COMMANDS = []
+CURSOR_COMMANDS = []
+DEPRECATED_CLAUDE_COMMANDS = [
     '"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd" session-spec-index',
     '"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd" session-plan-context',
 ]
-CURSOR_COMMANDS = [
+DEPRECATED_CURSOR_COMMANDS = [
     './hooks/session-spec-index',
     './hooks/session-plan-context',
 ]
@@ -36,6 +38,11 @@ def patch_claude(path: Path, mode: str) -> bool:
     changed = False
 
     if mode == 'install':
+        before = len(commands)
+        commands[:] = [h for h in commands if h.get('command') not in DEPRECATED_CLAUDE_COMMANDS]
+        if len(commands) != before:
+            existing_commands = {h.get('command') for h in commands}
+            changed = True
         for command in CLAUDE_COMMANDS:
             if command not in existing_commands:
                 commands.append({'type': 'command', 'command': command, 'async': False})
@@ -45,7 +52,7 @@ def patch_claude(path: Path, mode: str) -> bool:
         return changed
 
     if mode == 'uninstall':
-        filtered = [h for h in commands if h.get('command') not in CLAUDE_COMMANDS]
+        filtered = [h for h in commands if h.get('command') not in [*CLAUDE_COMMANDS, *DEPRECATED_CLAUDE_COMMANDS]]
         if len(filtered) != len(commands):
             event['hooks'] = filtered
             save_json(path, data)
@@ -55,6 +62,9 @@ def patch_claude(path: Path, mode: str) -> bool:
     missing = [command for command in CLAUDE_COMMANDS if command not in existing_commands]
     if missing:
         raise SystemExit(f'Missing adapter SessionStart hooks in {path}: {", ".join(missing)}')
+    deprecated = [command for command in DEPRECATED_CLAUDE_COMMANDS if command in existing_commands]
+    if deprecated:
+        raise SystemExit(f'Deprecated adapter SessionStart hooks remain in {path}: {", ".join(deprecated)}')
     return False
 
 
@@ -65,6 +75,11 @@ def patch_cursor(path: Path, mode: str) -> bool:
 
     if mode == 'install':
         changed = False
+        before = len(hooks)
+        hooks[:] = [h for h in hooks if h.get('command') not in DEPRECATED_CURSOR_COMMANDS]
+        if len(hooks) != before:
+            existing_commands = {h.get('command') for h in hooks}
+            changed = True
         for command in CURSOR_COMMANDS:
             if command not in existing_commands:
                 hooks.append({'command': command})
@@ -74,7 +89,7 @@ def patch_cursor(path: Path, mode: str) -> bool:
         return changed
 
     if mode == 'uninstall':
-        filtered = [h for h in hooks if h.get('command') not in CURSOR_COMMANDS]
+        filtered = [h for h in hooks if h.get('command') not in [*CURSOR_COMMANDS, *DEPRECATED_CURSOR_COMMANDS]]
         if len(filtered) != len(hooks):
             data['hooks']['sessionStart'] = filtered
             save_json(path, data)
@@ -84,6 +99,9 @@ def patch_cursor(path: Path, mode: str) -> bool:
     missing = [command for command in CURSOR_COMMANDS if command not in existing_commands]
     if missing:
         raise SystemExit(f'Missing adapter sessionStart hooks in {path}: {", ".join(missing)}')
+    deprecated = [command for command in DEPRECATED_CURSOR_COMMANDS if command in existing_commands]
+    if deprecated:
+        raise SystemExit(f'Deprecated adapter sessionStart hooks remain in {path}: {", ".join(deprecated)}')
     return False
 
 

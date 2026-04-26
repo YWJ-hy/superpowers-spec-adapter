@@ -9,7 +9,8 @@ import json, sys
 print(json.loads(sys.argv[1])['target'])
 PY
 )"
-PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
+HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
+NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -41,6 +42,7 @@ for item in [*installed_paths(Path(sys.argv[1])), *removed_paths(Path(sys.argv[1
     print(item)
 PY
 )
-python3 "$PATCHER" uninstall "$TARGET_DIR"
+python3 "$HOOK_PATCHER" uninstall "$TARGET_DIR"
+python3 "$NATIVE_SKILL_PATCHER" uninstall "$TARGET_DIR"
 
 printf 'superpower-adapter uninstall complete\n'

@@ -9,7 +9,8 @@ import json, sys
 print(json.loads(sys.argv[1])['target'])
 PY
 )"
-PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
+HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
+NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -45,6 +46,26 @@ check_file() {
   printf 'OK %s\n' "$relative"
 }
 
+check_native_skill_residuals() {
+  if grep -Fq 'spec-progressive-disclosure' "$TARGET_DIR/skills/brainstorming/SKILL.md"; then
+    printf 'Invalid default spec-progressive-disclosure dependency in brainstorming patch\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'spec-progressive-disclosure' "$TARGET_DIR/skills/writing-plans/SKILL.md"; then
+    printf 'Invalid default spec-progressive-disclosure dependency in writing-plans patch\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'workflow-gate.py" implement' "$TARGET_DIR/skills/executing-plans/SKILL.md"; then
+    printf 'Deprecated workflow-gate implement path remains in executing-plans patch\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'plan-context.py" render --phase implement' "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
+    printf 'Deprecated plan-context render path remains in subagent-driven-development patch\n' >&2
+    exit 1
+  fi
+  printf 'Native skill residual checks OK\n'
+}
+
 while IFS= read -r relative; do
   relative="${relative%$'\r'}"
   [[ -z "$relative" ]] && continue
@@ -58,6 +79,8 @@ for item in installed_paths(Path(sys.argv[1])):
     print(item)
 PY
 )
-python3 "$PATCHER" verify "$TARGET_DIR"
+python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
+python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
+check_native_skill_residuals
 
 printf 'superpower-adapter verify complete\n'

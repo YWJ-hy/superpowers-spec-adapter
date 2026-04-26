@@ -19,18 +19,19 @@ from spec_common import (
 
 def render_tree(spec_root: Path, depth: int) -> list[str]:
     graph = build_spec_index_graph(spec_root)
-    lines: list[str] = []
+    lines: list[str] = ["Spec root: `.superpowers/spec/`"]
     for path in graph.files:
         rel = path.relative_to(spec_root).as_posix()
+        display_path = f".superpowers/spec/{rel}"
         level = len(path.relative_to(spec_root).parts) - 1
         if level > depth:
             continue
         indent = "  " * level
         summary = summary_from_markdown(path)
         if summary:
-            lines.append(f"{indent}- `{rel}` — {summary}")
+            lines.append(f"{indent}- `{display_path}` — {summary}")
         else:
-            lines.append(f"{indent}- `{rel}`")
+            lines.append(f"{indent}- `{display_path}`")
 
     for warning in graph.warnings:
         lines.append(f"- warning: {warning}")

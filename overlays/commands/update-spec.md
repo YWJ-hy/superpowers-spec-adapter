@@ -84,11 +84,11 @@ For each candidate, identify:
 
 For each candidate, search existing indexed specs before writing:
 
-```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/spec_select_context.py "<candidate keywords>" --json
-```
+1. Read `.superpowers/spec/index.md`.
+2. Follow relevant child indexes.
+3. Read the small set of leaf specs that may already cover the same rule.
 
-Then read the top relevant indexed candidates before deciding to update.
+Do not scan the full spec tree unless the user explicitly asks for a full audit.
 A spec is already covered when an existing indexed file states the same durable rule, even if the wording differs.
 
 If the same meaning already exists:
