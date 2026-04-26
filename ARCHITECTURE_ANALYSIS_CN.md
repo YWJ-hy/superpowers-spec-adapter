@@ -1,6 +1,6 @@
 # superpower-adapter 架构分析
 
-本文记录当前 `superpower-adapter` 的新版架构。
+本文记录当前 `superpower-adapter` 的架构。
 
 ## 一、总体结论
 
@@ -54,7 +54,7 @@
 ### 5. Patch / 安装层
 
 - `lib/native_skill_patch.py`：patch Superpowers native skills。
-- `lib/hook_patch.py`：只负责清理旧 adapter SessionStart hook 配置，不安装新 hook。
+- `lib/hook_patch.py`：维护 adapter SessionStart 兼容配置，确保当前流程不安装 adapter hook。
 - `manifest.json`：声明安装文件和已删除文件。
 - `install.sh` / `verify.sh` / `uninstall.sh`：执行安装、校验和卸载。
 
@@ -106,21 +106,13 @@ plan 必须包含：
 
 执行阶段读取 plan 的 `Referenced Project Specs`，不重新选择 spec。
 
-## 五、删除的旧机制
+## 五、安装清单约束
 
-新版已删除：
+当前安装清单由 `manifest.json` 定义：
 
-- `check-workflow` command
-- `plan-context-sidecar` skill
-- `session-spec-index` hook
-- `session-plan-context` hook
-- `workflow-gate.py`
-- `plan-context.py`
-- `plan_context_common.py`
-- `spec_select_context.py`
-- sidecar JSONL 测试
-
-`manifest.json` 的 `removedPaths` 会在安装时清理这些旧安装产物。
+- `installedPaths` 声明需要写入 Superpowers 插件目录的 agent、command、skill 和 script overlay。
+- `optionalPatchedPaths` 声明安装器会维护的 Superpowers native skill 和 hook 配置文件。
+- `removedPaths` 声明安装时需要确保不存在的 adapter 管理文件，避免安装目录残留非当前流程入口。
 
 ## 六、最终架构定义
 

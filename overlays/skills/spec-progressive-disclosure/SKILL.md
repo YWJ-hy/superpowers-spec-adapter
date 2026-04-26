@@ -25,7 +25,7 @@ Reference rules:
 3. Read only the minimum detailed spec files needed for the current phase.
 4. Do not read the whole `.superpowers/spec/` tree unless the human explicitly asks for a full audit.
 5. If `.superpowers/spec/index.md` is missing, report that project specs are unavailable instead of guessing paths.
-6. Treat adapter sidecar JSONL files as legacy diagnostics, not as the required source of truth for new work.
+6. Treat adapter sidecar JSONL files as diagnostics only, not as the required source of truth for new work.
 
 Manual fallback flow:
 - Understand task

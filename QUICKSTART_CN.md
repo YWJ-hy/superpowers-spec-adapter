@@ -56,8 +56,8 @@
 
 同时会 patch：
 
-- `hooks/hooks.json`（清理旧 adapter SessionStart hook）
-- `hooks/hooks-cursor.json`（清理旧 adapter sessionStart hook）
+- `hooks/hooks.json`（维护 adapter SessionStart 兼容配置）
+- `hooks/hooks-cursor.json`（维护 adapter sessionStart 兼容配置）
 - `skills/brainstorming/SKILL.md`
 - `skills/writing-plans/SKILL.md`
 - `skills/executing-plans/SKILL.md`

@@ -131,7 +131,7 @@ Export adapter and spec state for upgrade-time comparison:
 ./manage.sh export-manifest /path/to/project ./manifest-output.json
 ```
 
-The manifest includes installed adapter files, native skill patch targets, cleaned hook config targets, and a `.superpowers/spec` snapshot with both raw and ignore-filtered effective views.
+The manifest includes installed adapter files, native skill patch targets, hook config state, and a `.superpowers/spec` snapshot with both raw and ignore-filtered effective views.
 
 ## Release check
 

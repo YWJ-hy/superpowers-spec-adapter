@@ -60,7 +60,7 @@ Superpowers 插件目录
 - `executing-plans`：执行前读取 plan 中的 `Referenced Project Specs`，不重新选择 spec。
 - `subagent-driven-development`：把 plan 中的 `Referenced Project Specs` 传给 implementer / reviewer subagent。
 
-新版流程不再安装 SessionStart hook；`spec-researcher` 会在 `brainstorming` 和 `writing-plans` 阶段按需读取 `.superpowers/spec/`。
+当前流程不安装 SessionStart hook；`spec-researcher` 会在 `brainstorming` 和 `writing-plans` 阶段按需读取 `.superpowers/spec/`。
 
 ---
 
@@ -72,7 +72,7 @@ Superpowers 插件目录
 | 1 | 安装 adapter | `./manage.sh install` | 只需一次；Superpowers 升级后重跑 | 写入 adapter overlay、agent、command、skill、script |
 | 2 | 校验 adapter | `./manage.sh verify` | 安装或升级后 | 确认安装产物和 native skill patch 完整 |
 | 3 | 初始化 spec 模板 | `./manage.sh bootstrap-spec /path/to/project --template standard` | 每个目标项目一次 | 创建 `.superpowers/spec/` 规范目录 |
-| 4 | 导入已有 spec | `/import-spec` | 有旧 spec 时才需要 | 把已有规范迁移到 `.superpowers/spec/` 格式 |
+| 4 | 导入已有 spec | `/import-spec` | 有已有 spec 时才需要 | 把已有规范导入到 `.superpowers/spec/` 格式 |
 | 5 | 初始化 starter spec | `/init-spec` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 spec 知识 |
 | 6 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目规范 |
 | 7 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目规范并写入 `Referenced Project Specs` |
@@ -247,9 +247,9 @@ This plan follows these existing project specs:
 | 场景 | 用户入口 | 说明 |
 |---|---|---|
 | 安装 adapter | `./manage.sh install` | 将 overlay 写入 Superpowers 插件目录 |
-| 校验安装 | `./manage.sh verify` | 检查 overlay、agent、native skill patch，并确认旧 hook 配置已清理 |
+| 校验安装 | `./manage.sh verify` | 检查 overlay、agent、native skill patch 和 hook 配置 |
 | 初始化 spec 模板 | `./manage.sh bootstrap-spec /path/to/project --template standard` | 创建 `.superpowers/spec/` |
-| 导入已有 spec | `/import-spec` | 有旧规范目录时在 Claude Code 中执行 |
+| 导入已有 spec | `/import-spec` | 有已有规范目录时在 Claude Code 中执行 |
 | 初次生成 starter spec | `/init-spec` | 在 Claude Code 中执行 |
 | 设计阶段参考项目规范 | Superpowers `brainstorming` + `spec-researcher` | 自动轻量披露相关项目 spec |
 | 计划阶段固化项目规范 | Superpowers `writing-plans` + `Referenced Project Specs` | 自动选择并写入 plan |
@@ -267,6 +267,6 @@ This plan follows these existing project specs:
 - adapter 开发者正在调试某个 command 的执行层。
 - 自动化测试需要覆盖 command 背后的脚本行为。
 - release-check / self-test 在本地验证 adapter 安装产物。
-- 排查 manifest、native skill patch、旧 hook 清理、spec 索引等底层状态。
+- 排查 manifest、native skill patch、hook 配置、spec 索引等底层状态。
 
 即使在这些情况下，也要记住：最终验收标准仍然是用户能否在 Claude Code 等工具里通过 Superpowers command / skill / agent 集成路径正常使用 Superpowers + adapter。

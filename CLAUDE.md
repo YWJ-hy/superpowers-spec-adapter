@@ -52,7 +52,7 @@ bash tests/bootstrap-spec-template-import.sh /path/to/project
 - `overlays/agents/`：安装到 Superpowers 的 subagent，例如 `spec-researcher`，负责渐进式选择相关项目 spec。
 - `overlays/skills/`：安装到 Superpowers 的 skill，负责渐进式读取 spec。
 - `overlays/scripts/`：command 背后的 Python 执行层，负责 spec 初始化、导入、更新、索引和 manifest 等文件操作。
-- `lib/`：adapter 自身的安装、manifest、旧 hook 清理、native skill patch、目标 Superpowers 目录解析逻辑。
+- `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑。
 - `spec-template/`：bootstrap 到目标项目 `.superpowers/spec/` 的标准模板。
 - `tests/`：面向安装后 Superpowers target 和目标项目 root 的 smoke / regression 测试。
 - 根目录 `manage.sh`：统一入口，转发 install、verify、bootstrap-spec、doctor、self-test、release-check 等操作。
@@ -61,7 +61,7 @@ bash tests/bootstrap-spec-template-import.sh /path/to/project
 
 Superpowers 是主工作流，adapter 只增强 Superpowers：
 
-1. 用户安装 adapter，adapter 把 agent、command、skill、script overlay 写入已安装的 Superpowers 插件目录，并清理旧 hook 配置。
+1. 用户安装 adapter，adapter 把 agent、command、skill、script overlay 写入已安装的 Superpowers 插件目录，并维护 hook 兼容配置。
 2. 用户在目标项目 bootstrap `.superpowers/spec/`。
 3. 用户在 Claude Code 等工具中通过 `/init-spec`、`/import-spec`、`/update-spec` 管理项目 spec。
 4. Superpowers `brainstorming` 通过 `spec-researcher` 轻量披露相关项目 spec，`writing-plans` 正式选择并写入 `Referenced Project Specs`。
@@ -74,5 +74,5 @@ Superpowers 是主工作流，adapter 只增强 Superpowers：
 - 改动用户可见行为时，同步检查或更新 `ADAPTER_USER_FLOW_CN.md`、相关 command / skill overlay，以及 `README.md` 中的入口说明。
 - 改动测试原则或验收方式时，同步更新 `ADAPTER_DEVELOPMENT_CN.md`。
 - 脚本级测试只能证明执行层正确，不能替代安装后 command / skill 集成路径验证。
-- 修改 agent、旧 hook 清理或安装逻辑后，至少运行 `./manage.sh install`、`./manage.sh verify`，并对目标项目运行 `./manage.sh release-check /path/to/project`。
+- 修改 agent、hook 配置或安装逻辑后，至少运行 `./manage.sh install`、`./manage.sh verify`，并对目标项目运行 `./manage.sh release-check /path/to/project`。
 - 修改 command / skill 后，应安装 adapter 并在 Claude Code 中从对应 slash command 入口验证用户路径。

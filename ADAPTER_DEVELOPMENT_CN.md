@@ -42,7 +42,7 @@ adapter 分为四层：
 | 层 | 代表文件 | 责任 | 测试关注点 |
 |---|---|---|---|
 | 用户入口层 | `overlays/commands/*.md`、`overlays/skills/*/SKILL.md`、`overlays/agents/*.md` | 定义 Claude Code 中用户如何调用能力 | 文案是否引导 agent 走正确流程 |
-| Hook 清理层 | `lib/hook_patch.py` | 清理旧 adapter SessionStart hook 配置 | 安装后旧 hook 是否已移除 |
+| Hook 配置层 | `lib/hook_patch.py` | 维护 adapter 的 SessionStart 兼容配置，确保当前流程不安装 adapter hook | 安装后 hook 配置是否符合当前流程 |
 | 执行层 | `overlays/scripts/*.py` | 执行 spec 初始化、导入、更新、索引和 manifest 等文件操作 | 脚本行为是否正确、可组合 |
 | 安装层 | `install.sh`、`manage.sh`、`verify.sh`、`release-check.sh` | 把 overlay 和 native skill patch 写入 Superpowers 插件目录 | 安装产物和 patch 是否完整 |
 
@@ -143,7 +143,7 @@ writing-plans
 
 4. 确认 agent 实际走的是文档指定的分析、spec-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `spec-progressive-disclosure`。
 
-### 5.3 修改 hook 清理或安装逻辑时
+### 5.3 修改 hook 配置或安装逻辑时
 
 1. 运行：
 
@@ -154,7 +154,7 @@ writing-plans
 ```
 
 2. 在目标项目新开 Claude Code 会话。
-3. 确认旧 adapter SessionStart hook 已被移除；新主流程应通过 `spec-researcher` 和 `Referenced Project Specs` 承载规范引用。
+3. 确认当前流程不安装 adapter SessionStart hook；主流程应通过 `spec-researcher` 和 `Referenced Project Specs` 承载规范引用。
 4. 运行：
 
 ```bash
