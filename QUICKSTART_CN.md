@@ -21,7 +21,7 @@
 - 支持 **渐进式披露**：Superpowers 写 spec / plan 时由 `spec-researcher` 按需读取具体 spec。
 - 安装 `spec-researcher` agent，帮助 `brainstorming` 和 `writing-plans` 选择相关项目规范。
 - 要求 implementation plan 用 `Referenced Project Specs` 固化执行阶段要遵守的项目规范。
-- 提供 `import-spec`、`init-spec`、`update-spec` 能力。
+- 提供 `import-spec`、`init-spec`、`break-loop`、`update-spec` 能力。
 
 一句话：
 
@@ -50,6 +50,7 @@
 - `agents/spec-researcher.md`
 - `commands/import-spec.md`
 - `commands/init-spec.md`
+- `skills/break-loop/SKILL.md`
 - `skills/spec-progressive-disclosure/SKILL.md`
 - `skills/update-spec/SKILL.md`
 - adapter 执行脚本
@@ -100,6 +101,8 @@
 → writing-plans 调用 spec-researcher 正式选择项目规范
 → plan 写入 Referenced Project Specs
 → executing-plans / subagent-driven-development 消费 Referenced Project Specs
+→ 遇到 bug 时先用 Superpowers systematic-debugging 修复和验证
+→ 修复后需要深度复盘时使用 break-loop
 → update-spec skill 审查是否需要沉淀长期知识
 ```
 
@@ -151,6 +154,8 @@ python3 "$TARGET_DIR/scripts/spec-context.py" --file quality/error-rules.md
 - 跨层 checklist
 
 推荐入口是安装后的 `update-spec` skill：由 agent 在任务完成后判断是否有 durable implementation knowledge 需要写入 `.superpowers/spec/`。如果没有值得沉淀的内容，应明确跳过，不强制编辑。
+
+对于 bug，正常链路是 `systematic-debugging` → `break-loop` → `update-spec`：先用 Superpowers `systematic-debugging` 完成 root cause investigation、修复和验证；如果是重复 bug、多次失败修复、跨层 contract、隐含假设或测试缺口，再用 `break-loop` 做后置复盘；只有复盘提炼出长期规则、contract、gotcha、checklist 或设计决策时，才交给 `update-spec` 持久化。
 
 执行层调试入口只用于机械检查，不替 agent 判断是否需要更新或写到哪里：
 

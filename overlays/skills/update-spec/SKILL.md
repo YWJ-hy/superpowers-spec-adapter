@@ -9,6 +9,21 @@ When you learn something valuable from implementation, debugging, review, or dis
 
 **Timing**: After completing a task, fixing a bug, discovering a new pattern, or making a design decision that future sessions should know.
 
+### Input from break-loop
+
+When invoked after `break-loop`, treat the break-loop output as post-debugging context and candidate input only.
+
+If the handoff follows a `systematic-debugging` → `break-loop` flow, you may reuse the root cause, evidence, failed attempts, final fix, and verification result. Still apply this skill's normal responsibilities:
+- decide whether each candidate is durable knowledge;
+- split candidates atomically;
+- read indexed specs progressively;
+- check semantic duplicates;
+- choose target ownership;
+- edit the chosen leaf spec;
+- refresh and validate indexes.
+
+If the break-loop handoff says no durable knowledge should persist, skip spec edits.
+
 ---
 
 ## Spec First Rule

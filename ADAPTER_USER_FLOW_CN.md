@@ -26,8 +26,9 @@ adapter 增强这些阶段：
 - 在 `brainstorming` 阶段轻量披露相关项目规范。
 - 在 `writing-plans` 阶段正式选择相关项目规范，并要求 plan 写入 `Referenced Project Specs`。
 - 在执行阶段只消费 plan 中已经确认的 `Referenced Project Specs`。
+- 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-spec`。
 
-`/import-spec`、`/init-spec` 是独立 adapter command。`update-spec` 是自动触发的 adapter skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/spec/`。
+`/import-spec`、`/init-spec` 是独立 adapter command。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-spec` 是自动触发的 adapter skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/spec/`。
 
 Python 脚本是 command / skill / agent 背后的执行层，不是最终用户的主要交互入口。
 
@@ -45,6 +46,7 @@ Superpowers 插件目录
 │   ├── init-spec.md
 │   └── import-spec.md
 ├── skills/
+│   ├── break-loop/
 │   ├── spec-progressive-disclosure/
 │   └── update-spec/
 └── scripts/
@@ -77,8 +79,9 @@ Superpowers 插件目录
 | 6 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目规范 |
 | 7 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目规范并写入 `Referenced Project Specs` |
 | 8 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Specs` |
-| 9 | 任务后更新 spec | `update-spec` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
-| 10 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
+| 9 | 修 bug 后复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug，再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
+| 10 | 任务后更新 spec | `update-spec` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
+| 11 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
 
 用户日常在 Claude Code 中主要记住这条链：
 
@@ -90,6 +93,8 @@ Superpowers 插件目录
 → Superpowers writing-plans
 → adapter 正式选择项目 spec，并写入 Referenced Project Specs
 → Superpowers executing-plans / subagent-driven-development 按 plan 执行
+→ 遇到 bug 时先用 Superpowers systematic-debugging 修复和验证
+→ 修复后需要防复发分析时使用 break-loop
 → update-spec skill 审查是否需要沉淀长期知识
 ```
 

@@ -29,6 +29,7 @@ adapter 会把以下 overlay 安装进 Superpowers：
 ```text
 superpowers/
 ├── agents/spec-researcher.md
+├── skills/break-loop/SKILL.md
 ├── skills/spec-progressive-disclosure/SKILL.md
 ├── skills/update-spec/SKILL.md
 ├── commands/import-spec.md
@@ -197,6 +198,18 @@ python3 "$TARGET_DIR/scripts/init-spec.py" . "optional focus" --json
 ```bash
 python3 "$TARGET_DIR/scripts/spec_import.py" path/to/original-spec-dir --target imported
 ```
+
+### `break-loop` skill
+
+用于 bug 已通过 Superpowers `systematic-debugging` 或同等严谨流程修复并验证后的后置复盘。它分析 root cause 类别、失败修复路径、防复发机制和可沉淀候选，但不新增 hook、native skill patch、script 或 command，也不直接写 `.superpowers/spec/`。
+
+正常链路是：
+
+```text
+systematic-debugging → break-loop → update-spec
+```
+
+当复盘产出长期规则、contract、gotcha、checklist 或设计决策时，`break-loop` 只把候选交给 `update-spec`；后者继续负责 indexed spec 读取、语义去重、目标归属、leaf spec 编辑和索引刷新。
 
 ### `update-spec` skill
 

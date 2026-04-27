@@ -17,6 +17,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Patch Superpowers `writing-plans` so plans record selected specs in `Referenced Project Specs`
 - Let implementation and review consume plan `Referenced Project Specs` instead of reselecting specs at execution time
 - Keep `/import-spec` and `/init-spec` as standalone adapter commands that do not trigger Superpowers completion verification
+- Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-spec`
 - Install `update-spec` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating spec
 - Reinstall the same overlay after upgrading `superpowers/`
 
@@ -110,6 +111,12 @@ It starts from `.superpowers/spec/index.md`, follows index links progressively, 
 ```
 
 Implementation and review consume this plan section instead of reselecting specs from scratch.
+
+## Break the bug loop
+
+For bugs, keep Superpowers `systematic-debugging` as the fix workflow. After the bug is fixed and verified, use the installed `break-loop` skill when the work needs a deeper retrospective: root cause category, failed attempts, prevention mechanisms, similar risks, and durable knowledge candidates.
+
+`break-loop` does not replace `systematic-debugging` or `update-spec`. When durable implementation knowledge should persist, it hands atomic candidates to `update-spec`, which performs duplicate checks, target selection, spec edits, index refresh, and validation.
 
 ## Update specs
 
