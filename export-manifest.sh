@@ -48,9 +48,9 @@ for rel in manifest.get('optionalPatchedPaths', []):
     path = target_dir / rel
     hook_states[rel] = path.is_file()
 
-spec_root = repo_root / '.superpowers' / 'spec'
-entry_index = spec_root / 'index.md'
-ignore_file = spec_root / '.adapter-ignore'
+wiki_root = repo_root / '.superpowers' / 'wiki'
+entry_index = wiki_root / 'index.md'
+ignore_file = wiki_root / '.adapter-ignore'
 ignored = []
 default_ignored = ['draft', 'archive', 'examples']
 if ignore_file.is_file():
@@ -72,26 +72,26 @@ raw_leaf_files = []
 effective_index_files = []
 effective_leaf_files = []
 
-if spec_root.is_dir():
-    for path in sorted(spec_root.rglob('*')):
+if wiki_root.is_dir():
+    for path in sorted(wiki_root.rglob('*')):
         if path.name.startswith('.'):
             continue
-        rel = path.relative_to(spec_root).as_posix()
-        depth = len(path.relative_to(spec_root).parts)
+        rel = path.relative_to(wiki_root).as_posix()
+        depth = len(path.relative_to(wiki_root).parts)
         entry = {'path': rel, 'type': 'dir' if path.is_dir() else 'file', 'depth': depth}
         raw_tree.append(entry)
-        if not is_ignored(path.relative_to(spec_root)):
+        if not is_ignored(path.relative_to(wiki_root)):
             effective_tree.append(entry)
 
         if path.is_file() and path.suffix == '.md':
             if rel != '.adapter-ignore':
                 if path.name == 'index.md':
                     raw_index_files.append(rel)
-                    if not is_ignored(path.relative_to(spec_root)):
+                    if not is_ignored(path.relative_to(wiki_root)):
                         effective_index_files.append(rel)
                 else:
                     raw_leaf_files.append(rel)
-                    if not is_ignored(path.relative_to(spec_root)):
+                    if not is_ignored(path.relative_to(wiki_root)):
                         effective_leaf_files.append(rel)
 
 payload = {
@@ -111,9 +111,9 @@ payload = {
         'missingFiles': missing,
     },
     'patchedState': hook_states,
-    'specState': {
-        'specRoot': str(spec_root),
-        'exists': spec_root.is_dir(),
+    'wikiState': {
+        'wikiRoot': str(wiki_root),
+        'exists': wiki_root.is_dir(),
         'entryIndexExists': entry_index.is_file(),
         'ignoreFileExists': ignore_file.is_file(),
         'defaultIgnoredDirectories': default_ignored,

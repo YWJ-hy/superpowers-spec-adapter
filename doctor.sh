@@ -44,19 +44,19 @@ for rel in manifest['installedPaths']:
     else:
         missing.append(rel)
 
-spec = state['specState']
-raw_leaf_count = len(spec['rawView']['leafFiles'])
-effective_leaf_count = len(spec['effectiveView']['leafFiles'])
-missing_entry = not spec['entryIndexExists'] and spec['exists']
-ignore_present_but_empty = spec['ignoreFileExists'] and not spec['customIgnoredDirectories']
+wiki = state['wikiState']
+raw_leaf_count = len(wiki['rawView']['leafFiles'])
+effective_leaf_count = len(wiki['effectiveView']['leafFiles'])
+missing_entry = not wiki['entryIndexExists'] and wiki['exists']
+ignore_present_but_empty = wiki['ignoreFileExists'] and not wiki['customIgnoredDirectories']
 diff_count = raw_leaf_count - effective_leaf_count
 missing_index_links = []
-for leaf in spec['effectiveView']['leafFiles']:
+for leaf in wiki['effectiveView']['leafFiles']:
     parent = Path(leaf).parent
     if str(parent) == '.':
         continue
     expected = f"{parent.as_posix()}/index.md"
-    if expected not in spec['effectiveView']['indexFiles']:
+    if expected not in wiki['effectiveView']['indexFiles']:
         missing_index_links.append(leaf)
 
 print('Adapter doctor')
@@ -66,10 +66,10 @@ print(f"  installState: {'OK' if not missing else 'FAIL'} ({installed}/{len(mani
 print(f"  verifyState: {'OK' if verify_status == 'passed' else 'FAIL'}")
 for rel in manifest.get('optionalPatchedPaths', []):
     print(f"  patchTarget: {rel} -> {'present' if (target / rel).is_file() else 'missing'}")
-print(f"  specState: {'OK' if spec['exists'] else 'WARN'}")
-print(f"  specEntryIndex: {'OK' if spec['entryIndexExists'] else 'WARN'}")
-print(f"  specIgnoredDirs: {len(spec['effectiveIgnoredDirectories'])} effective ({len(spec['customIgnoredDirectories'])} custom)")
-print(f"  specLeafs: raw={raw_leaf_count} effective={effective_leaf_count}")
+print(f"  wikiState: {'OK' if wiki['exists'] else 'WARN'}")
+print(f"  wikiEntryIndex: {'OK' if wiki['entryIndexExists'] else 'WARN'}")
+print(f"  wikiIgnoredDirs: {len(wiki['effectiveIgnoredDirectories'])} effective ({len(wiki['customIgnoredDirectories'])} custom)")
+print(f"  wikiPages: raw={raw_leaf_count} effective={effective_leaf_count}")
 
 print('')
 print('Recommendations')
@@ -78,13 +78,13 @@ if missing:
         print(f'  - Missing managed file: {rel}')
     print(f'  - Run: {target.parent / "superpower-adapter" / "install.sh"} {target.parent}')
 if missing_entry:
-    print('  - .superpowers/spec exists but index.md is missing. Run bootstrap-spec or recreate the entry index.')
+    print('  - .superpowers/wiki exists but index.md is missing. Run bootstrap-wiki or recreate the entry index.')
 if ignore_present_but_empty:
     print('  - .adapter-ignore exists but has no custom entries. Remove it if unused or add custom ignored directory names.')
 if diff_count > 0:
-    print(f'  - rawView has {diff_count} more leaf specs than effectiveView. Review ignored directories if that is unexpected.')
+    print(f'  - rawView has {diff_count} more leaf wiki pages than effectiveView. Review ignored directories if that is unexpected.')
 if missing_index_links:
-    print('  - Some effective leaf specs do not have a matching parent index.md in the effective view:')
+    print('  - Some effective leaf wiki pages do not have a matching parent index.md in the effective view:')
     for leaf in missing_index_links:
         print(f'    - {leaf}')
 if not any([missing, missing_entry, ignore_present_but_empty, diff_count > 0, missing_index_links]):

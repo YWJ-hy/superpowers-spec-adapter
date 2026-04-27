@@ -20,8 +20,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./manage.sh install
 ./manage.sh verify
 ./manage.sh status
-./manage.sh bootstrap-spec /path/to/project --template standard
-./manage.sh init-spec /path/to/project "optional focus"
+./manage.sh bootstrap-wiki /path/to/project --template standard
+./manage.sh init-wiki /path/to/project "optional focus"
 ./manage.sh doctor /path/to/project
 ./manage.sh self-test /path/to/project
 ./manage.sh release-check /path/to/project
@@ -30,10 +30,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 单个 smoke / regression 测试：
 
 ```bash
-bash tests/native-skill-patch-smoke.sh <installed-superpowers-target>
-bash tests/spec-update-check-smoke.sh <installed-superpowers-target> /path/to/project
-bash tests/spec-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
-bash tests/bootstrap-spec-template-import.sh /path/to/project
+bash tests/native-wiki-patch-smoke.sh <installed-superpowers-target>
+bash tests/wiki-update-check-smoke.sh <installed-superpowers-target> /path/to/project
+bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
+bash tests/bootstrap-wiki-template-import.sh /path/to/project
 ```
 
 发布前总检查：
@@ -49,23 +49,23 @@ bash tests/bootstrap-spec-template-import.sh /path/to/project
 主要分层：
 
 - `overlays/commands/`：安装到 Superpowers 的 slash command 文档，用于显式触发 init / import 等 adapter 能力。
-- `overlays/agents/`：安装到 Superpowers 的 subagent，例如 `spec-researcher`，负责渐进式选择相关项目 spec。
-- `overlays/skills/`：安装到 Superpowers 的 skill，负责渐进式读取 spec 和任务后 update-spec 审查。
-- `overlays/scripts/`：command / skill 背后的 Python 执行层，负责 spec 初始化、导入、更新、索引和 manifest 等文件操作。
+- `overlays/agents/`：安装到 Superpowers 的 subagent，例如 `wiki-researcher`，负责渐进式选择相关项目 wiki 页面。
+- `overlays/skills/`：安装到 Superpowers 的 skill，负责渐进式读取 wiki 和任务后 update-wiki 审查。
+- `overlays/scripts/`：command / skill 背后的 Python 执行层，负责 wiki 初始化、导入、更新、索引和 manifest 等文件操作。
 - `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑。
-- `spec-template/`：bootstrap 到目标项目 `.superpowers/spec/` 的标准模板。
+- `wiki-template/`：bootstrap 到目标项目 `.superpowers/wiki/` 的标准模板。
 - `tests/`：面向安装后 Superpowers target 和目标项目 root 的 smoke / regression 测试。
-- 根目录 `manage.sh`：统一入口，转发 install、verify、bootstrap-spec、doctor、self-test、release-check 等操作。
+- 根目录 `manage.sh`：统一入口，转发 install、verify、bootstrap-wiki、doctor、self-test、release-check 等操作。
 
 ## 用户流程模型
 
 Superpowers 是主工作流，adapter 只增强 Superpowers：
 
 1. 用户安装 adapter，adapter 把 agent、command、skill、script overlay 写入已安装的 Superpowers 插件目录，并维护 hook 兼容配置。
-2. 用户在目标项目 bootstrap `.superpowers/spec/`。
-3. 用户在 Claude Code 等工具中通过 `/init-spec`、`/import-spec` 初始化或导入项目 spec。
-4. Superpowers `brainstorming` 通过 `spec-researcher` 轻量披露相关项目 spec，`writing-plans` 正式选择并写入 `Referenced Project Specs`。
-5. 执行阶段只消费 plan 中的 `Referenced Project Specs`，任务完成后如果产生 durable implementation knowledge，由 `update-spec` skill 审查并回写 `.superpowers/spec/`。
+2. 用户在目标项目 bootstrap `.superpowers/wiki/`。
+3. 用户在 Claude Code 等工具中通过 `/init-wiki`、`/import-wiki` 初始化或导入项目 wiki。
+4. Superpowers `brainstorming` 通过 `wiki-researcher` 轻量披露相关项目 wiki 页面，`writing-plans` 正式选择并写入 `Referenced Project Wiki`。
+5. 执行阶段只消费 plan 中的 `Referenced Project Wiki`，任务完成后如果产生 durable implementation knowledge，由 `update-wiki` skill 审查并回写 `.superpowers/wiki/`。
 
 不要把 `python3 superpowers/scripts/*.py` 描述成普通用户的主要入口；它们是 command / skill / agent 的执行层。
 

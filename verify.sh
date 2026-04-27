@@ -47,12 +47,16 @@ check_file() {
 }
 
 check_native_skill_residuals() {
-  if grep -Fq 'spec-progressive-disclosure' "$TARGET_DIR/skills/brainstorming/SKILL.md"; then
-    printf 'Invalid default spec-progressive-disclosure dependency in brainstorming patch\n' >&2
+  if grep -Eq 'spec-researcher|update-spec|init-spec|import-spec|spec-progressive-disclosure|Referenced Project Specs|\.superpowers/spec' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/executing-plans/SKILL.md" "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
+    printf 'Deprecated adapter spec terminology remains in native skill patches\n' >&2
     exit 1
   fi
-  if grep -Fq 'spec-progressive-disclosure' "$TARGET_DIR/skills/writing-plans/SKILL.md"; then
-    printf 'Invalid default spec-progressive-disclosure dependency in writing-plans patch\n' >&2
+  if grep -Fq 'wiki-progressive-disclosure' "$TARGET_DIR/skills/brainstorming/SKILL.md"; then
+    printf 'Invalid default wiki-progressive-disclosure dependency in brainstorming patch\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'wiki-progressive-disclosure' "$TARGET_DIR/skills/writing-plans/SKILL.md"; then
+    printf 'Invalid default wiki-progressive-disclosure dependency in writing-plans patch\n' >&2
     exit 1
   fi
   if grep -Fq 'workflow-gate.py" implement' "$TARGET_DIR/skills/executing-plans/SKILL.md"; then

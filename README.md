@@ -1,6 +1,6 @@
 # superpower-adapter
 
-This adapter keeps Superpowers as the primary workflow framework and adds a replayable overlay for project specs under `.superpowers/spec/`.
+This adapter keeps Superpowers as the primary workflow framework and adds a replayable overlay for project wiki pages under `.superpowers/wiki/`.
 
 Chinese user flow guide: [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md)
 Chinese adapter development guide: [`ADAPTER_DEVELOPMENT_CN.md`](./ADAPTER_DEVELOPMENT_CN.md)
@@ -9,16 +9,16 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 ## Purpose
 
-- Store project specs in `.superpowers/spec/`
+- Store project wiki pages in `.superpowers/wiki/`
 - Use `index.md` as the entry point
-- Load spec details progressively instead of reading the full tree
-- Install `agents/spec-researcher.md` to select relevant project specs progressively
-- Patch Superpowers `brainstorming` so designs can see lightweight project spec context
-- Patch Superpowers `writing-plans` so plans record selected specs in `Referenced Project Specs`
-- Let implementation and review consume plan `Referenced Project Specs` instead of reselecting specs at execution time
-- Keep `/import-spec` and `/init-spec` as standalone adapter commands that do not trigger Superpowers completion verification
-- Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-spec`
-- Install `update-spec` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating spec
+- Load wiki details progressively instead of reading the full tree
+- Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
+- Patch Superpowers `brainstorming` so designs can see lightweight project wiki context
+- Patch Superpowers `writing-plans` so plans record selected wiki pages in `Referenced Project Wiki`
+- Let implementation and review consume plan `Referenced Project Wiki` instead of reselecting wiki pages at execution time
+- Keep `/import-wiki` and `/init-wiki` as standalone adapter commands that do not trigger Superpowers completion verification
+- Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
+- Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki
 - Reinstall the same overlay after upgrading `superpowers/`
 
 ## Install
@@ -35,111 +35,111 @@ If this adapter lives as `superpower-adapter/` inside another project, run the s
 ./superpower-adapter/manage.sh verify
 ```
 
-Install-related commands target the user's installed Superpowers Claude Code plugin by default. Commands that read or write `.superpowers/spec/` require an explicit project root argument.
+Install-related commands target the user's installed Superpowers Claude Code plugin by default. Commands that read or write `.superpowers/wiki/` require an explicit project root argument.
 
-## Bootstrap specs
+## Bootstrap wiki
 
-Import a spec template into a target project without overwriting existing user files:
+Import a wiki template into a target project without overwriting existing user files:
 
 ```bash
-./manage.sh bootstrap-spec /path/to/project --template standard
+./manage.sh bootstrap-wiki /path/to/project --template standard
 ```
 
 Template structure is index-driven:
 - `index.md` is the entry index for the template.
 - Any child directory can contain its own `index.md`.
-- Leaf spec files are discoverable only when linked from `index.md` or a child index.
-- `index.md` may link to same-level or deep files/directories; scripts do not assume fixed spec directories.
+- Leaf wiki pages are discoverable only when linked from `index.md` or a child index.
+- `index.md` may link to same-level or deep files/directories; scripts do not assume fixed wiki directories.
 
 Existing files are never overwritten. If a target file exists with different content, bootstrap exits with a conflict list before copying anything.
 
-## Initialize starter spec knowledge
+## Initialize starter wiki knowledge
 
-After bootstrapping the directory structure, use `/init-spec` in Claude Code to initialize first-pass spec content from a mechanical project inventory. The script behind this command reports languages, stack signals, top directories, sample files, and indexed specs; the agent decides whether to write lightweight starter notes.
+After bootstrapping the directory structure, use `/init-wiki` in Claude Code to initialize first-pass wiki content from a mechanical project inventory. The script behind this command reports languages, stack signals, top directories, sample files, and indexed wiki pages; the agent decides whether to write lightweight starter notes.
 
 ```bash
-./manage.sh init-spec /path/to/project
-./manage.sh init-spec /path/to/project "payments and order workflow"
+./manage.sh init-wiki /path/to/project
+./manage.sh init-wiki /path/to/project "payments and order workflow"
 ```
 
-Use this only to help the user initialize spec knowledge. During ongoing development, let the `update-spec` skill review whether durable knowledge should be written.
+Use this only to help the user initialize wiki knowledge. During ongoing development, let the `update-wiki` skill review whether durable knowledge should be written.
 
-## Import existing specs
+## Import existing wiki
 
 For normal use in Claude Code or similar tools, use the installed Superpowers command:
 
 ```text
-/import-spec path/to/original-spec-dir
-/import-spec path/to/original-spec-dir --target imported
+/import-wiki path/to/original-wiki-dir
+/import-wiki path/to/original-wiki-dir --target imported
 ```
 
-The import recursively scans source spec files, copies each file into `.superpowers/spec` without overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing spec directories; use the `update-spec` skill later for semantic consolidation.
+The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` without overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
 
 ## Progressive disclosure
 
-The default selection path is the installed `spec-researcher` agent. The installed `spec-progressive-disclosure` skill is a reference and fallback guide for manual troubleshooting; normal Superpowers `brainstorming` and `writing-plans` do not require calling it.
+The default selection path is the installed `wiki-researcher` agent. The installed `wiki-progressive-disclosure` skill is a reference and fallback guide for manual troubleshooting; normal Superpowers `brainstorming` and `writing-plans` do not require calling it.
 
-Progressive spec reading still follows these rules:
+Progressive wiki reading still follows these rules:
 
-1. Read `.superpowers/spec/index.md`
+1. Read `.superpowers/wiki/index.md`
 2. Follow the index to narrower indexes or files
 3. Read only the files needed for the current phase
-4. Avoid full-tree spec loading unless explicitly requested
-5. Use plan `Referenced Project Specs` during implementation and review
+4. Avoid full-tree wiki loading unless explicitly requested
+5. Use plan `Referenced Project Wiki` during implementation and review
 
-No SessionStart hook is installed. Spec reading is triggered on demand by `spec-researcher` during Superpowers `brainstorming` and `writing-plans`.
+No SessionStart hook is installed. Wiki reading is triggered on demand by `wiki-researcher` during Superpowers `brainstorming` and `writing-plans`.
 
-## Spec researcher
+## Wiki researcher
 
-The installed `spec-researcher` agent is the default path for selecting relevant project specs in Claude Code:
+The installed `wiki-researcher` agent is the default path for selecting relevant project wiki in Claude Code:
 
 ```yaml
 task: <user request or confirmed Superpowers spec>
 phase: brainstorm | plan | implement | review
-specRoot: .superpowers/spec
-maxSpecs: 5
+wikiRoot: .superpowers/wiki
+maxWikiPages: 5
 ```
 
-It starts from `.superpowers/spec/index.md`, follows index links progressively, and returns structured YAML selected specs. It does not modify files.
+It starts from `.superpowers/wiki/index.md`, follows index links progressively, and returns structured YAML selected wiki pages. It does not modify files.
 
-## Referenced Project Specs
+## Referenced Project Wiki
 
-`writing-plans` is patched so each implementation plan records selected project specs in:
+`writing-plans` is patched so each implementation plan records selected project wiki pages in:
 
 ```markdown
-## Referenced Project Specs
+## Referenced Project Wiki
 ```
 
-Implementation and review consume this plan section instead of reselecting specs from scratch.
+Implementation and review consume this plan section instead of reselecting wiki pages from scratch.
 
 ## Break the bug loop
 
 For bugs, keep Superpowers `systematic-debugging` as the fix workflow. After the bug is fixed and verified, use the installed `break-loop` skill when the work needs a deeper retrospective: root cause category, failed attempts, prevention mechanisms, similar risks, and durable knowledge candidates.
 
-`break-loop` does not replace `systematic-debugging` or `update-spec`. When durable implementation knowledge should persist, it hands atomic candidates to `update-spec`, which performs duplicate checks, target selection, spec edits, index refresh, and validation.
+`break-loop` does not replace `systematic-debugging` or `update-wiki`. When durable implementation knowledge should persist, it hands atomic candidates to `update-wiki`, which performs duplicate checks, target selection, wiki edits, index refresh, and validation.
 
-## Update specs
+## Update wiki
 
-For normal use in Claude Code or similar tools, rely on the installed `update-spec` skill. The skill is auto-triggered when implementation, debugging, review, or discussion produces durable knowledge: the agent reads indexed specs, checks semantic duplicates, chooses target ownership, edits durable spec knowledge, refreshes indexes, and skips edits when nothing durable should be recorded.
+For normal use in Claude Code or similar tools, rely on the installed `update-wiki` skill. The skill is auto-triggered when implementation, debugging, review, or discussion produces durable knowledge: the agent reads indexed wiki pages, checks semantic duplicates, chooses target ownership, edits durable wiki knowledge, refreshes indexes, and skips edits when nothing durable should be recorded.
 
 Execution-layer helpers are mainly useful for adapter development or debugging. They are mechanical helpers only:
 
 ```bash
 TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
-python3 "$TARGET_DIR/scripts/spec_select_target.py" --json
-python3 "$TARGET_DIR/scripts/spec_update_check.py" --json
-python3 "$TARGET_DIR/scripts/update-spec.py"
+python3 "$TARGET_DIR/scripts/wiki_select_target.py" --json
+python3 "$TARGET_DIR/scripts/wiki_update_check.py" --json
+python3 "$TARGET_DIR/scripts/update-wiki.py"
 ```
 
 ## Export manifest
 
-Export adapter and spec state for upgrade-time comparison:
+Export adapter and wiki state for upgrade-time comparison:
 
 ```bash
 ./manage.sh export-manifest /path/to/project ./manifest-output.json
 ```
 
-The manifest includes installed adapter files, native skill patch targets, hook config state, and a `.superpowers/spec` snapshot with both raw and ignore-filtered effective views.
+The manifest includes installed adapter files, native skill patch targets, hook config state, and a `.superpowers/wiki` snapshot with both raw and ignore-filtered effective views.
 
 ## Release check
 
@@ -156,10 +156,10 @@ This runs:
 - `export-manifest`
 
 The self-test covers:
-- mechanical `spec_apply_update.py` write and merge behavior with an agent-decided target
-- `spec-researcher` installation and native skill patch smoke
-- `spec_update_check.py` index and format validation
-- index-driven spec graph traversal
+- mechanical `wiki_apply_update.py` write and merge behavior with an agent-decided target
+- `wiki-researcher` installation and native skill patch smoke
+- `wiki_update_check.py` index and format validation
+- index-driven wiki graph traversal
 - import command path handling
 
 ## Upgrade workflow

@@ -19,32 +19,32 @@ REPO_ROOT="$(cd "$REPO_ROOT_INPUT" && pwd)"
 
 "$SCRIPT_DIR/install.sh" "$TARGET_INPUT"
 "$SCRIPT_DIR/verify.sh" "$TARGET_INPUT"
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_apply_update.py" "updates/adapter-self-test.md" "Adapter Self Test" "Validate mechanical spec writes." "Self-test rule")
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_apply_update.py" "updates/adapter-self-test.md" "Adapter Self Test" "Validate mechanical spec writes again." "Self-test rule updated")
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/update-spec.py")
-if [[ ! -f "$REPO_ROOT/.superpowers/spec/updates/adapter-self-test.md" ]]; then
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/wiki_apply_update.py" "updates/adapter-self-test.md" "Adapter Self Test" "Validate mechanical wiki writes." "Self-test rule")
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/wiki_apply_update.py" "updates/adapter-self-test.md" "Adapter Self Test" "Validate mechanical wiki writes again." "Self-test rule updated")
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/update-wiki.py")
+if [[ ! -f "$REPO_ROOT/.superpowers/wiki/updates/adapter-self-test.md" ]]; then
   printf 'Expected mechanical update target to exist\n' >&2
   exit 1
 fi
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/init-spec.py" . "self-test" --json >/dev/null)
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/init-wiki.py" . "self-test" --json >/dev/null)
 python3 - <<'PY' "$REPO_ROOT"
 from pathlib import Path
 import sys
 path = Path(sys.argv[1]) / '.superpowers' / 'tmp-import-source.md'
 path.write_text('# External Import Self Test\n\nOriginal detail must be preserved.\n', encoding='utf-8')
 PY
-rm -f "$REPO_ROOT/.superpowers/spec/imported/external-import-self-test.md"
-(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/spec_import.py" .superpowers/tmp-import-source.md --target imported/external-import-self-test.md --merge-existing)
-if [[ ! -f "$REPO_ROOT/.superpowers/spec/imported/external-import-self-test.md" ]]; then
+rm -f "$REPO_ROOT/.superpowers/wiki/imported/external-import-self-test.md"
+(cd "$REPO_ROOT" && python3 "$TARGET_DIR/scripts/wiki_import.py" .superpowers/tmp-import-source.md --target imported/external-import-self-test.md --merge-existing)
+if [[ ! -f "$REPO_ROOT/.superpowers/wiki/imported/external-import-self-test.md" ]]; then
   printf 'Expected single-file import target to be used as a file path\n' >&2
   exit 1
 fi
 rm -f "$REPO_ROOT/.superpowers/tmp-import-source.md"
-bash "$SCRIPT_DIR/tests/native-skill-patch-smoke.sh" "$TARGET_DIR"
-bash "$SCRIPT_DIR/tests/spec-update-check-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
-bash "$SCRIPT_DIR/tests/init-spec-inventory-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
-bash "$SCRIPT_DIR/tests/spec-index-graph-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
-bash "$SCRIPT_DIR/tests/spec-import-command-path-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/native-wiki-patch-smoke.sh" "$TARGET_DIR"
+bash "$SCRIPT_DIR/tests/wiki-update-check-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/init-wiki-inventory-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/wiki-index-graph-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/wiki-import-command-path-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 python3 "$SCRIPT_DIR/lib/hook_patch.py" verify "$TARGET_DIR"
 "$SCRIPT_DIR/status.sh" "$TARGET_INPUT"
 

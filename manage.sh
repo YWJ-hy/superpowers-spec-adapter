@@ -11,8 +11,8 @@ usage() {
   printf '  %s uninstall [superpowers-target]\n' "$0" >&2
   printf '  %s verify [superpowers-target]\n' "$0" >&2
   printf '  %s status [superpowers-target]\n' "$0" >&2
-  printf '  %s bootstrap-spec <project-root> [--template name] [--ref ref]\n' "$0" >&2
-  printf '  %s init-spec <project-root> [analysis-hint]\n' "$0" >&2
+  printf '  %s bootstrap-wiki <project-root> [--template name] [--ref ref]\n' "$0" >&2
+  printf '  %s init-wiki <project-root> [analysis-hint]\n' "$0" >&2
   printf '  %s doctor <project-root> [superpowers-target]\n' "$0" >&2
   printf '  %s export-manifest <project-root> [output-path] [superpowers-target]\n' "$0" >&2
   printf '  %s self-test <project-root> [superpowers-target]\n' "$0" >&2
@@ -47,13 +47,13 @@ case "$COMMAND" in
   status)
     exec "$SCRIPT_DIR/status.sh" "$@"
     ;;
-  bootstrap-spec)
+  bootstrap-wiki)
     require_project_root "${1:-}"
-    exec "$SCRIPT_DIR/bootstrap-spec.sh" "$@"
+    exec "$SCRIPT_DIR/bootstrap-wiki.sh" "$@"
     ;;
-  init-spec)
+  init-wiki)
     require_project_root "${1:-}"
-    exec "$SCRIPT_DIR/init-spec.sh" "$@"
+    exec "$SCRIPT_DIR/init-wiki.sh" "$@"
     ;;
   doctor)
     require_project_root "${1:-}"

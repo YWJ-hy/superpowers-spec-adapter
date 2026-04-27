@@ -92,13 +92,13 @@ PY
 )
 
 chmod +x \
-  "$TARGET_DIR/scripts/update-spec.py" \
-  "$TARGET_DIR/scripts/spec-context.py" \
-  "$TARGET_DIR/scripts/spec_import.py" \
-  "$TARGET_DIR/scripts/init-spec.py" \
-  "$TARGET_DIR/scripts/spec_update_check.py" \
-  "$TARGET_DIR/scripts/spec_select_target.py" \
-  "$TARGET_DIR/scripts/spec_apply_update.py"
+  "$TARGET_DIR/scripts/update-wiki.py" \
+  "$TARGET_DIR/scripts/wiki-context.py" \
+  "$TARGET_DIR/scripts/wiki_import.py" \
+  "$TARGET_DIR/scripts/init-wiki.py" \
+  "$TARGET_DIR/scripts/wiki_update_check.py" \
+  "$TARGET_DIR/scripts/wiki_select_target.py" \
+  "$TARGET_DIR/scripts/wiki_apply_update.py"
 python3 "$HOOK_PATCHER" install "$TARGET_DIR"
 python3 "$NATIVE_SKILL_PATCHER" install "$TARGET_DIR"
 
