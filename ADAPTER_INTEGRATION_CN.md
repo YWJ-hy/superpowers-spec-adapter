@@ -30,7 +30,7 @@ adapter 会把以下 overlay 安装进 Superpowers：
 superpowers/
 ├── agents/spec-researcher.md
 ├── skills/spec-progressive-disclosure/SKILL.md
-├── commands/update-spec.md
+├── skills/update-spec/SKILL.md
 ├── commands/import-spec.md
 ├── commands/init-spec.md
 ├── scripts/update-spec.py
@@ -176,7 +176,7 @@ subagent 不应重新从 `.superpowers/spec/` 选择规范，除非主 agent 判
 
 ---
 
-## 6. command 能力
+## 6. command / skill 能力
 
 ### `/init-spec`
 
@@ -198,9 +198,9 @@ python3 "$TARGET_DIR/scripts/init-spec.py" . "optional focus" --json
 python3 "$TARGET_DIR/scripts/spec_import.py" path/to/original-spec-dir --target imported
 ```
 
-### `/update-spec`
+### `update-spec` skill
 
-用于任务完成后沉淀 durable implementation knowledge。该 command 由 agent 读取 indexed specs、语义去重、判断归属并直接编辑 leaf spec；底层脚本只提供候选列表、机械校验和索引刷新。
+用于任务完成、修 bug、评审或讨论后审查是否需要沉淀 durable implementation knowledge。该 skill 由 agent 先判断是否值得更新，再读取 indexed specs、语义去重、判断归属并直接编辑 leaf spec；底层脚本只提供候选列表、机械校验和索引刷新。
 
 调试脚本示例：
 
@@ -210,7 +210,7 @@ python3 "$TARGET_DIR/scripts/spec_update_check.py" --json
 python3 "$TARGET_DIR/scripts/update-spec.py"
 ```
 
-这些 command 都是独立 adapter command，完成后不触发 Superpowers completion verification。
+`/init-spec` 和 `/import-spec` 是独立 adapter command，完成后不触发 Superpowers completion verification；`update-spec` 是自动触发 skill，不保留 slash command 入口。
 
 ---
 
@@ -253,5 +253,5 @@ python3 "$TARGET_DIR/scripts/update-spec.py"
 - `brainstorming` patch 会调用 `spec-researcher` 获取轻量 spec context。
 - `writing-plans` patch 会要求 `Referenced Project Specs`。
 - `executing-plans` 和 `subagent-driven-development` 只消费 plan 引用，不重新选择 spec。
-- `/import-spec`、`/init-spec`、`/update-spec` 仍作为独立 command 工作。
+- `/import-spec`、`/init-spec` 仍作为独立 command 工作，`update-spec` 作为 skill 安装并能在任务后审查 durable knowledge。
 - `verify`、`self-test`、`release-check` 通过。

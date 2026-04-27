@@ -14,7 +14,7 @@
     "installedFiles": [
       "agents/spec-researcher.md",
       "skills/spec-progressive-disclosure/SKILL.md",
-      "commands/update-spec.md",
+      "skills/update-spec/SKILL.md",
       "commands/import-spec.md",
       "commands/init-spec.md",
       "scripts/update-spec.py",

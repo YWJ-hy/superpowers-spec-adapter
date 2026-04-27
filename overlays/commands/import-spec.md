@@ -62,7 +62,7 @@ Use `--merge-existing` only to allow identical existing files to be skipped. It 
 
 ## About `--hint`
 
-The import script may accept `--hint` for compatibility with older adapter flows, but structural import does not use it to choose a semantic target. If imported content needs semantic consolidation, use `/update-spec` after import.
+The import script may accept `--hint` for compatibility with older adapter flows, but structural import does not use it to choose a semantic target. If imported content needs semantic consolidation, use the `update-spec` skill after import.
 
 ## Existing `.superpowers/spec` merge behavior
 
@@ -85,9 +85,9 @@ Before finishing:
 - [ ] Existing `.superpowers/spec` content was preserved.
 - [ ] `update-spec.py` refreshed the index chain through the import script.
 - [ ] You told the user which source files mapped to which adapter target files.
-- [ ] If the imported content needs semantic cleanup, you told the user to use `/update-spec` next.
+- [ ] If the imported content needs semantic cleanup, you told the user to use the `update-spec` skill next.
 
 ## Relationship to update-spec
 
 Use `import-spec` for one-time structural migration of existing user specs into `.superpowers/spec/`.
-Use `update-spec` later to semantically consolidate, deduplicate, or maintain durable implementation knowledge discovered during implementation, debugging, review, or discussion.
+Use the `update-spec` skill later to semantically consolidate, deduplicate, or maintain durable implementation knowledge discovered during implementation, debugging, review, or discussion.

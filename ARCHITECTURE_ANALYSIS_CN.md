@@ -24,16 +24,16 @@
 ### 2. Skill 层
 
 - `overlays/skills/spec-progressive-disclosure/SKILL.md`
+- `overlays/skills/update-spec/SKILL.md`
 
-该 skill 约束 agent 不要全量读取 `.superpowers/spec/`，而是从入口 index 逐级下钻。
+`spec-progressive-disclosure` 约束 agent 不要全量读取 `.superpowers/spec/`，而是从入口 index 逐级下钻。`update-spec` 在任务后审查 durable implementation knowledge，并由 agent 判断是否需要更新 leaf spec。
 
 ### 3. Command 层
 
 - `overlays/commands/import-spec.md`
 - `overlays/commands/init-spec.md`
-- `overlays/commands/update-spec.md`
 
-这些都是独立 adapter command，不串入 Superpowers completion verification。
+这些是独立 adapter command，不串入 Superpowers completion verification。`update-spec` 不再保留 command 入口。
 
 ### 4. Script 层
 
@@ -46,7 +46,7 @@
 - `overlays/scripts/spec_select_target.py`
 - `overlays/scripts/spec_apply_update.py`
 
-脚本只作为 command 和测试背后的执行层。`update-spec` 相关脚本只做候选输出、路径安全、格式校验和索引刷新，不替 agent 做语义去重或目标归属判断。
+脚本只作为 command / skill 和测试背后的执行层。`update-spec` 相关脚本只做候选输出、路径安全、格式校验和索引刷新，不替 agent 做 durable knowledge 判断、语义去重或目标归属判断。
 
 ### 5. Patch / 安装层
 

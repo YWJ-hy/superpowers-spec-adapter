@@ -27,7 +27,7 @@ adapter 增强这些阶段：
 - 在 `writing-plans` 阶段正式选择相关项目规范，并要求 plan 写入 `Referenced Project Specs`。
 - 在执行阶段只消费 plan 中已经确认的 `Referenced Project Specs`。
 
-`/import-spec`、`/init-spec`、`/update-spec` 是独立 adapter command。用户主动调用它们时，只执行对应 spec 导入、初始化或更新功能；不要把它们串进 Superpowers 的 plan、implementation、review、completion、`superpowers:verification-before-completion` 等常规开发流程。
+`/import-spec`、`/init-spec` 是独立 adapter command。`update-spec` 是自动触发的 adapter skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/spec/`。
 
 Python 脚本是 command / skill / agent 背后的执行层，不是最终用户的主要交互入口。
 
@@ -43,10 +43,10 @@ Superpowers 插件目录
 │   └── spec-researcher.md
 ├── commands/
 │   ├── init-spec.md
-│   ├── update-spec.md
 │   └── import-spec.md
 ├── skills/
-│   └── spec-progressive-disclosure/
+│   ├── spec-progressive-disclosure/
+│   └── update-spec/
 └── scripts/
     └── adapter 执行脚本
 ```
@@ -77,7 +77,7 @@ Superpowers 插件目录
 | 6 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目规范 |
 | 7 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目规范并写入 `Referenced Project Specs` |
 | 8 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Specs` |
-| 9 | 任务后更新 spec | `/update-spec` | 任务产生长期可复用知识时 | 回写 durable implementation knowledge |
+| 9 | 任务后更新 spec | `update-spec` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
 | 10 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
 
 用户日常在 Claude Code 中主要记住这条链：
@@ -90,7 +90,7 @@ Superpowers 插件目录
 → Superpowers writing-plans
 → adapter 正式选择项目 spec，并写入 Referenced Project Specs
 → Superpowers executing-plans / subagent-driven-development 按 plan 执行
-→ /update-spec（有长期知识时）
+→ update-spec skill 审查是否需要沉淀长期知识
 ```
 
 ---
@@ -132,7 +132,7 @@ Superpowers 插件目录
 /import-spec path/to/original-spec-dir --target imported
 ```
 
-`/import-spec` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；如果导入内容需要语义整理，后续使用 `/update-spec`。
+`/import-spec` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；如果导入内容需要语义整理，后续由 `update-spec` skill 审查并更新。
 
 ### 4.4 初始化项目 spec 知识
 
@@ -141,7 +141,7 @@ Superpowers 插件目录
 /init-spec payments and order workflow
 ```
 
-这一步用于第一次从当前项目 inventory 中辅助 agent 生成轻量 starter spec。脚本只提供语言、依赖、目录、样例文件和 indexed spec 候选；是否写入、写到哪里由 agent 判断。后续开发中不要把它当作日常维护入口，日常沉淀知识应使用 `/update-spec`。
+这一步用于第一次从当前项目 inventory 中辅助 agent 生成轻量 starter spec。脚本只提供语言、依赖、目录、样例文件和 indexed spec 候选；是否写入、写到哪里由 agent 判断。后续开发中不要把它当作日常维护入口，日常沉淀知识应由 `update-spec` skill 审查。
 
 ---
 
@@ -215,11 +215,7 @@ This plan follows these existing project specs:
 
 ## 6. 任务结束后更新 spec
 
-当任务产生了未来还会复用的实现知识时，在 Claude Code 中使用：
-
-```text
-/update-spec
-```
+任务完成后，如果 agent 判断产生了未来还会复用的实现知识，安装后的 `update-spec` skill 会审查并更新 `.superpowers/spec/`。没有值得沉淀的内容时，应明确说明无需更新，不强制写入。
 
 适合回写的内容包括：
 
@@ -238,7 +234,7 @@ This plan follows these existing project specs:
 - 可以从代码直接看出来的普通结构
 - 没有验证过的猜测
 
-`/update-spec` 是独立 adapter command。调用后，agent 应读取 indexed specs，做语义去重和归属判断，直接更新 leaf spec，并刷新 index；脚本只用于候选展示、路径安全、格式校验和索引刷新。
+`update-spec` 是 adapter skill。触发后，agent 应读取 indexed specs，做语义去重和归属判断，直接更新 leaf spec，并刷新 index；脚本只用于候选展示、路径安全、格式校验和索引刷新。
 
 ---
 
@@ -253,7 +249,7 @@ This plan follows these existing project specs:
 | 初次生成 starter spec | `/init-spec` | 在 Claude Code 中执行 |
 | 设计阶段参考项目规范 | Superpowers `brainstorming` + `spec-researcher` | 自动轻量披露相关项目 spec |
 | 计划阶段固化项目规范 | Superpowers `writing-plans` + `Referenced Project Specs` | 自动选择并写入 plan |
-| 沉淀长期知识 | `/update-spec` | 在 Claude Code 中执行 |
+| 沉淀长期知识 | `update-spec` skill | 由 agent 在任务后自动审查是否需要执行 |
 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者使用 |
 
 ---

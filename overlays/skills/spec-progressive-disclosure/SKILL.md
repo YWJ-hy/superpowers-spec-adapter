@@ -12,7 +12,7 @@ Default adapter flow:
 2. During `writing-plans`, use `spec-researcher` with `phase: plan` to formally select relevant project specs.
 3. Record selected specs and constraints in the plan's `## Referenced Project Specs` section.
 4. During implementation and review, consume `Referenced Project Specs` instead of reselecting specs from scratch.
-5. After finishing work, update `.superpowers/spec/` through `/update-spec` if durable implementation knowledge should persist.
+5. After finishing work, use the `update-spec` skill to review whether durable implementation knowledge should persist in `.superpowers/spec/`.
 
 Use this skill only when:
 - the user asks how progressive spec disclosure works;

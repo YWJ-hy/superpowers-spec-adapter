@@ -7,7 +7,7 @@
   "installedPaths": [
     "agents/spec-researcher.md",
     "skills/spec-progressive-disclosure/SKILL.md",
-    "commands/update-spec.md",
+    "skills/update-spec/SKILL.md",
     "commands/import-spec.md",
     "commands/init-spec.md",
     "scripts/update-spec.py",
@@ -20,6 +20,7 @@
     "scripts/spec_apply_update.py"
   ],
   "removedPaths": [
+    "commands/update-spec.md",
     "commands/plan-context.md",
     "commands/check-workflow.md",
     "skills/plan-context-sidecar/SKILL.md",

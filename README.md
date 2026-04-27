@@ -16,8 +16,8 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Patch Superpowers `brainstorming` so designs can see lightweight project spec context
 - Patch Superpowers `writing-plans` so plans record selected specs in `Referenced Project Specs`
 - Let implementation and review consume plan `Referenced Project Specs` instead of reselecting specs at execution time
-- Keep `/import-spec`, `/init-spec`, and `/update-spec` as standalone adapter commands that do not trigger Superpowers completion verification
-- Check whether a task likely produced durable implementation knowledge before updating spec
+- Keep `/import-spec` and `/init-spec` as standalone adapter commands that do not trigger Superpowers completion verification
+- Install `update-spec` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating spec
 - Reinstall the same overlay after upgrading `superpowers/`
 
 ## Install
@@ -61,7 +61,7 @@ After bootstrapping the directory structure, use `/init-spec` in Claude Code to 
 ./manage.sh init-spec /path/to/project "payments and order workflow"
 ```
 
-Use this only to help the user initialize spec knowledge. During ongoing development, continue writing durable knowledge with `/update-spec`.
+Use this only to help the user initialize spec knowledge. During ongoing development, let the `update-spec` skill review whether durable knowledge should be written.
 
 ## Import existing specs
 
@@ -72,7 +72,7 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 /import-spec path/to/original-spec-dir --target imported
 ```
 
-The import recursively scans source spec files, copies each file into `.superpowers/spec` without overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing spec directories; use `/update-spec` later for semantic consolidation.
+The import recursively scans source spec files, copies each file into `.superpowers/spec` without overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing spec directories; use the `update-spec` skill later for semantic consolidation.
 
 ## Progressive disclosure
 
@@ -113,7 +113,7 @@ Implementation and review consume this plan section instead of reselecting specs
 
 ## Update specs
 
-For normal use in Claude Code or similar tools, use the installed Superpowers command `/update-spec`. The installed `/update-spec` command is standalone: the agent reads indexed specs, checks semantic duplicates, chooses target ownership, edits durable spec knowledge, refreshes indexes, and then stops without invoking Superpowers completion verification or other development workflow checks.
+For normal use in Claude Code or similar tools, rely on the installed `update-spec` skill. The skill is auto-triggered when implementation, debugging, review, or discussion produces durable knowledge: the agent reads indexed specs, checks semantic duplicates, chooses target ownership, edits durable spec knowledge, refreshes indexes, and skips edits when nothing durable should be recorded.
 
 Execution-layer helpers are mainly useful for adapter development or debugging. They are mechanical helpers only:
 

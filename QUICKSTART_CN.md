@@ -50,8 +50,8 @@
 - `agents/spec-researcher.md`
 - `commands/import-spec.md`
 - `commands/init-spec.md`
-- `commands/update-spec.md`
 - `skills/spec-progressive-disclosure/SKILL.md`
+- `skills/update-spec/SKILL.md`
 - adapter 执行脚本
 
 同时会 patch：
@@ -100,7 +100,7 @@
 → writing-plans 调用 spec-researcher 正式选择项目规范
 → plan 写入 Referenced Project Specs
 → executing-plans / subagent-driven-development 消费 Referenced Project Specs
-→ /update-spec（有长期知识时）
+→ update-spec skill 审查是否需要沉淀长期知识
 ```
 
 plan 中应包含：
@@ -150,11 +150,7 @@ python3 "$TARGET_DIR/scripts/spec-context.py" --file quality/error-rules.md
 - 非显而易见的 gotcha
 - 跨层 checklist
 
-推荐入口：
-
-```text
-/update-spec
-```
+推荐入口是安装后的 `update-spec` skill：由 agent 在任务完成后判断是否有 durable implementation knowledge 需要写入 `.superpowers/spec/`。如果没有值得沉淀的内容，应明确跳过，不强制编辑。
 
 执行层调试入口只用于机械检查，不替 agent 判断是否需要更新或写到哪里：
 
