@@ -10,9 +10,10 @@ This skill is a reference and fallback guide, not the default wiki selection pat
 Default adapter flow:
 1. During `brainstorming`, use `wiki-researcher` with `phase: brainstorm` to disclose a small amount of relevant project wiki context.
 2. During `writing-plans`, use `wiki-researcher` with `phase: plan` to formally select relevant project wiki.
-3. Record selected wiki pages and constraints in the plan's `## Referenced Project Wiki` section.
-4. During implementation and review, consume `Referenced Project Wiki` instead of reselecting wiki pages from scratch.
-5. After finishing work, use the `update-wiki` skill to review whether durable implementation knowledge should persist in `.superpowers/wiki/`.
+3. Write detailed selected-page constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.md`.
+4. Record a lightweight `## Referenced Project Wiki` section in the plan that links the `.wiki-context.md` file and summarizes selected pages, applicable tasks, and hard constraints.
+5. During implementation and review, consume the plan's `Referenced Project Wiki` and linked `.wiki-context.md` instead of reselecting wiki pages from scratch.
+6. After finishing work, use the `update-wiki` skill to review whether durable implementation knowledge should persist in `.superpowers/wiki/`.
 
 Use this skill only when:
 - the user asks how progressive wiki disclosure works;
@@ -32,6 +33,6 @@ Manual fallback flow:
 - Read `.superpowers/wiki/index.md`
 - Follow links or listed paths to narrower indexes
 - Read the minimum relevant leaf wiki page files
-- If planning, write selected wiki pages into `Referenced Project Wiki`
-- If implementing or reviewing, use the plan's `Referenced Project Wiki`
+- If planning, write detailed constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.md` and link it from `Referenced Project Wiki`
+- If implementing or reviewing, use the plan's `Referenced Project Wiki` and linked `.wiki-context.md`
 - After finishing work, update relevant wiki pages if new knowledge should persist

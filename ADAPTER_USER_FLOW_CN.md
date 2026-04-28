@@ -24,8 +24,8 @@ adapter 增强这些阶段：
 
 - 安装 `wiki-researcher` agent，用于从 `.superpowers/wiki/index.md` 开始渐进选择少量相关项目 wiki 页面。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
-- 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，并要求 plan 写入 `Referenced Project Wiki`。
-- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki`。
+- 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
+- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
 
 `/import-wiki`、`/init-wiki` 是独立 adapter command。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/wiki/`。
@@ -58,9 +58,9 @@ Superpowers 插件目录
 同时 adapter 会 patch Superpowers 的 native skills：
 
 - `brainstorming`：在提出设计方案前调用 `wiki-researcher` 获取轻量项目 wiki上下文。
-- `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目 wiki 页面，并要求 plan 写入 `Referenced Project Wiki`。
-- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki`，不重新选择 wiki 页面。
-- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki` 传给 implementer / reviewer subagent。
+- `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
+- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md`，不重新选择 wiki 页面。
+- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md` 约束传给 implementer / reviewer subagent。
 
 当前流程不安装 SessionStart hook；`wiki-researcher` 会在 `brainstorming` 和 `writing-plans` 阶段按需读取 `.superpowers/wiki/`。
 
@@ -77,8 +77,8 @@ Superpowers 插件目录
 | 4 | 导入已有 wiki | `/import-wiki` | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/` 格式 |
 | 5 | 初始化 starter wiki | `/init-wiki` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
 | 6 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
-| 7 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目 wiki 页面并写入 `Referenced Project Wiki` |
-| 8 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` |
+| 7 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目 wiki 页面，生成 `.wiki-context.md`，并在 plan 中写入轻量 `Referenced Project Wiki` |
+| 8 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.md` |
 | 9 | 修 bug 后复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug，再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
 | 10 | 任务后更新 wiki | `update-wiki` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
 | 11 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
@@ -91,8 +91,8 @@ Superpowers 插件目录
 → adapter 轻量披露相关项目 wiki 页面
 → Superpowers 写并确认本次 spec
 → Superpowers writing-plans
-→ adapter 正式选择项目 wiki，并写入 Referenced Project Wiki
-→ Superpowers executing-plans / subagent-driven-development 按 plan 执行
+→ adapter 正式选择项目 wiki，生成 .wiki-context.md，并在 plan 写入轻量 Referenced Project Wiki
+→ Superpowers executing-plans / subagent-driven-development 按 plan 和 .wiki-context.md 执行
 → 遇到 bug 时先用 Superpowers systematic-debugging 修复和验证
 → 修复后需要防复发分析时使用 break-loop
 → update-wiki skill 审查是否需要沉淀长期知识
@@ -179,32 +179,35 @@ planSummary: <计划目标和任务区域>
 maxWikiPages: 5
 ```
 
-plan 必须包含：
+writing-plans 默认把详细约束写入与 plan 同名的 sidecar 文件：
+
+```text
+docs/superpowers/plans/<plan-stem>.wiki-context.md
+```
+
+plan 必须包含轻量入口：
 
 ```markdown
 ## Referenced Project Wiki
 
-This plan follows these existing project wiki:
+Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 
-- `.superpowers/wiki/domain/user.md`
-  - Applies to Tasks 1, 2, and 4.
-  - Constraints:
-    - Use `account_id` as the stable identity key.
+- `.superpowers/wiki/domain/user.md` — applies to Tasks 1, 2, and 4; hard constraint: use `account_id` as the stable identity key.
 ```
 
-如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
+`.wiki-context.md` 应包含每个选中 wiki 页的路径、适用任务、具体实现 / 测试 / review 约束、硬约束标记、必要原文锚点和 caveats。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
 
 ### 5.3 执行阶段
 
-`executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`。
+`executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`，再读取其中链接的 `.wiki-context.md`。
 
 执行阶段不应默认：
 
 - 重新从 `.superpowers/wiki/` 选择 wiki 页面。
-- 临时在执行阶段重新解释 wiki 约束。
+- 临时在执行阶段重新解释 wiki 约束，或绕过 planning 生成的 `.wiki-context.md`。
 - 绕过 plan 中已经确认的 wiki 约束。
 
-如果 plan 缺少 `Referenced Project Wiki`，应提示回到 planning 阶段补齐。
+如果 plan 缺少 `Referenced Project Wiki`、链接的 `.wiki-context.md` 缺失，或 context 明显不足，应提示回到 planning 阶段补齐。
 
 ### 5.4 手动 fallback：渐进读取 wiki
 
@@ -253,7 +256,7 @@ This plan follows these existing project wiki:
 | 导入已有 wiki | `/import-wiki` | 有已有wiki 目录时在 Claude Code 中执行 |
 | 初次生成 starter wiki | `/init-wiki` | 在 Claude Code 中执行 |
 | 设计阶段参考项目 wiki | Superpowers `brainstorming` + `wiki-researcher` | 自动轻量披露相关项目 wiki 页面 |
-| 计划阶段固化项目 wiki | Superpowers `writing-plans` + `Referenced Project Wiki` | 自动选择并写入 plan |
+| 计划阶段固化项目 wiki | Superpowers `writing-plans` + `Referenced Project Wiki` + `.wiki-context.md` | 自动选择 wiki、生成详细约束产物，并在 plan 中写入轻量入口 |
 | 沉淀长期知识 | `update-wiki` skill | 由 agent 在任务后自动审查是否需要执行 |
 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者使用 |
 

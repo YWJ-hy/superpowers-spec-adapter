@@ -38,13 +38,48 @@ if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/writing-plans/SK
   exit 1
 fi
 
+if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
+  printf 'Expected writing-plans patch to require wiki context sidecar\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq 'concrete implementation/test/review constraints' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
+  printf 'Expected writing-plans patch to require concrete constraints\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq 'hard constraint status' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
+  printf 'Expected writing-plans patch to require hard constraint status\n' >&2
+  exit 1
+fi
+
 if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
   printf 'Expected executing-plans patch to consume Referenced Project Wiki\n' >&2
   exit 1
 fi
 
+if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
+  printf 'Expected executing-plans patch to consume wiki context sidecar\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq 'Do not reselect wiki pages from scratch' "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
+  printf 'Expected executing-plans patch not to reselect wiki pages\n' >&2
+  exit 1
+fi
+
 if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
   printf 'Expected subagent-driven-development patch to forward Referenced Project Wiki\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
+  printf 'Expected subagent-driven-development patch to forward wiki context sidecar\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq 'Do not make subagents reselect wiki pages' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
+  printf 'Expected subagent-driven-development patch not to reselect wiki pages\n' >&2
   exit 1
 fi
 

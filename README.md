@@ -14,8 +14,8 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context
-- Patch Superpowers `writing-plans` so plans record selected wiki pages in `Referenced Project Wiki`
-- Let implementation and review consume plan `Referenced Project Wiki` instead of reselecting wiki pages at execution time
+- Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed `.wiki-context.md` constraints
+- Let implementation and review consume plan `Referenced Project Wiki` and linked `.wiki-context.md` instead of reselecting wiki pages at execution time
 - Keep `/import-wiki` and `/init-wiki` as standalone adapter commands that do not trigger Superpowers completion verification
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
 - Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki
@@ -85,7 +85,7 @@ Progressive wiki reading still follows these rules:
 2. Follow the index to narrower indexes or files
 3. Read only the files needed for the current phase
 4. Avoid full-tree wiki loading unless explicitly requested
-5. Use plan `Referenced Project Wiki` during implementation and review
+5. Use plan `Referenced Project Wiki` and linked `.wiki-context.md` during implementation and review
 
 No SessionStart hook is installed. Wiki reading is triggered on demand by `wiki-researcher` during Superpowers `brainstorming` and `writing-plans`.
 
@@ -100,17 +100,23 @@ wikiRoot: .superpowers/wiki
 maxWikiPages: 5
 ```
 
-It starts from `.superpowers/wiki/index.md`, follows index links progressively, and returns structured YAML selected wiki pages. It does not modify files.
+It starts from `.superpowers/wiki/index.md`, follows index links progressively, and returns structured YAML selected wiki pages plus planning constraint hints. It does not modify files.
 
 ## Referenced Project Wiki
 
-`writing-plans` is patched so each implementation plan records selected project wiki pages in:
+`writing-plans` is patched so each implementation plan records a lightweight selected-wiki entry point in:
 
 ```markdown
 ## Referenced Project Wiki
 ```
 
-Implementation and review consume this plan section instead of reselecting wiki pages from scratch.
+Detailed constraints are written to a plan sidecar file such as:
+
+```text
+docs/superpowers/plans/<plan-stem>.wiki-context.md
+```
+
+Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch.
 
 ## Break the bug loop
 

@@ -140,6 +140,7 @@ writing-plans
 ```
 
 4. 确认 agent 实际走的是文档指定的分析、wiki-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `wiki-progressive-disclosure`。
+5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，执行阶段会读取该 sidecar context。
 
 ### 5.3 修改 hook 配置或安装逻辑时
 
@@ -206,7 +207,7 @@ bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/pro
 
 - 底层脚本行为正确
 - overlay command / skill / agent 能正确引导用户路径
-- 如涉及 wiki 披露主流程，验收重点是 `wiki-researcher` 和 plan 中的 `Referenced Project Wiki`；`wiki-progressive-disclosure` 只是说明性 / fallback，不是默认路径成功标志
+- 如涉及 wiki 披露主流程，验收重点是 `wiki-researcher`、plan 中的轻量 `Referenced Project Wiki`，以及其链接的 `.wiki-context.md` 约束产物；`wiki-progressive-disclosure` 只是说明性 / fallback，不是默认路径成功标志
 - adapter 能成功安装到 Superpowers 插件目录
 - `verify` / 相关测试通过
 - 如影响用户流程，已在 Claude Code 等工具中从 command / skill 入口验证
