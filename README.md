@@ -126,7 +126,9 @@ For bugs, keep Superpowers `systematic-debugging` as the fix workflow. After the
 
 ## Update wiki
 
-For normal use in Claude Code or similar tools, rely on the installed `update-wiki` skill. The skill is auto-triggered when implementation, debugging, review, or discussion produces durable knowledge: the agent reads indexed wiki pages, checks semantic duplicates, chooses target ownership, edits durable wiki knowledge, refreshes indexes, and skips edits when nothing durable should be recorded.
+For normal use in Claude Code or similar tools, rely on the installed `update-wiki` skill. The skill is auto-triggered when implementation, debugging, review, or discussion produces durable knowledge: the agent reads indexed wiki pages, checks semantic duplicates, chooses target ownership, checks whether the target leaf page is oversized or overloaded, edits durable wiki knowledge, refreshes indexes, and skips edits when nothing durable should be recorded.
+
+Oversized page reports are mechanical signals only. When a leaf wiki page is too large, the agent should split by ownership, usually into sibling leaf pages in the same directory; use a topic directory with its own `index.md` only when the original page has become a collection of stable subtopics.
 
 Execution-layer helpers are mainly useful for adapter development or debugging. They are mechanical helpers only:
 

@@ -14,6 +14,11 @@ WARNING = "warning"
 INVALID = "invalid"
 UPDATE_PREFIX = "## Update: "
 REQUIRED_UPDATE_HEADERS = ["### Why", "### Rules / Contracts", "### Validation / Notes"]
+OVERSIZED_THRESHOLDS = [
+    (800, 40000, "critical"),
+    (500, 24000, "large"),
+    (250, 12000, "notice"),
+]
 
 
 def update_block_ranges(lines: list[str]) -> list[tuple[int, int]]:
@@ -42,14 +47,22 @@ def has_unclosed_fence(text: str) -> bool:
     return open_fence is not None
 
 
-def check_leaf(wiki_root: Path, path: Path) -> tuple[list[str], list[str]]:
+def oversized_level(lines_count: int, chars_count: int) -> str | None:
+    for line_threshold, char_threshold, level in OVERSIZED_THRESHOLDS:
+        if lines_count >= line_threshold or chars_count >= char_threshold:
+            return level
+    return None
+
+
+def check_leaf(wiki_root: Path, path: Path) -> tuple[list[str], list[str], dict | None]:
     warnings: list[str] = []
     errors: list[str] = []
+    oversized: dict | None = None
     rel = rel_posix(wiki_root.resolve(), path)
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
-        return warnings, [f"Could not read {rel}: {exc}"]
+        return warnings, [f"Could not read {rel}: {exc}"], oversized
 
     if not text.strip():
         warnings.append(f"Empty indexed wiki page: {rel}")
@@ -59,6 +72,18 @@ def check_leaf(wiki_root: Path, path: Path) -> tuple[list[str], list[str]]:
         errors.append(f"Unclosed markdown fence in {rel}")
 
     lines = text.splitlines()
+    lines_count = len(lines)
+    chars_count = len(text)
+    level = oversized_level(lines_count, chars_count)
+    if level:
+        oversized = {
+            "path": rel,
+            "lines": lines_count,
+            "chars": chars_count,
+            "level": level,
+        }
+        warnings.append(f"Oversized indexed wiki page: {rel} ({lines_count} lines, {chars_count} chars, {level})")
+
     for start, end in update_block_ranges(lines):
         block = {line.strip() for line in lines[start:end]}
         missing = [header for header in REQUIRED_UPDATE_HEADERS if header not in block]
@@ -66,7 +91,7 @@ def check_leaf(wiki_root: Path, path: Path) -> tuple[list[str], list[str]]:
             title = lines[start].strip()
             warnings.append(f"Incomplete update block in {rel} ({title}): missing {', '.join(missing)}")
 
-    return warnings, errors
+    return warnings, errors, oversized
 
 
 def check_wiki_tree() -> dict:
@@ -75,11 +100,14 @@ def check_wiki_tree() -> dict:
     graph = build_wiki_index_graph(wiki_root)
     warnings = list(graph.warnings)
     errors: list[str] = []
+    oversized_pages: list[dict] = []
 
     for leaf in graph.leaves:
-        leaf_warnings, leaf_errors = check_leaf(wiki_root, leaf)
+        leaf_warnings, leaf_errors, oversized = check_leaf(wiki_root, leaf)
         warnings.extend(leaf_warnings)
         errors.extend(leaf_errors)
+        if oversized:
+            oversized_pages.append(oversized)
 
     if not graph.leaves:
         warnings.append("No indexed leaf wiki pages found")
@@ -91,6 +119,7 @@ def check_wiki_tree() -> dict:
         "filesChecked": len(graph.files),
         "indexesChecked": len(graph.indexes),
         "leavesChecked": len(graph.leaves),
+        "oversizedPages": oversized_pages,
         "warnings": warnings,
         "errors": errors,
         "mechanicalOnly": True,
@@ -105,6 +134,12 @@ def render_text(result: dict) -> str:
         INVALID: "WIKI_UPDATE_CHECK_INVALID: mechanical errors found",
     }[status]
     lines = [heading, f"Files checked: {result['filesChecked']}"]
+    if result["oversizedPages"]:
+        lines.extend(["", "Oversized pages:"])
+        lines.extend(
+            f"- {page['path']} ({page['lines']} lines, {page['chars']} chars, {page['level']})"
+            for page in result["oversizedPages"]
+        )
     if result["warnings"]:
         lines.extend(["", "Warnings:"])
         lines.extend(f"- {warning}" for warning in result["warnings"])

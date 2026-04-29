@@ -76,7 +76,7 @@ python3 overlays/scripts/wiki_update_check.py --json
 
 例如修改 `update-wiki` 相关能力时，不应只验证某个底层脚本能写入文件；脚本测试只能覆盖候选输出、路径安全、格式校验和索引刷新等机械能力。
 
-还应确认安装后 `update-wiki` skill 会引导 agent 先判断是否存在 durable knowledge，再读取 indexed wiki pages、做语义去重、判断目标归属、直接编辑 leaf wiki page 并刷新索引。
+还应确认安装后 `update-wiki` skill 会引导 agent 先判断是否存在 durable knowledge，再读取 indexed wiki pages、做语义去重、判断目标归属、检查目标 leaf page 是否过大或语义混杂、必要时按 ownership 拆分页面、编辑 leaf wiki page 并刷新索引。
 
 ### 4.3 self-test 是底层回归，不是完整产品验收
 
@@ -93,7 +93,7 @@ python3 overlays/scripts/wiki_update_check.py --json
 - command / skill 如何指导 agent 分析、确认、执行和验收？
 - 底层脚本只是执行层，还是被错误地暴露成了用户入口？
 
-只有在用户入口明确后，再实现或调整 `overlays/scripts/*.py`。涉及 wiki 内容判断的 command / skill 应优先由 agent 主导；Python 只做 inventory、copy、validate、refresh 等机械操作，不应独立判断 durable knowledge、target ownership 或 contract 内容。新增 bug 复盘能力时，bug 修复过程仍由 Superpowers `systematic-debugging` 负责，复盘由 `break-loop` 负责，wiki 写入仍由 `update-wiki` 负责。
+只有在用户入口明确后，再实现或调整 `overlays/scripts/*.py`。涉及 wiki 内容判断的 command / skill 应优先由 agent 主导；Python 只做 inventory、copy、validate、refresh、过大页面统计等机械操作，不应独立判断 durable knowledge、target ownership、拆分边界或 contract 内容。新增 bug 复盘能力时，bug 修复过程仍由 Superpowers `systematic-debugging` 负责，复盘由 `break-loop` 负责，wiki 写入仍由 `update-wiki` 负责。
 
 ---
 

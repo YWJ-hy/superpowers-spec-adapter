@@ -242,7 +242,9 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 - 可以从代码直接看出来的普通结构
 - 没有验证过的猜测
 
-`update-wiki` 是 adapter skill。触发后，agent 应读取 indexed wiki pages，做语义去重和归属判断，直接更新 leaf wiki page，并刷新 index；脚本只用于候选展示、路径安全、格式校验和索引刷新。
+`update-wiki` 是 adapter skill。触发后，agent 应读取 indexed wiki pages，做语义去重和归属判断，检查目标 leaf wiki page 是否过大或语义混杂，再更新 leaf wiki page 并刷新 index；脚本只用于候选展示、路径安全、格式校验、过大页面机械报告和索引刷新。
+
+当目标 leaf wiki page 过大时，`update-wiki` 不应按固定 chunk 拆成 `part-1` / `part-2`，而应由 agent 按 ownership 拆分。默认优先在当前目录平铺创建少量 sibling leaf pages；只有原页面已经变成多个稳定子主题集合、需要局部导航，或拆分后会产生多个子页时，才创建主题目录和该目录下的 `index.md`。
 
 ---
 

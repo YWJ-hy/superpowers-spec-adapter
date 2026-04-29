@@ -118,7 +118,28 @@ Use this rule:
 
 If two or more candidate files are equally plausible and the difference affects long-term wiki organization, ask the user which target should own it instead of guessing.
 
-### 6. Edit the wiki page directly
+### 6. Check whether the target page is too large
+
+Before editing the chosen leaf page, check whether it is already mechanically large or semantically overloaded.
+
+Treat a page as mechanically large when it has:
+- 250+ lines or 12k+ characters: review whether the page still has one clear owner.
+- 500+ lines or 24k+ characters: prefer splitting before appending, unless the page is a single cohesive contract/reference.
+- 800+ lines or 40k+ characters: do not append unrelated content; review split boundaries first.
+
+Treat a page as semantically overloaded when:
+- it covers multiple unrelated modules, workflows, contracts, or design decisions;
+- you cannot summarize its owner in one sentence;
+- the new candidate can only be appended to the end instead of fitting an existing section;
+- the index summary no longer represents the page's main content.
+
+If the page is overloaded, split by ownership into indexed leaf wiki pages. Do not split by arbitrary chunks or create `part-1` / `part-2` pages.
+
+Prefer sibling leaf pages in the current directory when splitting a small number of peer owners. Create a topic directory with its own `index.md` only when the original page has become a collection of stable subtopics, when there are three or more child topics, or when local navigation/overview constraints are needed.
+
+If the existing page may already be referenced elsewhere, prefer keeping the original path as an overview or navigation page unless you have verified and updated the references. If sibling pages vs. a topic directory would affect long-term wiki organization, ask the user which structure should own it.
+
+### 7. Edit the wiki page directly
 
 Update the chosen leaf wiki page with `Read` and `Edit` whenever possible.
 Keep the existing style of the target file.
@@ -127,7 +148,7 @@ Do not force every update into a generic template.
 If you create a new leaf wiki page, ensure it is referenced by an appropriate `index.md`.
 Detailed rules belong in leaf wiki pages; indexes should contain navigation and short summaries only.
 
-### 7. Refresh and validate the mechanical state
+### 8. Refresh and validate the mechanical state
 
 After editing body content, refresh indexed summaries:
 
@@ -256,7 +277,8 @@ Before finishing the update:
 - [ ] Did you read relevant indexed wiki pages before writing?
 - [ ] Did you skip candidates that are already covered and tell the user where?
 - [ ] Did you choose target ownership yourself rather than outsourcing it to a script?
-- [ ] Did you ask the user when ownership was ambiguous?
+- [ ] If the target page is large or overloaded, did you split by ownership instead of chunking?
+- [ ] Did you ask the user when ownership or split structure was ambiguous?
 - [ ] Is the content durable and reusable?
 - [ ] Is the content specific instead of generic?
 - [ ] Did you explain **why**, not just **what**?
