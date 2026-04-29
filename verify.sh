@@ -67,6 +67,20 @@ check_native_skill_residuals() {
     printf 'Deprecated plan-context render path remains in subagent-driven-development patch\n' >&2
     exit 1
   fi
+  local worktree_skill="$TARGET_DIR/skills/using-git-worktrees/SKILL.md"
+  local finishing_skill="$TARGET_DIR/skills/finishing-a-development-branch/SKILL.md"
+  for required in 'worktree-origin.json' 'originalBranch' 'originalWorktree' 'originalHead' 'rev-parse --absolute-git-dir'; do
+    if ! grep -Fq "$required" "$worktree_skill"; then
+      printf 'Missing worktree origin metadata requirement in using-git-worktrees patch: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  for required in 'worktree-origin.json' 'Merge back to original branch' 'originalWorktree'; do
+    if ! grep -Fq "$required" "$finishing_skill"; then
+      printf 'Missing original branch finishing requirement in finishing-a-development-branch patch: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
   printf 'Native skill residual checks OK\n'
 }
 

@@ -16,6 +16,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context
 - Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed `.wiki-context.md` constraints
 - Let implementation and review consume plan `Referenced Project Wiki` and linked `.wiki-context.md` instead of reselecting wiki pages at execution time
+- Patch Superpowers `using-git-worktrees` and `finishing-a-development-branch` so worktree tasks can merge back to the branch that created them
 - Keep `/import-wiki` and `/init-wiki` as standalone adapter commands that do not trigger Superpowers completion verification
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
 - Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki
@@ -118,6 +119,12 @@ docs/superpowers/plans/<plan-stem>.wiki-context.md
 
 Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch.
 
+## Worktree origin tracking
+
+The adapter also patches Superpowers `using-git-worktrees` and `finishing-a-development-branch`. When a new linked worktree is created, the source branch, source worktree, and source HEAD are recorded as transient metadata in the new worktree's private git-dir under `superpower-adapter/worktree-origin.json`.
+
+That metadata is not written to `plan.md`, `spec.md`, `.superpowers/`, or the repository working tree. At finishing time, Superpowers can offer an explicit option to merge the feature branch back into the original branch from the original worktree, which is safer for nested feature work and multiple concurrent sessions.
+
 ## Break the bug loop
 
 For bugs, keep Superpowers `systematic-debugging` as the fix workflow. After the bug is fixed and verified, use the installed `break-loop` skill when the work needs a deeper retrospective: root cause category, failed attempts, prevention mechanisms, similar risks, and durable knowledge candidates.
@@ -166,6 +173,7 @@ This runs:
 The self-test covers:
 - mechanical `wiki_apply_update.py` write and merge behavior with an agent-decided target
 - `wiki-researcher` installation and native skill patch smoke
+- worktree origin metadata native skill patch smoke
 - `wiki_update_check.py` index and format validation
 - index-driven wiki graph traversal
 - import command path handling

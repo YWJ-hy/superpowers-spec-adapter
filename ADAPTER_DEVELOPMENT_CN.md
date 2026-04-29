@@ -208,6 +208,7 @@ bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/pro
 - 底层脚本行为正确
 - overlay command / skill / agent 能正确引导用户路径
 - 如涉及 wiki 披露主流程，验收重点是 `wiki-researcher`、plan 中的轻量 `Referenced Project Wiki`，以及其链接的 `.wiki-context.md` 约束产物；`wiki-progressive-disclosure` 只是说明性 / fallback，不是默认路径成功标志
+- 如涉及 Superpowers worktree 收尾流程，验收重点是安装后的 `using-git-worktrees` 是否把 origin metadata 写入 linked worktree private git-dir，以及 `finishing-a-development-branch` 是否基于该 metadata 提供合并回原始分支的选项；不要把该临时 metadata 写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区
 - adapter 能成功安装到 Superpowers 插件目录
 - `verify` / 相关测试通过
 - 如影响用户流程，已在 Claude Code 等工具中从 command / skill 入口验证
