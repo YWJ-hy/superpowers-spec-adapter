@@ -39,6 +39,7 @@
     "hooks/hooks.json",
     "hooks/hooks-cursor.json",
     "skills/brainstorming/SKILL.md",
+    "skills/systematic-debugging/SKILL.md",
     "skills/writing-plans/SKILL.md",
     "skills/executing-plans/SKILL.md",
     "skills/subagent-driven-development/SKILL.md",

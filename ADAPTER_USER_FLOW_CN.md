@@ -26,6 +26,7 @@ adapter 增强这些阶段：
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
 - 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。
+- 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki；wiki 只作为待验证线索，不替代 root cause evidence。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
 
 `/import-wiki`、`/init-wiki` 是独立 adapter command。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/wiki/`。
@@ -59,12 +60,13 @@ Superpowers 插件目录
 
 - `brainstorming`：在提出设计方案前调用 `wiki-researcher` 获取轻量项目 wiki上下文。
 - `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
+- `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug`、`maxWikiPages: 2` 条件式查询 wiki。
 - `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md`，不重新选择 wiki 页面。
 - `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md` 约束传给 implementer / reviewer subagent。
 - `using-git-worktrees`：创建 worktree 时把原始分支、原始 worktree 和原始 HEAD 记录到新 worktree 的 private git-dir metadata。
 - `finishing-a-development-branch`：metadata 有效时，提供明确合并回创建 worktree 前原始分支的收尾选项。
 
-当前流程不安装 SessionStart hook；`wiki-researcher` 会在 `brainstorming` 和 `writing-plans` 阶段按需读取 `.superpowers/wiki/`。worktree origin metadata 是本地临时协调状态，不写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区。
+当前流程不安装 SessionStart hook；`wiki-researcher` 会在 `brainstorming` 和 `writing-plans` 阶段按需读取 `.superpowers/wiki/`，并可在 `systematic-debugging` Phase 1 证据收窄后作为低噪音调试辅助被条件式调用。worktree origin metadata 是本地临时协调状态，不写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区。
 
 ---
 
@@ -82,7 +84,7 @@ Superpowers 插件目录
 | 7 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目 wiki 页面，生成 `.wiki-context.md`，并在 plan 中写入轻量 `Referenced Project Wiki` |
 | 8 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.md` |
 | 8.5 | worktree 收尾 | `finishing-a-development-branch` | 使用 Superpowers worktree 开发后 | metadata 有效时，可明确合并回创建 worktree 前的原始分支 |
-| 9 | 修 bug 后复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug，再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
+| 9 | 修 bug 与复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug；必要时在证据收窄后低噪音查 wiki，修复验证后再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
 | 10 | 任务后更新 wiki | `update-wiki` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
 | 11 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
 
@@ -96,7 +98,8 @@ Superpowers 插件目录
 → Superpowers writing-plans
 → adapter 正式选择项目 wiki，生成 .wiki-context.md，并在 plan 写入轻量 Referenced Project Wiki
 → Superpowers executing-plans / subagent-driven-development 按 plan 和 .wiki-context.md 执行
-→ 遇到 bug 时先用 Superpowers systematic-debugging 修复和验证
+→ 遇到 bug 时先用 Superpowers systematic-debugging 复现、收集证据并收窄失败边界
+→ 如果怀疑项目特定契约 / gotcha / 跨层边界，才条件式用 wiki-researcher 查少量 wiki，并继续用代码、日志、测试或复现验证
 → 修复后需要防复发分析时使用 break-loop
 → update-wiki skill 审查是否需要沉淀长期知识
 ```
@@ -212,7 +215,27 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 
 如果 plan 缺少 `Referenced Project Wiki`、链接的 `.wiki-context.md` 缺失，或 context 明显不足，应提示回到 planning 阶段补齐。
 
-### 5.4 worktree 原始分支收尾
+### 5.4 bug 调试中的 wiki 边界
+
+`systematic-debugging` 仍以复现、证据收集、root cause 假设验证和修复验收为主。adapter 只在 Phase 1 已完成、失败边界已经收窄后提供条件式 wiki 辅助：
+
+```yaml
+task: <bug 现象、期望 / 实际行为、已收集证据>
+phase: debug
+wikiRoot: .superpowers/wiki
+focus: <已收窄的组件、契约、工作流或 gotcha>
+changedFiles:
+  - <已被证据关联的文件，可选>
+maxWikiPages: 2
+```
+
+只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时才应调用；明显局部错误、泛型语言错误、宽泛“搜 wiki”、或 root cause evidence 前不应调用。
+
+如果 bug 发生在执行某个 Superpowers plan 的过程中，应先读取当前 plan 的 `Referenced Project Wiki` 和链接的 `.wiki-context.md`。没有当前 plan 上下文时，不默认搜索旧 plan，也不扫描全 wiki。
+
+wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-derived idea 都必须继续用代码、日志、测试、复现或诊断验证；wiki 缺失、无相关页面或与运行时证据冲突时，不阻塞调试，并以当前运行时证据为准。调试阶段不生成 `.wiki-context.md`，不更新 `.superpowers/wiki/`；修复验证后如有复盘价值，再走 `break-loop`，只有 durable knowledge 才交给 `update-wiki`。
+
+### 5.5 worktree 原始分支收尾
 
 当 Superpowers 通过 `using-git-worktrees` 创建 linked worktree 时，adapter 会让它在新 worktree 的 private git-dir 中记录本地临时 metadata：原始分支、原始 worktree 和原始 HEAD。这个文件用于 `finishing-a-development-branch` 判断“这次 worktree 是从哪个分支创建的”。
 
@@ -220,7 +243,7 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 
 该 metadata 不进入项目文档和版本控制；不要把它写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区。
 
-### 5.5 手动 fallback：渐进读取 wiki
+### 5.6 手动 fallback：渐进读取 wiki
 
 正常流程由 `wiki-researcher` 完成渐进选择。只有在排障、解释规则，或 `wiki-researcher` 不可用而需要手动 fallback 时，才按以下顺序读取：
 
@@ -270,6 +293,7 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 | 初次生成 starter wiki | `/init-wiki` | 在 Claude Code 中执行 |
 | 设计阶段参考项目 wiki | Superpowers `brainstorming` + `wiki-researcher` | 自动轻量披露相关项目 wiki 页面 |
 | 计划阶段固化项目 wiki | Superpowers `writing-plans` + `Referenced Project Wiki` + `.wiki-context.md` | 自动选择 wiki、生成详细约束产物，并在 plan 中写入轻量入口 |
+| bug 调试辅助 | Superpowers `systematic-debugging` + `wiki-researcher` | Phase 1 证据收窄后才条件式查少量 wiki，wiki 线索必须继续验证 |
 | 沉淀长期知识 | `update-wiki` skill | 由 agent 在任务后自动审查是否需要执行 |
 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者使用 |
 

@@ -47,7 +47,7 @@ check_file() {
 }
 
 check_native_skill_residuals() {
-  if grep -Eq 'spec-researcher|update-spec|init-spec|import-spec|spec-progressive-disclosure|Referenced Project Specs|\.superpowers/spec' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/executing-plans/SKILL.md" "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
+  if grep -Eq 'spec-researcher|update-spec|init-spec|import-spec|spec-progressive-disclosure|Referenced Project Specs|\.superpowers/spec' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/systematic-debugging/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/executing-plans/SKILL.md" "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
     printf 'Deprecated adapter spec terminology remains in native skill patches\n' >&2
     exit 1
   fi
@@ -65,6 +65,30 @@ check_native_skill_residuals() {
   fi
   if grep -Fq 'plan-context.py" render --phase implement' "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
     printf 'Deprecated plan-context render path remains in subagent-driven-development patch\n' >&2
+    exit 1
+  fi
+  local systematic_skill="$TARGET_DIR/skills/systematic-debugging/SKILL.md"
+  for required in \
+    'wiki-researcher' \
+    'phase: debug' \
+    'maxWikiPages: 2' \
+    'Do not call `wiki-researcher` at the start of debugging' \
+    'not root-cause evidence' \
+    'continue systematic debugging' \
+    'do not write `.wiki-context.md`' \
+    'break-loop'
+  do
+    if ! grep -Fq "$required" "$systematic_skill"; then
+      printf 'Missing systematic-debugging low-noise wiki requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  if grep -Fq 'planPath:' "$systematic_skill"; then
+    printf 'Invalid planning path input in systematic-debugging patch\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'docs/superpowers/plans/<plan-stem>.wiki-context.md' "$systematic_skill"; then
+    printf 'Invalid planning wiki context sidecar generation in systematic-debugging patch\n' >&2
     exit 1
   fi
   local worktree_skill="$TARGET_DIR/skills/using-git-worktrees/SKILL.md"

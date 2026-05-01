@@ -93,7 +93,7 @@ python3 overlays/scripts/wiki_update_check.py --json
 - command / skill 如何指导 agent 分析、确认、执行和验收？
 - 底层脚本只是执行层，还是被错误地暴露成了用户入口？
 
-只有在用户入口明确后，再实现或调整 `overlays/scripts/*.py`。涉及 wiki 内容判断的 command / skill 应优先由 agent 主导；Python 只做 inventory、copy、validate、refresh、过大页面统计等机械操作，不应独立判断 durable knowledge、target ownership、拆分边界或 contract 内容。新增 bug 复盘能力时，bug 修复过程仍由 Superpowers `systematic-debugging` 负责，复盘由 `break-loop` 负责，wiki 写入仍由 `update-wiki` 负责。
+只有在用户入口明确后，再实现或调整 `overlays/scripts/*.py`。涉及 wiki 内容判断的 command / skill 应优先由 agent 主导；Python 只做 inventory、copy、validate、refresh、过大页面统计等机械操作，不应独立判断 durable knowledge、target ownership、拆分边界或 contract 内容。新增 bug 调试辅助能力时，bug 修复过程仍由 Superpowers `systematic-debugging` 负责，wiki 查询只能在 Phase 1 证据收窄后条件式触发，不能成为默认前置步骤，不能写 `.wiki-context.md`，不能更新 `.superpowers/wiki/`；复盘由 `break-loop` 负责，wiki 写入仍由 `update-wiki` 负责。
 
 ---
 
@@ -141,6 +141,7 @@ writing-plans
 
 4. 确认 agent 实际走的是文档指定的分析、wiki-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `wiki-progressive-disclosure`。
 5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，执行阶段会读取该 sidecar context。
+6. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和少量 `maxWikiPages`，wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.md`、不运行 `update-wiki`。
 
 ### 5.3 修改 hook 配置或安装逻辑时
 
@@ -208,6 +209,7 @@ bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/pro
 - 底层脚本行为正确
 - overlay command / skill / agent 能正确引导用户路径
 - 如涉及 wiki 披露主流程，验收重点是 `wiki-researcher`、plan 中的轻量 `Referenced Project Wiki`，以及其链接的 `.wiki-context.md` 约束产物；`wiki-progressive-disclosure` 只是说明性 / fallback，不是默认路径成功标志
+- 如涉及 `systematic-debugging` wiki 辅助，验收重点是证据收窄后才条件式调用 `phase: debug`、少量读取 wiki、不把 wiki 当 root cause evidence、不生成 `.wiki-context.md`、不更新 wiki
 - 如涉及 Superpowers worktree 收尾流程，验收重点是安装后的 `using-git-worktrees` 是否把 origin metadata 写入 linked worktree private git-dir，以及 `finishing-a-development-branch` 是否基于该 metadata 提供合并回原始分支的选项；不要把该临时 metadata 写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区
 - adapter 能成功安装到 Superpowers 插件目录
 - `verify` / 相关测试通过

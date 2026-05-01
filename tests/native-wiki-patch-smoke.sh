@@ -13,6 +13,7 @@ fi
 
 for file in \
   "${TARGET_INPUT}/skills/brainstorming/SKILL.md" \
+  "${TARGET_INPUT}/skills/systematic-debugging/SKILL.md" \
   "${TARGET_INPUT}/skills/writing-plans/SKILL.md" \
   "${TARGET_INPUT}/skills/executing-plans/SKILL.md" \
   "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"
@@ -30,6 +31,38 @@ fi
 
 if ! grep -Fq 'wiki-researcher' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
   printf 'Expected writing-plans patch to mention wiki-researcher\n' >&2
+  exit 1
+fi
+
+SYSTEMATIC_SKILL="${TARGET_INPUT}/skills/systematic-debugging/SKILL.md"
+for required in \
+  'wiki-researcher' \
+  'phase: debug' \
+  'maxWikiPages: 2' \
+  'Do not call `wiki-researcher` at the start of debugging' \
+  'not root-cause evidence' \
+  'continue systematic debugging' \
+  'do not write `.wiki-context.md`' \
+  'break-loop'
+do
+  if ! grep -Fq "$required" "$SYSTEMATIC_SKILL"; then
+    printf 'Expected systematic-debugging patch to contain: %s\n' "$required" >&2
+    exit 1
+  fi
+done
+
+if grep -Fq 'planPath:' "$SYSTEMATIC_SKILL"; then
+  printf 'Expected systematic-debugging patch not to request a planPath\n' >&2
+  exit 1
+fi
+
+if grep -Fq 'docs/superpowers/plans/<plan-stem>.wiki-context.md' "$SYSTEMATIC_SKILL"; then
+  printf 'Expected systematic-debugging patch not to generate planning wiki context sidecar\n' >&2
+  exit 1
+fi
+
+if grep -Fq 'Before attempting ANY fix, use wiki-researcher' "$SYSTEMATIC_SKILL"; then
+  printf 'Expected systematic-debugging patch not to make wiki-researcher a debugging prerequisite\n' >&2
   exit 1
 fi
 

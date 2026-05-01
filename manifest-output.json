@@ -5,7 +5,7 @@
     "description": "Pluggable overlay that adds wiki-researcher-driven project wiki selection, bug retrospective handoff, and update-wiki workflow to Superpowers without making Trellis a runtime dependency."
   },
   "target": {
-    "repoRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.klwMf9ECoZ",
+    "repoRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.VMZYmyr5Zo",
     "superpowersPath": "/Users/yewenjie/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7",
     "exists": true
   },
@@ -33,12 +33,15 @@
     "hooks/hooks.json": true,
     "hooks/hooks-cursor.json": true,
     "skills/brainstorming/SKILL.md": true,
+    "skills/systematic-debugging/SKILL.md": true,
     "skills/writing-plans/SKILL.md": true,
     "skills/executing-plans/SKILL.md": true,
-    "skills/subagent-driven-development/SKILL.md": true
+    "skills/subagent-driven-development/SKILL.md": true,
+    "skills/using-git-worktrees/SKILL.md": true,
+    "skills/finishing-a-development-branch/SKILL.md": true
   },
   "wikiState": {
-    "wikiRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.klwMf9ECoZ/.superpowers/wiki",
+    "wikiRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.VMZYmyr5Zo/.superpowers/wiki",
     "exists": true,
     "entryIndexExists": true,
     "ignoreFileExists": true,
