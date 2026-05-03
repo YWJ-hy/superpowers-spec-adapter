@@ -23,10 +23,12 @@
 adapter 增强这些阶段：
 
 - 安装 `wiki-researcher` agent，用于从 `.superpowers/wiki/index.md` 开始渐进选择少量相关项目 wiki 页面。
+- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` / `lanhu-requirements-analyst` 把蓝湖链接转成 `.lanhu/MM-DD-需求命名.md`，或在有设计稿时转成 `.lanhu/MM-DD-需求命名/prd.md` 与 `.lanhu/MM-DD-需求命名/design/`，用户确认后再进入 Superpowers `brainstorming`。
+- 可选图谱辅助：如果项目已有 graphify 能力或 `graphify-out/` 产物，`graphify-researcher` 只在 agent 判断需要关系线索时提供 candidate hints，不作为必经步骤。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
 - 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。
-- 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki；wiki 只作为待验证线索，不替代 root cause evidence。
+- 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki；只有证据已收窄且需要调用方、依赖或邻近模块线索时，才可条件式调用 `graphify-researcher`。wiki 和 graphify 都只作为待验证线索，不替代 root cause evidence。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
 
 `/import-wiki`、`/init-wiki` 是独立 adapter command。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/wiki/`。
@@ -42,10 +44,13 @@ Python 脚本是 command / skill / agent 背后的执行层，不是最终用户
 ```text
 Superpowers 插件目录
 ├── agents/
-│   └── wiki-researcher.md
+│   ├── wiki-researcher.md
+│   ├── lanhu-requirements-analyst.md
+│   └── graphify-researcher.md
 ├── commands/
 │   ├── init-wiki.md
-│   └── import-wiki.md
+│   ├── import-wiki.md
+│   └── lanhu-requirements.md
 ├── skills/
 │   ├── break-loop/
 │   ├── wiki-progressive-disclosure/
@@ -58,9 +63,9 @@ Superpowers 插件目录
 
 同时 adapter 会 patch Superpowers 的 native skills：
 
-- `brainstorming`：在提出设计方案前调用 `wiki-researcher` 获取轻量项目 wiki上下文。
-- `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
-- `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug`、`maxWikiPages: 2` 条件式查询 wiki。
+- `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先由 `lanhu-requirements-analyst` 生成蓝湖需求输入；无设计稿时写入 `.lanhu/MM-DD-需求命名.md`，有设计稿时写入 `.lanhu/MM-DD-需求命名/prd.md` 与 `.lanhu/MM-DD-需求命名/design/`，用户确认后再继续；随后在提出设计方案前调用 `wiki-researcher` 获取轻量项目 wiki 上下文。
+- `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口；在需求已确认、源码已初步探索但关系边界仍不确定时，才可调用 `graphify-researcher` 获取候选关系线索。
+- `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug`、`maxWikiPages: 2` 条件式查询 wiki；只有已收窄到具体边界且需要调用方 / 依赖 / 邻近模块线索时，才条件式查询 graphify。
 - `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md`，不重新选择 wiki 页面。
 - `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md` 约束传给 implementer / reviewer subagent。
 - `using-git-worktrees`：创建 worktree 时把原始分支、原始 worktree 和原始 HEAD 记录到新 worktree 的 private git-dir metadata。
@@ -80,26 +85,31 @@ Superpowers 插件目录
 | 3 | 初始化 wiki 模板 | `./manage.sh bootstrap-wiki /path/to/project --template standard` | 每个目标项目一次 | 创建 `.superpowers/wiki/` wiki 目录 |
 | 4 | 导入已有 wiki | `/import-wiki` | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/` 格式 |
 | 5 | 初始化 starter wiki | `/init-wiki` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
-| 6 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
-| 7 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目 wiki 页面，生成 `.wiki-context.md`，并在 plan 中写入轻量 `Referenced Project Wiki` |
-| 8 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.md` |
-| 8.5 | worktree 收尾 | `finishing-a-development-branch` | 使用 Superpowers worktree 开发后 | metadata 有效时，可明确合并回创建 worktree 前的原始分支 |
-| 9 | 修 bug 与复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug；必要时在证据收窄后低噪音查 wiki，修复验证后再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
-| 10 | 任务后更新 wiki | `update-wiki` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
-| 11 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
+| 6 | 可选蓝湖需求文档 | `/lanhu-requirements <蓝湖链接>` | 有蓝湖链接且已配置 lanhu-mcp 时 | 无设计稿时生成 `.lanhu/MM-DD-需求命名.md`；有设计稿时生成 `.lanhu/MM-DD-需求命名/prd.md` 与 `.lanhu/MM-DD-需求命名/design/`，用户确认后作为 Superpowers 需求输入 |
+| 7 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
+| 8 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目 wiki 页面，生成 `.wiki-context.md`，必要时用 graphify 候选线索辅助关系判断，并在 plan 中写入轻量 `Referenced Project Wiki` |
+| 9 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.md` |
+| 9.5 | worktree 收尾 | `finishing-a-development-branch` | 使用 Superpowers worktree 开发后 | metadata 有效时，可明确合并回创建 worktree 前的原始分支 |
+| 10 | 修 bug 与复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug；必要时在证据收窄后低噪音查 wiki 或 graphify 候选关系线索，修复验证后再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
+| 11 | 任务后更新 wiki | `update-wiki` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
+| 12 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
 
 用户日常在 Claude Code 中主要记住这条链：
 
 ```text
-描述需求
+描述需求 / 可选蓝湖链接
+→ 如果使用蓝湖，/lanhu-requirements 无设计稿时生成 .lanhu/MM-DD-需求命名.md；有设计稿时生成 .lanhu/MM-DD-需求命名/prd.md 和 .lanhu/MM-DD-需求命名/design/
+→ 用户确认 .lanhu 需求文档
 → Superpowers brainstorming
 → adapter 轻量披露相关项目 wiki 页面
 → Superpowers 写并确认本次 spec
 → Superpowers writing-plans
 → adapter 正式选择项目 wiki，生成 .wiki-context.md，并在 plan 写入轻量 Referenced Project Wiki
+→ 如果源码初探后仍有关系边界不确定，agent 可条件式用 graphify-researcher 获取候选线索
+→ Superpowers 直接读当前源码验证精确影响文件和任务步骤
 → Superpowers executing-plans / subagent-driven-development 按 plan 和 .wiki-context.md 执行
 → 遇到 bug 时先用 Superpowers systematic-debugging 复现、收集证据并收窄失败边界
-→ 如果怀疑项目特定契约 / gotcha / 跨层边界，才条件式用 wiki-researcher 查少量 wiki，并继续用代码、日志、测试或复现验证
+→ 如果怀疑项目特定契约 / gotcha / 跨层边界，才条件式用 wiki-researcher 查少量 wiki；如果需要调用方 / 依赖关系线索，才条件式用 graphify-researcher，并继续用代码、日志、测试或复现验证
 → 修复后需要防复发分析时使用 break-loop
 → update-wiki skill 审查是否需要沉淀长期知识
 ```
@@ -145,7 +155,30 @@ Superpowers 插件目录
 
 `/import-wiki` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；如果导入内容需要语义整理，后续由 `update-wiki` skill 审查并更新。
 
-### 4.4 初始化项目 wiki 知识
+### 4.4 可选：从蓝湖生成需求文档
+
+如果用户已配置 lanhu-mcp，可以用：
+
+```text
+/lanhu-requirements <蓝湖链接> <可选需求命名>
+```
+
+该命令会尝试读取蓝湖内容，生成只包含产品需求事实的文档，并按是否存在设计稿选择输出结构：
+
+```text
+无设计稿：
+.lanhu/MM-DD-需求命名.md
+
+有设计稿 / 设计信息：
+.lanhu/MM-DD-需求命名/prd.md
+.lanhu/MM-DD-需求命名/design/
+```
+
+`.lanhu/` 文档需要用户确认后，Superpowers 才基于它进入 `brainstorming`。它不是 `.superpowers/wiki/`，不会进入 `Referenced Project Wiki`，也不替代 Superpowers spec / implementation plan。目录模式下，`prd.md` 是需求入口，`design/` 只是设计事实、可见 UI 内容、设计备注、资源索引或可精确获取的 Lanhu 资源。文档中不应包含测试点、验收标准、前端组件拆分、后端接口推测、数据库影响、实现方案或代码文件影响。
+
+lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求或直接走普通 Superpowers 流程。
+
+### 4.5 初始化项目 wiki 知识
 
 ```text
 /init-wiki
@@ -203,7 +236,17 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 
 `.wiki-context.md` 应包含每个选中 wiki 页的路径、适用任务、具体实现 / 测试 / review 约束、硬约束标记、必要原文锚点和 caveats。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
 
-### 5.3 执行阶段
+### 5.3 writing-plans 中的可选 graphify 线索
+
+graphify 不是 adapter 依赖，也不是用户需要手动判断是否启用的步骤。只有在 Superpowers 已经理解需求、完成初步项目 / 源码探索，但仍存在调用关系、依赖关系、下游消费者或跨模块边界不确定时，agent 才可调用 `graphify-researcher` 获取候选线索。
+
+适合使用 graphify 的信号包括：需求跨模块 / 跨层，涉及路由、模型、事件、权限、共享状态、复用工具、API 边界或数据同步；初步搜索发现多个可能 owner；或项目已有 `graphify-out/graph.json` / `GRAPH_REPORT.md` 且查询成本低。
+
+不适合使用 graphify 的情况包括：单文件、单页面、文案、样式、docs-only、局部配置修改；源码探索已经足够；graphify 不可用或需要先生成 / 更新图谱。graphify 输出只作为 candidate hints，最终 plan 的精确文件和任务步骤必须由 Superpowers 直接读当前源码验证。
+
+如果用户手动触发 graphify，应视为用户独立做图谱查询或维护；如果随后要开发，仍需回到 Superpowers `brainstorming`、`writing-plans` 和执行流程。
+
+### 5.4 执行阶段
 
 `executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`，再读取其中链接的 `.wiki-context.md`。
 
@@ -215,7 +258,7 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 
 如果 plan 缺少 `Referenced Project Wiki`、链接的 `.wiki-context.md` 缺失，或 context 明显不足，应提示回到 planning 阶段补齐。
 
-### 5.4 bug 调试中的 wiki 边界
+### 5.5 bug 调试中的 wiki / graphify 边界
 
 `systematic-debugging` 仍以复现、证据收集、root cause 假设验证和修复验收为主。adapter 只在 Phase 1 已完成、失败边界已经收窄后提供条件式 wiki 辅助：
 
@@ -235,7 +278,7 @@ maxWikiPages: 2
 
 wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-derived idea 都必须继续用代码、日志、测试、复现或诊断验证；wiki 缺失、无相关页面或与运行时证据冲突时，不阻塞调试，并以当前运行时证据为准。调试阶段不生成 `.wiki-context.md`，不更新 `.superpowers/wiki/`；修复验证后如有复盘价值，再走 `break-loop`，只有 durable knowledge 才交给 `update-wiki`。
 
-### 5.5 worktree 原始分支收尾
+### 5.6 worktree 原始分支收尾
 
 当 Superpowers 通过 `using-git-worktrees` 创建 linked worktree 时，adapter 会让它在新 worktree 的 private git-dir 中记录本地临时 metadata：原始分支、原始 worktree 和原始 HEAD。这个文件用于 `finishing-a-development-branch` 判断“这次 worktree 是从哪个分支创建的”。
 
@@ -243,7 +286,7 @@ wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-d
 
 该 metadata 不进入项目文档和版本控制；不要把它写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区。
 
-### 5.6 手动 fallback：渐进读取 wiki
+### 5.7 手动 fallback：渐进读取 wiki
 
 正常流程由 `wiki-researcher` 完成渐进选择。只有在排障、解释规则，或 `wiki-researcher` 不可用而需要手动 fallback 时，才按以下顺序读取：
 

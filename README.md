@@ -11,6 +11,8 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 - Store project wiki pages in `.superpowers/wiki/`
 - Use `index.md` as the entry point
+- Optionally turn Lanhu links into confirmed requirements documents under `.lanhu/MM-DD-<name>.md` or `.lanhu/MM-DD-<name>/prd.md` plus `design/` before Superpowers brainstorming
+- Optionally use graphify as agent-judged candidate relationship hints during planning or narrowed debugging, without making it a dependency or gate
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context
@@ -77,6 +79,23 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 
 The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` without overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
 
+## Optional Lanhu requirements intake
+
+If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command and `lanhu-requirements-analyst` agent can produce a sanitized requirements document before Superpowers brainstorming.
+
+The Lanhu output is written to the current project root in one of two shapes:
+
+```text
+# No design content
+.lanhu/MM-DD-<requirement-name>.md
+
+# Design content present
+.lanhu/MM-DD-<requirement-name>/prd.md
+.lanhu/MM-DD-<requirement-name>/design/
+```
+
+The user must review and confirm the `.lanhu/...md` or `.lanhu/.../prd.md` document before Superpowers continues. The document is a requirements input only: it is not `.superpowers/wiki/`, not `Referenced Project Wiki`, and not a plan sidecar. In directory mode, `prd.md` is the requirements input and `design/` is confirmed design reference material for design facts, visible UI content, design notes, asset inventories, or exact Lanhu assets when available. Lanhu output must not include test cases, acceptance criteria, frontend components, backend API guesses, database impact guesses, implementation guesses, code architecture, or affected file analysis. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
+
 ## Progressive disclosure
 
 The default selection path is the installed `wiki-researcher` agent. The installed `wiki-progressive-disclosure` skill is a reference and fallback guide for manual troubleshooting; normal Superpowers `brainstorming` and `writing-plans` do not require calling it.
@@ -120,6 +139,12 @@ docs/superpowers/plans/<plan-stem>.wiki-context.md
 
 Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch.
 
+## Optional graphify relationship hints
+
+Graphify is not required to install or use this adapter. When graphify MCP tools or existing `graphify-out/` artifacts are available, `writing-plans` may use the installed `graphify-researcher` agent only after requirements are understood, initial source exploration has happened, and relationship uncertainty remains.
+
+Graphify output is treated as candidate hints only. It can suggest files, symbols, callers, neighbors, dependency paths, or downstream consumers to inspect, but final plan `Files:` entries must come from direct source verification by Superpowers. Missing, stale, or unavailable graphify never blocks planning or debugging. If a user manually asks to use graphify, treat that as separate graph exploration or maintenance; development still proceeds through Superpowers brainstorming, writing-plans, and execution.
+
 ## Worktree origin tracking
 
 The adapter also patches Superpowers `using-git-worktrees` and `finishing-a-development-branch`. When a new linked worktree is created, the source branch, source worktree, and source HEAD are recorded as transient metadata in the new worktree's private git-dir under `superpower-adapter/worktree-origin.json`.
@@ -128,7 +153,7 @@ That metadata is not written to `plan.md`, `spec.md`, `.superpowers/`, or the re
 
 ## Break the bug loop
 
-For bugs, keep Superpowers `systematic-debugging` as the fix workflow. The adapter patch does not make wiki lookup an upfront debugging prerequisite: complete Phase 1 first, narrow the failing boundary with evidence, then use `wiki-researcher` only when a project-specific contract, known gotcha, cross-layer boundary, or workflow convention may clarify what to verify.
+For bugs, keep Superpowers `systematic-debugging` as the fix workflow. The adapter patch does not make wiki or graph lookup an upfront debugging prerequisite: complete Phase 1 first, narrow the failing boundary with evidence, then use `wiki-researcher` only when a project-specific contract, known gotcha, cross-layer boundary, or workflow convention may clarify what to verify. Use `graphify-researcher` only after evidence narrows the boundary and caller/dependency/neighbor relationship hints could help identify what to verify next.
 
 Debug wiki lookup uses `phase: debug` and should stay small, normally `maxWikiPages: 2`. If the bug happens while executing a Superpowers plan, read that plan's `Referenced Project Wiki` and linked `.wiki-context.md` first instead of reselecting wiki pages; without a current plan context, do not search old plans by default. Missing or irrelevant wiki does not block debugging, and wiki context is not root-cause evidence. Verify every wiki-derived idea against code, logs, tests, reproduction steps, or diagnostics.
 

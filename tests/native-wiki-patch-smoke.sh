@@ -11,6 +11,21 @@ if [[ ! -f "${TARGET_INPUT}/agents/wiki-researcher.md" ]]; then
   exit 1
 fi
 
+if [[ ! -f "${TARGET_INPUT}/agents/lanhu-requirements-analyst.md" ]]; then
+  printf 'Expected installed lanhu-requirements-analyst agent\n' >&2
+  exit 1
+fi
+
+if [[ ! -f "${TARGET_INPUT}/agents/graphify-researcher.md" ]]; then
+  printf 'Expected installed graphify-researcher agent\n' >&2
+  exit 1
+fi
+
+if [[ ! -f "${TARGET_INPUT}/commands/lanhu-requirements.md" ]]; then
+  printf 'Expected installed lanhu-requirements command\n' >&2
+  exit 1
+fi
+
 for file in \
   "${TARGET_INPUT}/skills/brainstorming/SKILL.md" \
   "${TARGET_INPUT}/skills/systematic-debugging/SKILL.md" \
@@ -24,15 +39,50 @@ do
   fi
 done
 
-if ! grep -Fq 'wiki-researcher' "${TARGET_INPUT}/skills/brainstorming/SKILL.md"; then
+BRAINSTORMING_SKILL="${TARGET_INPUT}/skills/brainstorming/SKILL.md"
+if ! grep -Fq 'wiki-researcher' "$BRAINSTORMING_SKILL"; then
   printf 'Expected brainstorming patch to mention wiki-researcher\n' >&2
   exit 1
 fi
 
-if ! grep -Fq 'wiki-researcher' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
+for required in \
+  'lanhu-requirements-analyst' \
+  '.lanhu/MM-DD-需求命名.md' \
+  '.lanhu/MM-DD-需求命名/prd.md' \
+  '.lanhu/MM-DD-需求命名/design/' \
+  'Lanhu MCP is optional' \
+  'do not block brainstorming' \
+  'test cases' \
+  'acceptance criteria' \
+  'frontend components' \
+  'backend APIs' \
+  'database impacts' \
+  'file impacts'
+do
+  if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
+    printf 'Expected brainstorming patch to contain optional Lanhu requirement: %s\n' "$required" >&2
+    exit 1
+  fi
+done
+
+WRITING_SKILL="${TARGET_INPUT}/skills/writing-plans/SKILL.md"
+if ! grep -Fq 'wiki-researcher' "$WRITING_SKILL"; then
   printf 'Expected writing-plans patch to mention wiki-researcher\n' >&2
   exit 1
 fi
+
+for required in \
+  'graphify-researcher' \
+  'Graphify is optional' \
+  'candidate hints' \
+  'Every useful hint must be verified against current source' \
+  'not graphify alone'
+do
+  if ! grep -Fq "$required" "$WRITING_SKILL"; then
+    printf 'Expected writing-plans patch to contain optional graphify requirement: %s\n' "$required" >&2
+    exit 1
+  fi
+done
 
 SYSTEMATIC_SKILL="${TARGET_INPUT}/skills/systematic-debugging/SKILL.md"
 for required in \
@@ -40,6 +90,10 @@ for required in \
   'phase: debug' \
   'maxWikiPages: 2' \
   'Do not call `wiki-researcher` at the start of debugging' \
+  'graphify-researcher' \
+  'Do not call `graphify-researcher` at the start of debugging' \
+  'Phase 1 evidence has narrowed' \
+  'candidate-hint research' \
   'not root-cause evidence' \
   'continue systematic debugging' \
   'do not write `.wiki-context.md`' \
@@ -158,6 +212,14 @@ fi
 
 if grep -Fq 'plan-context.py" render --phase implement' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
   printf 'Expected subagent-driven-development patch not to require plan-context render\n' >&2
+  exit 1
+fi
+
+if grep -Eq 'must install (lanhu-mcp|graphify)|requires (lanhu-mcp|graphify)|required dependency.*(lanhu-mcp|graphify)' \
+  "${TARGET_INPUT}/skills/brainstorming/SKILL.md" \
+  "${TARGET_INPUT}/skills/writing-plans/SKILL.md" \
+  "${TARGET_INPUT}/skills/systematic-debugging/SKILL.md"; then
+  printf 'Expected native patches not to require lanhu-mcp or graphify installation\n' >&2
   exit 1
 fi
 

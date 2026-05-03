@@ -46,6 +46,62 @@ check_file() {
   printf 'OK %s\n' "$relative"
 }
 
+check_optional_integration_overlays() {
+  local lanhu_agent="$TARGET_DIR/agents/lanhu-requirements-analyst.md"
+  local lanhu_command="$TARGET_DIR/commands/lanhu-requirements.md"
+  local graphify_agent="$TARGET_DIR/agents/graphify-researcher.md"
+  for required in \
+    'test cases' \
+    'acceptance criteria' \
+    'frontend components' \
+    'backend API' \
+    'database' \
+    'file impact' \
+    '.superpowers/wiki/' \
+    'graphify' \
+    'hasDesignContent' \
+    'designArtifacts' \
+    '.lanhu/MM-DD-需求命名.md' \
+    '.lanhu/MM-DD-需求命名/prd.md' \
+    '.lanhu/MM-DD-需求命名/design/'
+  do
+    if ! grep -Fq "$required" "$lanhu_agent"; then
+      printf 'Missing Lanhu analyst guardrail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  for required in \
+    '.lanhu/MM-DD-需求命名.md' \
+    '.lanhu/MM-DD-需求命名/prd.md' \
+    '.lanhu/MM-DD-需求命名/design/' \
+    'hasDesignContent' \
+    'designArtifacts' \
+    'Do not require Lanhu MCP to be installed' \
+    'Always ask the user to review and confirm' \
+    'Do not write `.superpowers/wiki/`' \
+    'Do not invoke graphify'
+  do
+    if ! grep -Fq "$required" "$lanhu_command"; then
+      printf 'Missing Lanhu command requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  for required in \
+    'Graphify is optional' \
+    'must never block Superpowers' \
+    'mustVerifyInSource: true' \
+    'must not:' \
+    'Run `graphify`' \
+    'Decide final implementation files'
+  do
+    if ! grep -Fq "$required" "$graphify_agent"; then
+      printf 'Missing graphify researcher guardrail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  printf 'Optional integration overlay checks OK\n'
+}
+
 check_native_skill_residuals() {
   if grep -Eq 'spec-researcher|update-spec|init-spec|import-spec|spec-progressive-disclosure|Referenced Project Specs|\.superpowers/spec' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/systematic-debugging/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/executing-plans/SKILL.md" "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
     printf 'Deprecated adapter spec terminology remains in native skill patches\n' >&2
@@ -67,12 +123,53 @@ check_native_skill_residuals() {
     printf 'Deprecated plan-context render path remains in subagent-driven-development patch\n' >&2
     exit 1
   fi
+  if grep -Eq 'must install (lanhu-mcp|graphify)|requires (lanhu-mcp|graphify)|required dependency.*(lanhu-mcp|graphify)' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/systematic-debugging/SKILL.md"; then
+    printf 'Invalid required external dependency language in native skill patches\n' >&2
+    exit 1
+  fi
+  local brainstorming_skill="$TARGET_DIR/skills/brainstorming/SKILL.md"
+  for required in \
+    'lanhu-requirements-analyst' \
+    '.lanhu/MM-DD-需求命名.md' \
+    '.lanhu/MM-DD-需求命名/prd.md' \
+    '.lanhu/MM-DD-需求命名/design/' \
+    'Lanhu MCP is optional' \
+    'do not block brainstorming' \
+    'test cases' \
+    'acceptance criteria' \
+    'frontend components' \
+    'backend APIs' \
+    'database impacts' \
+    'file impacts'
+  do
+    if ! grep -Fq "$required" "$brainstorming_skill"; then
+      printf 'Missing optional Lanhu brainstorming requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  local writing_skill="$TARGET_DIR/skills/writing-plans/SKILL.md"
+  for required in \
+    'graphify-researcher' \
+    'Graphify is optional' \
+    'candidate hints' \
+    'Every useful hint must be verified against current source' \
+    'not graphify alone'
+  do
+    if ! grep -Fq "$required" "$writing_skill"; then
+      printf 'Missing optional graphify planning requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
   local systematic_skill="$TARGET_DIR/skills/systematic-debugging/SKILL.md"
   for required in \
     'wiki-researcher' \
     'phase: debug' \
     'maxWikiPages: 2' \
     'Do not call `wiki-researcher` at the start of debugging' \
+    'graphify-researcher' \
+    'Do not call `graphify-researcher` at the start of debugging' \
+    'Phase 1 evidence has narrowed' \
+    'candidate-hint research' \
     'not root-cause evidence' \
     'continue systematic debugging' \
     'do not write `.wiki-context.md`' \
@@ -123,6 +220,7 @@ PY
 )
 python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
 python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
+check_optional_integration_overlays
 check_native_skill_residuals
 
 printf 'superpower-adapter verify complete\n'
