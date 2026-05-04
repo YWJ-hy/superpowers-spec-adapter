@@ -57,7 +57,15 @@ for required in \
   'frontend components' \
   'backend APIs' \
   'database impacts' \
-  'file impacts'
+  'file impacts' \
+  'explicitPageId' \
+  'pageid-tree-gated' \
+  'childPagePolicy' \
+  'lanhu_get_pages' \
+  'lanhu_get_ai_analyze_page_result' \
+  'page_names: all' \
+  '__AI_INSTRUCTION__' \
+  'ai_suggestion'
 do
   if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
     printf 'Expected brainstorming patch to contain optional Lanhu requirement: %s\n' "$required" >&2

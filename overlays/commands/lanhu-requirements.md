@@ -14,6 +14,8 @@ This command is optional. It does not replace Superpowers brainstorming, writing
 
 Read Lanhu requirement, prototype, page, or design information when Lanhu MCP tools are available, sanitize it into product requirements and optional design facts only, write the result to the current project root under `.lanhu/`, and ask the user to confirm the document before continuing with Superpowers brainstorming.
 
+If the Lanhu URL contains an explicit `pageId`, treat that page as the default scope boundary. If that page has child pages, ask the user whether to include the child pages and recommend including them; if it has no child pages, only use that page.
+
 Use the original single-file output when no design content is present:
 
 ```text
@@ -44,7 +46,7 @@ Use directory output when design稿, prototype, visual specification, page scree
 $ARGUMENTS
 ```
 
-Treat the input as a Lanhu URL or invite link plus an optional requirement name hint.
+Treat the input as a Lanhu URL or invite link plus an optional requirement name hint. If the URL contains `pageId`, `page_id`, or an equivalent page identifier, pass it as explicit page scope instead of broad prototype scope.
 
 ## Workflow
 
@@ -53,34 +55,39 @@ Treat the input as a Lanhu URL or invite link plus an optional requirement name 
 
 ```yaml
 lanhuUrl: <URL or invite link from $ARGUMENTS>
+explicitPageId: <pageId from the URL if present>
+scopePolicy: pageid-tree-gated
+childPagePolicy: ask-when-present
 userHint: <optional requirement name or focus from $ARGUMENTS>
 requestedOutputLanguage: zh-CN
 ```
 
-3. If the agent returns `status: unavailable`, explain that Lanhu MCP is unavailable. Ask the user to paste requirements or continue with normal Superpowers brainstorming. If the user pastes requirements and wants a saved document, sanitize the pasted text using the same rules below and use no-design single-file mode unless the pasted input includes explicit design material.
-4. Create `.lanhu/` in the current project root if needed.
-5. Choose the output shape from `hasDesignContent`:
+3. If `explicitPageId` is present, the analyst must use `lanhu_get_pages` first, find that page in the page tree, and build a page whitelist before analysis. Do not let the analyst call `lanhu_get_ai_analyze_page_result` with `page_names: all` for an explicit pageId URL. If the target page has child pages, the analyst must ask the user whether to include those child pages and recommend inclusion; if the target page has no child pages, the whitelist is only the target page.
+4. The page whitelist is the only allowed Lanhu analysis scope. Do not include sibling pages, parent flow pages, adjacent modules, other pages in the same document, trash/legacy pages, or pages that Lanhu AI labels as related unless the user explicitly requests that broader scope.
+5. If the agent returns `status: unavailable`, explain that Lanhu MCP is unavailable. Ask the user to paste requirements or continue with normal Superpowers brainstorming. If the user pastes requirements and wants a saved document, sanitize the pasted text using the same rules below and use no-design single-file mode unless the pasted input includes explicit design material.
+6. Create `.lanhu/` in the current project root if needed.
+7. Choose the output shape from `hasDesignContent`:
    - If `hasDesignContent: false`, write the sanitized requirements brief to `.lanhu/MM-DD-需求命名.md`.
    - If `hasDesignContent: true`, create `.lanhu/MM-DD-需求命名/`, write the sanitized requirements brief to `.lanhu/MM-DD-需求命名/prd.md`, and write design artifacts under `.lanhu/MM-DD-需求命名/design/`.
-6. Build `MM-DD-需求命名` safely:
+8. Build `MM-DD-需求命名` safely:
    - Use the current date for `MM-DD`.
    - Use the user's name hint when provided; otherwise use the analyst's `suggestedSlug`.
    - Keep only safe filename characters: Chinese, English letters, numbers, hyphen, and underscore.
    - Do not include spaces or path separators.
-7. Do not overwrite existing files or directories:
+9. Do not overwrite existing files or directories:
    - For no-design single-file mode, use a numeric suffix like `.lanhu/05-03-login-flow-2.md` or ask the user.
    - For design directory mode, use a numeric suffix like `.lanhu/05-03-login-flow-2/prd.md` or ask the user.
-8. In design directory mode, write each `designArtifacts[*]` only under `design/`:
+10. In design directory mode, write each `designArtifacts[*]` only under `design/`:
    - Reject or sanitize absolute paths.
    - Reject or sanitize `..` path traversal.
    - Reject or sanitize paths that do not start with `design/`.
    - Reject or sanitize unsafe filename characters.
    - Do not synthesize binary assets; only write exact Lanhu assets when they are available, otherwise write markdown asset inventories or caveats.
-9. Report the path and a concise summary:
+11. Report the path and a concise summary:
    - No-design mode: report the `.lanhu/...md` file.
    - Design mode: report the `.lanhu/.../` directory, `prd.md`, and the design artifact count/list.
-10. Ask the user to review and confirm the `.lanhu/...md` or `.lanhu/.../prd.md` document.
-11. Only after user confirmation, continue with Superpowers brainstorming using that document as the requirements description. In design directory mode, `design/` is confirmed design reference only.
+12. Ask the user to review and confirm the `.lanhu/...md` or `.lanhu/.../prd.md` document.
+13. Only after user confirmation, continue with Superpowers brainstorming using that document as the requirements description. In design directory mode, `design/` is confirmed design reference only.
 
 ## Sanitization rules
 
@@ -102,7 +109,7 @@ Allowed requirements content:
 
 - source information
 - requirement goal
-- included and excluded scope
+- included scope and page boundary caveats
 - pages or UI surfaces
 - user flows
 - field rules

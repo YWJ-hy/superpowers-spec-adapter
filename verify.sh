@@ -50,6 +50,14 @@ check_optional_integration_overlays() {
   local lanhu_agent="$TARGET_DIR/agents/lanhu-requirements-analyst.md"
   local lanhu_command="$TARGET_DIR/commands/lanhu-requirements.md"
   local graphify_agent="$TARGET_DIR/agents/graphify-researcher.md"
+  if grep -Fq '### 不包含' "$lanhu_agent"; then
+    printf 'Lanhu analyst should not render a standard 不包含 subsection\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'included and excluded scope' "$lanhu_command"; then
+    printf 'Lanhu command still implies a fixed excluded-scope PRD section\n' >&2
+    exit 1
+  fi
   for required in \
     'test cases' \
     'acceptance criteria' \
@@ -63,7 +71,15 @@ check_optional_integration_overlays() {
     'designArtifacts' \
     '.lanhu/MM-DD-需求命名.md' \
     '.lanhu/MM-DD-需求命名/prd.md' \
-    '.lanhu/MM-DD-需求命名/design/'
+    '.lanhu/MM-DD-需求命名/design/' \
+    'explicitPageId' \
+    'pageid-tree-gated' \
+    'childPagePolicy' \
+    'lanhu_get_pages' \
+    'lanhu_get_ai_analyze_page_result' \
+    'page_names: all' \
+    '__AI_INSTRUCTION__' \
+    'ai_suggestion'
   do
     if ! grep -Fq "$required" "$lanhu_agent"; then
       printf 'Missing Lanhu analyst guardrail: %s\n' "$required" >&2
@@ -79,7 +95,11 @@ check_optional_integration_overlays() {
     'Do not require Lanhu MCP to be installed' \
     'Always ask the user to review and confirm' \
     'Do not write `.superpowers/wiki/`' \
-    'Do not invoke graphify'
+    'Do not invoke graphify' \
+    'explicitPageId' \
+    'pageid-tree-gated' \
+    'childPagePolicy' \
+    'page_names: all'
   do
     if ! grep -Fq "$required" "$lanhu_command"; then
       printf 'Missing Lanhu command requirement: %s\n' "$required" >&2
@@ -140,7 +160,15 @@ check_native_skill_residuals() {
     'frontend components' \
     'backend APIs' \
     'database impacts' \
-    'file impacts'
+    'file impacts' \
+    'explicitPageId' \
+    'pageid-tree-gated' \
+    'childPagePolicy' \
+    'lanhu_get_pages' \
+    'lanhu_get_ai_analyze_page_result' \
+    'page_names: all' \
+    '__AI_INSTRUCTION__' \
+    'ai_suggestion'
   do
     if ! grep -Fq "$required" "$brainstorming_skill"; then
       printf 'Missing optional Lanhu brainstorming requirement: %s\n' "$required" >&2

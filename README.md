@@ -94,6 +94,8 @@ The Lanhu output is written to the current project root in one of two shapes:
 .lanhu/MM-DD-<requirement-name>/design/
 ```
 
+For Lanhu URLs with an explicit `pageId`, the analyst first reads the Lanhu page tree, then analyzes only the target page or the user-confirmed child-page whitelist. If the target page has child pages, the user is asked whether to include them and inclusion is recommended; if it has no child pages, only that page is used. Sibling pages, adjacent modules, parent flow pages, trash or legacy pages, and other pages in the same document are not included unless the user explicitly asks for broader scope.
+
 The user must review and confirm the `.lanhu/...md` or `.lanhu/.../prd.md` document before Superpowers continues. The document is a requirements input only: it is not `.superpowers/wiki/`, not `Referenced Project Wiki`, and not a plan sidecar. In directory mode, `prd.md` is the requirements input and `design/` is confirmed design reference material for design facts, visible UI content, design notes, asset inventories, or exact Lanhu assets when available. Lanhu output must not include test cases, acceptance criteria, frontend components, backend API guesses, database impact guesses, implementation guesses, code architecture, or affected file analysis. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
 
 ## Progressive disclosure
