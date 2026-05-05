@@ -23,7 +23,7 @@
 adapter 增强这些阶段：
 
 - 安装 `wiki-researcher` agent，用于从 `.superpowers/wiki/index.md` 开始渐进选择少量相关项目 wiki 页面。
-- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` / `lanhu-requirements-analyst` 把蓝湖链接转成 `.lanhu/MM-DD-需求命名.md`，或在有设计稿时转成 `.lanhu/MM-DD-需求命名/prd.md` 与 `.lanhu/MM-DD-需求命名/design/`，用户确认后再进入 Superpowers `brainstorming`。
+- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` / `lanhu-requirements-analyst` 先确认前端/后端角色，再把蓝湖链接转成 `.lanhu/MM-DD-需求命名.md` 角色 PRD；如果该页有子级，则转成 `.lanhu/MM-DD-父级需求名称/`，目录里包含 `父级需求.md`、各子级 PRD 和 `index.md`。用户确认后再进入 Superpowers `brainstorming`。
 - 可选图谱辅助：如果项目已有 graphify 能力或 `graphify-out/` 产物，`graphify-researcher` 只在 agent 判断需要关系线索时提供 candidate hints，不作为必经步骤。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
@@ -63,7 +63,7 @@ Superpowers 插件目录
 
 同时 adapter 会 patch Superpowers 的 native skills：
 
-- `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先由 `lanhu-requirements-analyst` 生成蓝湖需求输入；无设计稿时写入 `.lanhu/MM-DD-需求命名.md`，有设计稿时写入 `.lanhu/MM-DD-需求命名/prd.md` 与 `.lanhu/MM-DD-需求命名/design/`，用户确认后再继续；随后在提出设计方案前调用 `wiki-researcher` 获取轻量项目 wiki 上下文。
+- `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先确认前端/后端 PRD 角色，再由 `lanhu-requirements-analyst` 生成蓝湖角色 PRD 输入；无子级页时写入 `.lanhu/MM-DD-需求命名.md`，有子级页时写入 `.lanhu/MM-DD-父级需求名称/`，目录下包含 `父级需求.md`、各子级 PRD 和 `index.md`。用户确认后再继续；随后在提出设计方案前调用 `wiki-researcher` 获取轻量项目 wiki 上下文。
 - `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口；在需求已确认、源码已初步探索但关系边界仍不确定时，才可调用 `graphify-researcher` 获取候选关系线索。
 - `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug`、`maxWikiPages: 2` 条件式查询 wiki；只有已收窄到具体边界且需要调用方 / 依赖 / 邻近模块线索时，才条件式查询 graphify。
 - `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md`，不重新选择 wiki 页面。
@@ -85,7 +85,7 @@ Superpowers 插件目录
 | 3 | 初始化 wiki 模板 | `./manage.sh bootstrap-wiki /path/to/project --template standard` | 每个目标项目一次 | 创建 `.superpowers/wiki/` wiki 目录 |
 | 4 | 导入已有 wiki | `/import-wiki` | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/` 格式 |
 | 5 | 初始化 starter wiki | `/init-wiki` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
-| 6 | 可选蓝湖需求文档 | `/lanhu-requirements <蓝湖链接>` | 有蓝湖链接且已配置 lanhu-mcp 时 | 无设计稿时生成 `.lanhu/MM-DD-需求命名.md`；有设计稿时生成 `.lanhu/MM-DD-需求命名/prd.md` 与 `.lanhu/MM-DD-需求命名/design/`，用户确认后作为 Superpowers 需求输入 |
+| 6 | 可选蓝湖角色 PRD | `/lanhu-requirements <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；无子级页时生成 `.lanhu/MM-DD-需求命名.md` 角色 PRD；有子级页时生成 `.lanhu/MM-DD-父级需求名称/`，目录里包含 `父级需求.md`、各子级 PRD 和 `index.md`，用户确认后作为 Superpowers 需求输入 |
 | 7 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
 | 8 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目 wiki 页面，生成 `.wiki-context.md`，必要时用 graphify 候选线索辅助关系判断，并在 plan 中写入轻量 `Referenced Project Wiki` |
 | 9 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.md` |
@@ -98,8 +98,8 @@ Superpowers 插件目录
 
 ```text
 描述需求 / 可选蓝湖链接
-→ 如果使用蓝湖，/lanhu-requirements 无设计稿时生成 .lanhu/MM-DD-需求命名.md；有设计稿时生成 .lanhu/MM-DD-需求命名/prd.md 和 .lanhu/MM-DD-需求命名/design/
-→ 用户确认 .lanhu 需求文档
+→ 如果使用蓝湖，先确认前端/后端角色；/lanhu-requirements 无子级页时生成 .lanhu/MM-DD-需求命名.md 角色 PRD；有子级页时生成 .lanhu/MM-DD-父级需求名称/，目录里包含父级需求.md、子级 PRD 和 index.md
+→ 用户确认 .lanhu 角色 PRD
 → Superpowers brainstorming
 → adapter 轻量披露相关项目 wiki 页面
 → Superpowers 写并确认本次 spec
@@ -155,30 +155,38 @@ Superpowers 插件目录
 
 `/import-wiki` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；如果导入内容需要语义整理，后续由 `update-wiki` skill 审查并更新。
 
-### 4.4 可选：从蓝湖生成需求文档
+### 4.4 可选：从蓝湖生成角色 PRD
 
 如果用户已配置 lanhu-mcp，可以用：
 
 ```text
-/lanhu-requirements <蓝湖链接> <可选需求命名>
+/lanhu-requirements <蓝湖链接> 前端 <可选需求命名>
+/lanhu-requirements <蓝湖链接> 后端 <可选需求命名>
+/lanhu-requirements --role frontend <蓝湖链接> <可选需求命名>
+/lanhu-requirements --role backend <蓝湖链接> <可选需求命名>
 ```
 
-该命令会尝试读取蓝湖内容，生成只包含产品需求事实的文档，并按是否存在设计稿选择输出结构：
+该命令会先确认本次要生成前端开发角色视角 PRD 还是后端开发角色视角 PRD，再尝试读取蓝湖内容，生成只包含产品需求事实和角色 PRD 信息的文档，并按是否存在子级页选择输出结构：
 
 ```text
-无设计稿：
+无子级页：
 .lanhu/MM-DD-需求命名.md
 
-有设计稿 / 设计信息：
-.lanhu/MM-DD-需求命名/prd.md
-.lanhu/MM-DD-需求命名/design/
+有子级页：
+.lanhu/MM-DD-父级需求名称/
+├── 父级需求.md
+├── <子级1>.md
+├── <子级2>.md
+└── index.md
 ```
 
-如果蓝湖链接带有明确 `pageId`，adapter 会先读取蓝湖页面树，再按页面树收敛范围：目标页有子级时，会询问是否纳入子级并推荐纳入；目标页无子级时，只生成该页面需求。相邻页面、同文档其它模块、父级流程页、垃圾站 / 旧页面或 Lanhu AI 认为“相关”的页面不会自动混入；需要多页、整条流程或整个原型时，用户应显式说明。
+如果用户没有提供角色，或同时说“前后端都要 / 全栈”，adapter 会先询问本次生成哪一种角色 PRD；在角色明确前，不调用 `lanhu-requirements-analyst`，也不读取或分析蓝湖。需要前端和后端两份 PRD 时，应分别运行两次命令。
 
-`.lanhu/` 文档需要用户确认后，Superpowers 才基于它进入 `brainstorming`。它不是 `.superpowers/wiki/`，不会进入 `Referenced Project Wiki`，也不替代 Superpowers spec / implementation plan。目录模式下，`prd.md` 是需求入口，`design/` 只是设计事实、可见 UI 内容、设计备注、资源索引或可精确获取的 Lanhu 资源。文档中不应包含测试点、验收标准、前端组件拆分、后端接口推测、数据库影响、实现方案或代码文件影响。
+如果蓝湖链接带有明确 `pageId`，adapter 会在角色确认后先读取蓝湖页面树，再按页面树收敛范围：目标页有子级时，会询问是否纳入子级并推荐纳入；目标页无子级时，只生成该页面需求。相邻页面、同文档其它模块、父级流程页、垃圾站 / 旧页面或 Lanhu AI 认为“相关”的页面不会自动混入；需要多页、整条流程或整个原型时，用户应显式说明。
 
-lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求或直接走普通 Superpowers 流程。
+`.lanhu/` 文档需要用户确认后，Superpowers 才基于它进入 `brainstorming`。它不是 `.superpowers/wiki/`，不会进入 `Referenced Project Wiki`，也不替代 Superpowers spec / implementation plan。无子级页时，单文件 `.md` 是角色 PRD 入口；有子级页时，`index.md` 是入口，父级需求.md 和各子级需求.md 是详细角色 PRD 来源。文档中不应包含测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案或代码文件影响；模板要求的角色验收标准允许，但只能用 Given / When / Then 描述产品行为。
+
+lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求并按已确认角色生成 `.lanhu/` PRD，或直接走普通 Superpowers 流程。
 
 ### 4.5 初始化项目 wiki 知识
 

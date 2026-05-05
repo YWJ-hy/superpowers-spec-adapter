@@ -11,7 +11,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 - Store project wiki pages in `.superpowers/wiki/`
 - Use `index.md` as the entry point
-- Optionally turn Lanhu links into confirmed requirements documents under `.lanhu/MM-DD-<name>.md` or `.lanhu/MM-DD-<name>/prd.md` plus `design/` before Superpowers brainstorming
+- Optionally turn Lanhu links into confirmed frontend/backend role-specific PRD bundles under `.lanhu/MM-DD-<name>.md` or `.lanhu/MM-DD-<parent-name>/` before Superpowers brainstorming
 - Optionally use graphify as agent-judged candidate relationship hints during planning or narrowed debugging, without making it a dependency or gate
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
@@ -81,22 +81,34 @@ The import recursively scans source wiki pages, copies each file into `.superpow
 
 ## Optional Lanhu requirements intake
 
-If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command and `lanhu-requirements-analyst` agent can produce a sanitized requirements document before Superpowers brainstorming.
+If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command and `lanhu-requirements-analyst` agent can produce a sanitized frontend/backend role-specific PRD bundle before Superpowers brainstorming. Role selection is required before Lanhu analysis.
+
+```text
+/lanhu-requirements <Lanhu link> 前端 <optional requirement name>
+/lanhu-requirements <Lanhu link> 后端 <optional requirement name>
+/lanhu-requirements --role frontend <Lanhu link> <optional requirement name>
+/lanhu-requirements --role backend <Lanhu link> <optional requirement name>
+```
+
+If the role is missing or ambiguous, the command asks whether to generate a 前端开发角色视角 PRD or 后端开发角色视角 PRD before reading or analyzing Lanhu. If both roles are needed, generate two separate PRD bundles by running the command twice. The maintained prompt sources for these role templates live in `role-prd/frontend.md` and `role-prd/backend.md`; installed agents are self-contained and do not read those files at runtime.
 
 The Lanhu output is written to the current project root in one of two shapes:
 
 ```text
-# No design content
+# No child pages
 .lanhu/MM-DD-<requirement-name>.md
 
-# Design content present
-.lanhu/MM-DD-<requirement-name>/prd.md
-.lanhu/MM-DD-<requirement-name>/design/
+# Child pages present
+.lanhu/MM-DD-<parent-name>/
+├── 父级需求.md
+├── <child-1>.md
+├── <child-2>.md
+└── index.md
 ```
 
 For Lanhu URLs with an explicit `pageId`, the analyst first reads the Lanhu page tree, then analyzes only the target page or the user-confirmed child-page whitelist. If the target page has child pages, the user is asked whether to include them and inclusion is recommended; if it has no child pages, only that page is used. Sibling pages, adjacent modules, parent flow pages, trash or legacy pages, and other pages in the same document are not included unless the user explicitly asks for broader scope.
 
-The user must review and confirm the `.lanhu/...md` or `.lanhu/.../prd.md` document before Superpowers continues. The document is a requirements input only: it is not `.superpowers/wiki/`, not `Referenced Project Wiki`, and not a plan sidecar. In directory mode, `prd.md` is the requirements input and `design/` is confirmed design reference material for design facts, visible UI content, design notes, asset inventories, or exact Lanhu assets when available. Lanhu output must not include test cases, acceptance criteria, frontend components, backend API guesses, database impact guesses, implementation guesses, code architecture, or affected file analysis. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
+The user must review and confirm the `.lanhu/...md` file or `.lanhu/.../index.md` entry point before Superpowers continues. The document is a role-specific PRD input only: it is not `.superpowers/wiki/`, not `Referenced Project Wiki`, and not a plan sidecar. In tree mode, `index.md` is the entry point and the sibling PRD files are the detailed sources. Lanhu output must not include test cases, testing points, technical test plans, frontend components, backend API guesses, database impact guesses, implementation guesses, code architecture, or affected file analysis. Role PRD acceptance standards are allowed only as product-behavior Given / When / Then criteria required by the selected template. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
 
 ## Progressive disclosure
 

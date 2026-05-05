@@ -5,7 +5,7 @@
     "description": "Pluggable overlay that adds wiki-researcher-driven project wiki selection, bug retrospective handoff, and update-wiki workflow to Superpowers without making Trellis a runtime dependency."
   },
   "target": {
-    "repoRoot": "/Users/yewenjie/Desktop/dev-project/trellis_superpowers/superpower-adapter",
+    "repoRoot": "/Users/yewenjie/Desktop/project/iho-otc-ui",
     "superpowersPath": "/Users/yewenjie/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7",
     "exists": true
   },
@@ -44,7 +44,7 @@
     "skills/finishing-a-development-branch/SKILL.md": true
   },
   "wikiState": {
-    "wikiRoot": "/Users/yewenjie/Desktop/dev-project/trellis_superpowers/superpower-adapter/.superpowers/wiki",
+    "wikiRoot": "/Users/yewenjie/Desktop/project/iho-otc-ui/.superpowers/wiki",
     "exists": true,
     "entryIndexExists": true,
     "ignoreFileExists": false,
@@ -62,6 +62,10 @@
     "rawView": {
       "indexFiles": [
         "frontend/examples/index.md",
+        "frontend/examples/skills/embed-micro-app/index.md",
+        "frontend/examples/skills/index.md",
+        "frontend/examples/skills/list-page-template/index.md",
+        "frontend/examples/skills/modal-drawer-template/index.md",
         "frontend/index.md",
         "guides/index.md",
         "imported/index.md",
@@ -76,9 +80,19 @@
       ],
       "leafFiles": [
         "frontend/component-guidelines.md",
+        "frontend/directory-structure.md",
+        "frontend/doc.md",
         "frontend/examples/example.md",
+        "frontend/examples/skills/embed-micro-app/README.md",
+        "frontend/examples/skills/list-page-template/README.md",
+        "frontend/examples/skills/modal-drawer-template/README.md",
         "frontend/hook-guidelines.md",
+        "frontend/quality-guidelines.md",
+        "frontend/state-management.md",
+        "frontend/testing-guidelines.md",
         "frontend/type-safety.md",
+        "guides/code-reuse-thinking-guide.md",
+        "guides/cross-layer-thinking-guide.md",
         "guides/debugging.md",
         "imported/external-import-self-test.md",
         "imported-command-path-smoke/path-smoke.md",
@@ -99,6 +113,16 @@
           "depth": 2
         },
         {
+          "path": "frontend/directory-structure.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/doc.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
           "path": "frontend/examples",
           "type": "dir",
           "depth": 2
@@ -114,12 +138,82 @@
           "depth": 3
         },
         {
+          "path": "frontend/examples/skills",
+          "type": "dir",
+          "depth": 3
+        },
+        {
+          "path": "frontend/examples/skills/embed-micro-app",
+          "type": "dir",
+          "depth": 4
+        },
+        {
+          "path": "frontend/examples/skills/embed-micro-app/README.md",
+          "type": "file",
+          "depth": 5
+        },
+        {
+          "path": "frontend/examples/skills/embed-micro-app/index.md",
+          "type": "file",
+          "depth": 5
+        },
+        {
+          "path": "frontend/examples/skills/index.md",
+          "type": "file",
+          "depth": 4
+        },
+        {
+          "path": "frontend/examples/skills/list-page-template",
+          "type": "dir",
+          "depth": 4
+        },
+        {
+          "path": "frontend/examples/skills/list-page-template/README.md",
+          "type": "file",
+          "depth": 5
+        },
+        {
+          "path": "frontend/examples/skills/list-page-template/index.md",
+          "type": "file",
+          "depth": 5
+        },
+        {
+          "path": "frontend/examples/skills/modal-drawer-template",
+          "type": "dir",
+          "depth": 4
+        },
+        {
+          "path": "frontend/examples/skills/modal-drawer-template/README.md",
+          "type": "file",
+          "depth": 5
+        },
+        {
+          "path": "frontend/examples/skills/modal-drawer-template/index.md",
+          "type": "file",
+          "depth": 5
+        },
+        {
           "path": "frontend/hook-guidelines.md",
           "type": "file",
           "depth": 2
         },
         {
           "path": "frontend/index.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/quality-guidelines.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/state-management.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/testing-guidelines.md",
           "type": "file",
           "depth": 2
         },
@@ -132,6 +226,16 @@
           "path": "guides",
           "type": "dir",
           "depth": 1
+        },
+        {
+          "path": "guides/code-reuse-thinking-guide.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "guides/cross-layer-thinking-guide.md",
+          "type": "file",
+          "depth": 2
         },
         {
           "path": "guides/debugging.md",
@@ -276,8 +380,15 @@
       ],
       "leafFiles": [
         "frontend/component-guidelines.md",
+        "frontend/directory-structure.md",
+        "frontend/doc.md",
         "frontend/hook-guidelines.md",
+        "frontend/quality-guidelines.md",
+        "frontend/state-management.md",
+        "frontend/testing-guidelines.md",
         "frontend/type-safety.md",
+        "guides/code-reuse-thinking-guide.md",
+        "guides/cross-layer-thinking-guide.md",
         "guides/debugging.md",
         "imported/external-import-self-test.md",
         "imported-command-path-smoke/path-smoke.md",
@@ -298,12 +409,37 @@
           "depth": 2
         },
         {
+          "path": "frontend/directory-structure.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/doc.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
           "path": "frontend/hook-guidelines.md",
           "type": "file",
           "depth": 2
         },
         {
           "path": "frontend/index.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/quality-guidelines.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/state-management.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/testing-guidelines.md",
           "type": "file",
           "depth": 2
         },
@@ -316,6 +452,16 @@
           "path": "guides",
           "type": "dir",
           "depth": 1
+        },
+        {
+          "path": "guides/code-reuse-thinking-guide.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "guides/cross-layer-thinking-guide.md",
+          "type": "file",
+          "depth": 2
         },
         {
           "path": "guides/debugging.md",

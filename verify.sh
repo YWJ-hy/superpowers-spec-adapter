@@ -50,62 +50,71 @@ check_optional_integration_overlays() {
   local lanhu_agent="$TARGET_DIR/agents/lanhu-requirements-analyst.md"
   local lanhu_command="$TARGET_DIR/commands/lanhu-requirements.md"
   local graphify_agent="$TARGET_DIR/agents/graphify-researcher.md"
-  if grep -Fq '### 不包含' "$lanhu_agent"; then
-    printf 'Lanhu analyst should not render a standard 不包含 subsection\n' >&2
-    exit 1
-  fi
-  if grep -Fq 'included and excluded scope' "$lanhu_command"; then
-    printf 'Lanhu command still implies a fixed excluded-scope PRD section\n' >&2
-    exit 1
-  fi
+
+  for forbidden in \
+    '# 设计稿事实索引' \
+    '- 可见文案:' \
+    '- 可见状态:' \
+    '- 设计标注:' \
+    '- 资源引用:' \
+    'hasDesignContent' \
+    'designArtifacts' \
+    'design/screenshots/' \
+    'design resource links' \
+    'UI appearance reference only'
+  do
+    if grep -Fq -- "$forbidden" "$lanhu_agent" "$lanhu_command"; then
+      printf 'Lanhu files still use old design-oriented text: %s\n' "$forbidden" >&2
+      exit 1
+    fi
+  done
+
   for required in \
     'test cases' \
-    'acceptance criteria' \
+    'testing points' \
+    'technical test plans' \
     'frontend components' \
     'backend API' \
     'database' \
-    'file impact' \
+    'affected file analysis' \
+    'Role PRD acceptance standards' \
+    'Given / When / Then' \
+    'role: frontend | backend' \
+    'need_role' \
+    '前端开发角色视角 PRD' \
+    '后端开发角色视角 PRD' \
+    'role-specific PRD' \
+    'Mermaid mindmap' \
+    'role-prd/frontend.md' \
+    'role-prd/backend.md' \
     '.superpowers/wiki/' \
     'graphify' \
-    'hasDesignContent' \
-    'designArtifacts' \
     '.lanhu/MM-DD-需求命名.md' \
-    '.lanhu/MM-DD-需求命名/prd.md' \
-    '.lanhu/MM-DD-需求命名/design/' \
+    '.lanhu/MM-DD-父级需求名称/' \
+    '父级需求.md' \
+    'index.md' \
+    'page flow' \
+    'state flow' \
+    'business rules' \
     'explicitPageId' \
     'pageid-tree-gated' \
     'childPagePolicy' \
     'lanhu_get_pages' \
     'lanhu_get_ai_analyze_page_result' \
     'page_names: all' \
-    '__AI_INSTRUCTION__' \
-    'ai_suggestion'
-  do
-    if ! grep -Fq "$required" "$lanhu_agent"; then
-      printf 'Missing Lanhu analyst guardrail: %s\n' "$required" >&2
-      exit 1
-    fi
-  done
-  for required in \
-    '.lanhu/MM-DD-需求命名.md' \
-    '.lanhu/MM-DD-需求命名/prd.md' \
-    '.lanhu/MM-DD-需求命名/design/' \
-    'hasDesignContent' \
-    'designArtifacts' \
+    'indexMarkdown' \
+    'Mermaid' \
     'Do not require Lanhu MCP to be installed' \
     'Always ask the user to review and confirm' \
     'Do not write `.superpowers/wiki/`' \
-    'Do not invoke graphify' \
-    'explicitPageId' \
-    'pageid-tree-gated' \
-    'childPagePolicy' \
-    'page_names: all'
+    'Do not invoke graphify'
   do
-    if ! grep -Fq "$required" "$lanhu_command"; then
-      printf 'Missing Lanhu command requirement: %s\n' "$required" >&2
+    if ! grep -Fq "$required" "$lanhu_agent" "$lanhu_command"; then
+      printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
       exit 1
     fi
   done
+
   for required in \
     'Graphify is optional' \
     'must never block Superpowers' \
@@ -119,10 +128,14 @@ check_optional_integration_overlays() {
       exit 1
     fi
   done
+
   printf 'Optional integration overlay checks OK\n'
 }
 
 check_native_skill_residuals() {
+
+
+
   if grep -Eq 'spec-researcher|update-spec|init-spec|import-spec|spec-progressive-disclosure|Referenced Project Specs|\.superpowers/spec' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/systematic-debugging/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/executing-plans/SKILL.md" "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
     printf 'Deprecated adapter spec terminology remains in native skill patches\n' >&2
     exit 1
@@ -151,12 +164,25 @@ check_native_skill_residuals() {
   for required in \
     'lanhu-requirements-analyst' \
     '.lanhu/MM-DD-需求命名.md' \
-    '.lanhu/MM-DD-需求命名/prd.md' \
-    '.lanhu/MM-DD-需求命名/design/' \
+    '.lanhu/MM-DD-父级需求名称/' \
+    '父级需求.md' \
+    'index.md' \
     'Lanhu MCP is optional' \
     'do not block brainstorming' \
+    'page flow' \
+    'state flow' \
+    'business rules' \
+    'role-specific PRD bundle' \
+    'role: frontend | backend' \
+    '前端开发角色视角 PRD' \
+    '后端开发角色视角 PRD' \
+    'Role PRD acceptance standards' \
+    'Given / When / Then' \
+    'no-child single-file mode' \
+    'tree mode' \
     'test cases' \
-    'acceptance criteria' \
+    'testing points' \
+    'technical test plans' \
     'frontend components' \
     'backend APIs' \
     'database impacts' \

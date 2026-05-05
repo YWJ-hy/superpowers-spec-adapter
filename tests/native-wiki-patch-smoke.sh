@@ -48,12 +48,25 @@ fi
 for required in \
   'lanhu-requirements-analyst' \
   '.lanhu/MM-DD-需求命名.md' \
-  '.lanhu/MM-DD-需求命名/prd.md' \
-  '.lanhu/MM-DD-需求命名/design/' \
+  '.lanhu/MM-DD-父级需求名称/' \
+  '父级需求.md' \
+  'index.md' \
   'Lanhu MCP is optional' \
   'do not block brainstorming' \
+  'page flow' \
+  'state flow' \
+  'business rules' \
+  'role-specific PRD bundle' \
+  'role: frontend | backend' \
+  '前端开发角色视角 PRD' \
+  '后端开发角色视角 PRD' \
+  'Role PRD acceptance standards' \
+  'Given / When / Then' \
+  'no-child single-file mode' \
+  'tree mode' \
   'test cases' \
-  'acceptance criteria' \
+  'testing points' \
+  'technical test plans' \
   'frontend components' \
   'backend APIs' \
   'database impacts' \
