@@ -23,7 +23,7 @@
 adapter 增强这些阶段：
 
 - 安装 `wiki-researcher` agent，用于从 `.superpowers/wiki/index.md` 开始渐进选择少量相关项目 wiki 页面。
-- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` / `lanhu-requirements-analyst` 先确认前端/后端角色，再把蓝湖链接转成 `.lanhu/MM-DD-需求命名.md` 角色 PRD；如果该页有子级，则转成 `.lanhu/MM-DD-父级需求名称/`，目录里包含继承目录需求名的父级 PRD、各子级 PRD 和 `index.md`。用户确认后再进入 Superpowers `brainstorming`。
+- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` / `lanhu-requirements-analyst` 先确认前端/后端角色，再把蓝湖链接转成 `.lanhu/MM-DD-需求命名.md` 角色 PRD；如果该页有子级，则转成 `.lanhu/MM-DD-父级需求名称/`，目录里包含继承目录需求名的父级 PRD、各子级 PRD 和 `index.md`。前端角色 PRD 会在 `## 三、页面与入口范围` 下加入低保真 XML-like 页面布局结构草图，并按页面/布局区域组织后续说明。用户确认后再进入 Superpowers `brainstorming`。
 - 可选图谱辅助：如果项目已有 graphify 能力或 `graphify-out/` 产物，`graphify-researcher` 只在 agent 判断需要关系线索时提供 candidate hints，不作为必经步骤。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
