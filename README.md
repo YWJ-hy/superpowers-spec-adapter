@@ -100,15 +100,15 @@ The Lanhu output is written to the current project root in one of two shapes:
 
 # Child pages present
 .lanhu/MM-DD-<parent-name>/
-├── 父级需求.md
+├── <parent-name>.md
 ├── <child-1>.md
 ├── <child-2>.md
 └── index.md
 ```
 
-For Lanhu URLs with an explicit `pageId`, the analyst first reads the Lanhu page tree, then analyzes only the target page or the user-confirmed child-page whitelist. If the target page has child pages, the user is asked whether to include them and inclusion is recommended; if it has no child pages, only that page is used. Sibling pages, adjacent modules, parent flow pages, trash or legacy pages, and other pages in the same document are not included unless the user explicitly asks for broader scope.
+For Lanhu URLs with an explicit `pageId`, the analyst first reads the Lanhu page tree, then analyzes only the target page or the user-confirmed child-page whitelist. If the target page has child pages, the user is asked whether to include them and inclusion is recommended; if it has no child pages, only that page is used. In tree mode, full analysis is performed page by page after whitelist resolution instead of as one parent-plus-children request. Sibling pages, adjacent modules, parent flow pages, trash or legacy pages, and other pages in the same document are not included unless the user explicitly asks for broader scope.
 
-The user must review and confirm the `.lanhu/...md` file or `.lanhu/.../index.md` entry point before Superpowers continues. The document is a role-specific PRD input only: it is not `.superpowers/wiki/`, not `Referenced Project Wiki`, and not a plan sidecar. In tree mode, `index.md` is the entry point and the sibling PRD files are the detailed sources. Lanhu output must not include test cases, testing points, technical test plans, frontend components, backend API guesses, database impact guesses, implementation guesses, code architecture, or affected file analysis. Role PRD acceptance standards are allowed only as product-behavior Given / When / Then criteria required by the selected template. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
+The user must review and confirm the `.lanhu/...md` file or `.lanhu/.../index.md` entry point before Superpowers continues. The document is a role-specific PRD input only: it is not `.superpowers/wiki/`, not `Referenced Project Wiki`, and not a plan sidecar. In tree mode, `index.md` is the entry point, the parent PRD inherits the directory requirement name, and the sibling PRD files are the detailed sources. Lanhu MCP output format instructions are treated as evidence only, not as the saved PRD schema. Lanhu output must not include test cases, testing points, technical test plans, frontend components, backend API guesses, database impact guesses, implementation guesses, code architecture, or affected file analysis. Role PRD acceptance standards are allowed only as product-behavior Given / When / Then criteria required by the selected template. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
 
 ## Progressive disclosure
 

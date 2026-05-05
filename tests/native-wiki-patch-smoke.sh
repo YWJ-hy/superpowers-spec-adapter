@@ -49,7 +49,7 @@ for required in \
   'lanhu-requirements-analyst' \
   '.lanhu/MM-DD-需求命名.md' \
   '.lanhu/MM-DD-父级需求名称/' \
-  '父级需求.md' \
+  '<父级需求名称>.md' \
   'index.md' \
   'Lanhu MCP is optional' \
   'do not block brainstorming' \
@@ -78,7 +78,20 @@ for required in \
   'lanhu_get_ai_analyze_page_result' \
   'page_names: all' \
   '__AI_INSTRUCTION__' \
-  'ai_suggestion'
+  'ai_suggestion' \
+  'page-by-page full analysis' \
+  'mode: full' \
+  'page_names` containing exactly that one page' \
+  'one full request for the parent plus descendants' \
+  'one combined MCP response to generate multiple PRD files' \
+  'raw evidence only' \
+  'not the adapter output schema' \
+  '本组核心N点' \
+  '功能清单表' \
+  '字段规则表' \
+  'STAGE 4 输出要求' \
+  'Every parent and child PRD file must be a complete selected-role PRD' \
+  'index.md` is never a substitute'
 do
   if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
     printf 'Expected brainstorming patch to contain optional Lanhu requirement: %s\n' "$required" >&2

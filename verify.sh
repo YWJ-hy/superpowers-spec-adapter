@@ -91,7 +91,7 @@ check_optional_integration_overlays() {
     'graphify' \
     '.lanhu/MM-DD-需求命名.md' \
     '.lanhu/MM-DD-父级需求名称/' \
-    '父级需求.md' \
+    '<父级需求名称>.md' \
     'index.md' \
     'page flow' \
     'state flow' \
@@ -107,7 +107,21 @@ check_optional_integration_overlays() {
     'Do not require Lanhu MCP to be installed' \
     'Always ask the user to review and confirm' \
     'Do not write `.superpowers/wiki/`' \
-    'Do not invoke graphify'
+    'Do not invoke graphify' \
+    'page-by-page full analysis' \
+    'mode: full' \
+    'page_names` containing exactly one page' \
+    'one full request for the parent plus descendants' \
+    'one combined MCP response to generate multiple PRD files' \
+    'raw evidence only' \
+    'not the adapter output schema' \
+    '本组核心N点' \
+    '功能清单表' \
+    '字段规则表' \
+    'STAGE 4 输出要求' \
+    'Role PRD heading validation' \
+    'index.md` is never a substitute' \
+    '<父级需求名称>.md'
   do
     if ! grep -Fq "$required" "$lanhu_agent" "$lanhu_command"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
@@ -165,7 +179,7 @@ check_native_skill_residuals() {
     'lanhu-requirements-analyst' \
     '.lanhu/MM-DD-需求命名.md' \
     '.lanhu/MM-DD-父级需求名称/' \
-    '父级需求.md' \
+    '<父级需求名称>.md' \
     'index.md' \
     'Lanhu MCP is optional' \
     'do not block brainstorming' \
@@ -194,7 +208,21 @@ check_native_skill_residuals() {
     'lanhu_get_ai_analyze_page_result' \
     'page_names: all' \
     '__AI_INSTRUCTION__' \
-    'ai_suggestion'
+    'ai_suggestion' \
+    'page-by-page full analysis' \
+    'mode: full' \
+    'page_names` containing exactly that one page' \
+    'one full request for the parent plus descendants' \
+    'one combined MCP response to generate multiple PRD files' \
+    'raw evidence only' \
+    'not the adapter output schema' \
+    '本组核心N点' \
+    '功能清单表' \
+    '字段规则表' \
+    'STAGE 4 输出要求' \
+    '<父级需求名称>.md' \
+    'Every parent and child PRD file must be a complete selected-role PRD' \
+    'index.md` is never a substitute'
   do
     if ! grep -Fq "$required" "$brainstorming_skill"; then
       printf 'Missing optional Lanhu brainstorming requirement: %s\n' "$required" >&2

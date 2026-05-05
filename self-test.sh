@@ -41,6 +41,7 @@ if [[ ! -f "$REPO_ROOT/.superpowers/wiki/imported/external-import-self-test.md" 
 fi
 rm -f "$REPO_ROOT/.superpowers/tmp-import-source.md"
 bash "$SCRIPT_DIR/tests/native-wiki-patch-smoke.sh" "$TARGET_DIR"
+bash "$SCRIPT_DIR/tests/lanhu-tree-prd-guardrails-smoke.sh" "$TARGET_DIR"
 bash "$SCRIPT_DIR/tests/native-worktree-origin-patch-smoke.sh" "$TARGET_DIR"
 bash "$SCRIPT_DIR/tests/wiki-update-check-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/init-wiki-inventory-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
