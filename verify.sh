@@ -86,6 +86,8 @@ check_optional_integration_overlays() {
     'role-specific PRD' \
     'Mermaid flowchart' \
     'mindmap only for small/simple structures' \
+    'complex state page' \
+    'simple pages can keep the table' \
     'short node labels' \
     'limited depth' \
     'Split dense diagrams' \
@@ -101,9 +103,9 @@ check_optional_integration_overlays() {
     'role-prd/backend.md' \
     '.superpowers/wiki/' \
     'graphify' \
-    '.lanhu/MM-DD-需求命名.md' \
-    '.lanhu/MM-DD-父级需求名称/' \
-    '<父级需求名称>.md' \
+    '.lanhu/MM-DD-需求名称/prd.md' \
+    '.lanhu/MM-DD-需求名称/' \
+    '.lanhu/MM-DD-需求名称/prds/' \
     'index.md' \
     'page display' \
     'user operation and interaction rules' \
@@ -134,7 +136,7 @@ check_optional_integration_overlays() {
     'STAGE 4 输出要求' \
     'Role PRD heading validation' \
     'index.md` is never a substitute' \
-    '<父级需求名称>.md'
+    '.lanhu/MM-DD-需求名称/prds/'
   do
     if ! grep -Fq "$required" "$lanhu_agent" "$lanhu_command"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
@@ -190,9 +192,9 @@ check_native_skill_residuals() {
   local brainstorming_skill="$TARGET_DIR/skills/brainstorming/SKILL.md"
   for required in \
     'lanhu-requirements-analyst' \
-    '.lanhu/MM-DD-需求命名.md' \
-    '.lanhu/MM-DD-父级需求名称/' \
-    '<父级需求名称>.md' \
+    '.lanhu/MM-DD-需求名称/prd.md' \
+    '.lanhu/MM-DD-需求名称/' \
+    '.lanhu/MM-DD-需求名称/prds/' \
     'index.md' \
     'Lanhu MCP is optional' \
     'do not block brainstorming' \
@@ -200,13 +202,13 @@ check_native_skill_residuals() {
     'user operation and interaction rules' \
     'state flow' \
     'business rules' \
-    'role-specific PRD bundle' \
+    'role-specific PRD package' \
     'role: frontend | backend' \
     '前端开发角色视角 PRD' \
     '后端开发角色视角 PRD' \
     'Role PRD acceptance standards' \
     'Given / When / Then' \
-    'no-child single-file mode' \
+    'business delivery boundary' \
     'tree mode' \
     'test cases' \
     'testing points' \
@@ -239,8 +241,8 @@ check_native_skill_residuals() {
     '功能清单表' \
     '字段规则表' \
     'STAGE 4 输出要求' \
-    '<父级需求名称>.md' \
-    'Every parent and child PRD file must be a complete selected-role PRD' \
+    '.lanhu/MM-DD-需求名称/prds/' \
+    'Every PRD file must be a complete selected-role PRD' \
     'index.md` is never a substitute'
   do
     if ! grep -Fq "$required" "$brainstorming_skill"; then

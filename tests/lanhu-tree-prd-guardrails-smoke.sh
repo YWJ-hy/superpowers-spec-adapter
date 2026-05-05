@@ -43,9 +43,17 @@ for required in \
   '功能清单表' \
   '字段规则表' \
   'STAGE 4 输出要求' \
-  '.lanhu/MM-DD-账单寄送/账单寄送.md' \
+  '.lanhu/MM-DD-需求名称/prd.md' \
+  'business delivery boundary' \
+  'not page count' \
+  'list/detail/modal/drawer' \
+  'independently delivered, owned, or accepted' \
+  'Tree mode is first-level structure' \
+  'split further' \
   'index.md` is never a substitute' \
   'Mermaid flowchart' \
+  'complex state page' \
+  'simple pages can keep the table' \
   'mindmap only for small/simple structures' \
   'short node labels' \
   'limited depth' \
@@ -66,9 +74,16 @@ for required in \
   'Role PRD heading validation' \
   '# 前端开发角色视角 PRD' \
   '# 后端开发角色视角 PRD' \
-  '<父级需求名称>.md' \
+  '.lanhu/MM-DD-需求名称/prds/' \
+  'business delivery boundary' \
+  'not page count' \
+  'list/detail/modal/drawer' \
+  'independently delivered, owned, or accepted' \
+  'tree-mode PRD' \
   'index.md` is never a substitute' \
   'Mermaid flowchart' \
+  'complex state page' \
+  'simple pages can keep the table' \
   'mindmap only for small/simple structures' \
   'short node labels' \
   'limited depth' \
@@ -89,8 +104,13 @@ for required in \
   '功能清单表' \
   '字段规则表' \
   'STAGE 4 输出要求' \
-  '<父级需求名称>.md' \
-  'Every parent and child PRD file must be a complete selected-role PRD' \
+  '.lanhu/MM-DD-需求名称/prds/' \
+  'business delivery boundary' \
+  'not page count' \
+  'list/detail/modal/drawer' \
+  'independently delivered, owned, or accepted' \
+  'Tree mode is first-level structure' \
+  'Every PRD file must be a complete selected-role PRD' \
   'index.md` is never a substitute' \
   'Mermaid flowchart' \
   'mindmap is allowed only for small/simple structures' \

@@ -47,9 +47,9 @@ fi
 
 for required in \
   'lanhu-requirements-analyst' \
-  '.lanhu/MM-DD-需求命名.md' \
-  '.lanhu/MM-DD-父级需求名称/' \
-  '<父级需求名称>.md' \
+  '.lanhu/MM-DD-需求名称/prd.md' \
+  '.lanhu/MM-DD-需求名称/' \
+  '.lanhu/MM-DD-需求名称/prds/' \
   'index.md' \
   'Lanhu MCP is optional' \
   'do not block brainstorming' \
@@ -57,13 +57,13 @@ for required in \
   'user operation and interaction rules' \
   'state flow' \
   'business rules' \
-  'role-specific PRD bundle' \
+  'role-specific PRD package' \
   'role: frontend | backend' \
   '前端开发角色视角 PRD' \
   '后端开发角色视角 PRD' \
   'Role PRD acceptance standards' \
   'Given / When / Then' \
-  'no-child single-file mode' \
+  'business delivery boundary' \
   'tree mode' \
   'test cases' \
   'testing points' \
@@ -96,9 +96,11 @@ for required in \
   '功能清单表' \
   '字段规则表' \
   'STAGE 4 输出要求' \
-  'Every parent and child PRD file must be a complete selected-role PRD' \
+  'Every PRD file must be a complete selected-role PRD' \
   'index.md` is never a substitute' \
   'Mermaid flowchart' \
+  'complex state page' \
+  'simple pages can keep the table' \
   'mindmap is allowed only for small/simple structures' \
   'short node labels' \
   'limited depth' \
