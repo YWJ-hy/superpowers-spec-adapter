@@ -52,13 +52,19 @@ for required in \
   'split further' \
   'index.md` is never a substitute' \
   'Mermaid flowchart' \
-  'complex state page' \
-  'simple pages can keep the table' \
-  'mindmap only for small/simple structures' \
-  'short node labels' \
-  'limited depth' \
-  'Split dense diagrams' \
-  'move details to tables'
+  '复杂状态页面' \
+  '简单页面可只保留表格' \
+  '只有在结构很小、层级很浅时才使用 `mindmap`' \
+  '单个节点建议 4–12 个中文字符' \
+  '推荐最大层级 3 层' \
+  '如果内容过多，请拆成多个小图' \
+  '将细节放入后续表格和章节' \
+  'templateCompliance' \
+  'selectedTemplate' \
+  'checkedAgainstFullSourceTemplate' \
+  'missingTemplateRequirements' \
+  'genericHeadingsDetected' \
+  'forbiddenContentDetected'
 do
   require_in_file "$LANHU_AGENT" "$required"
 done
@@ -71,7 +77,13 @@ for required in \
   'one combined MCP response to generate multiple PRD files' \
   'raw evidence only' \
   'not the adapter output schema' \
-  'Role PRD heading validation' \
+  'Lightweight Role PRD pre-write gate' \
+  'templateCompliance' \
+  'selectedTemplate' \
+  'checkedAgainstFullSourceTemplate' \
+  'missingTemplateRequirements' \
+  'genericHeadingsDetected' \
+  'forbiddenContentDetected' \
   '# 前端开发角色视角 PRD' \
   '# 后端开发角色视角 PRD' \
   '.lanhu/MM-DD-需求名称/prds/' \
@@ -82,8 +94,8 @@ for required in \
   'tree-mode PRD' \
   'index.md` is never a substitute' \
   'Mermaid flowchart' \
-  'complex state page' \
-  'simple pages can keep the table' \
+  '复杂状态页面' \
+  '简单页面可只保留表格' \
   'mindmap only for small/simple structures' \
   'short node labels' \
   'limited depth' \
@@ -117,7 +129,13 @@ for required in \
   'short node labels' \
   'limited depth' \
   'Split dense diagrams' \
-  'move details to tables'
+  'move details to tables' \
+  'templateCompliance' \
+  'selectedTemplate' \
+  'checkedAgainstFullSourceTemplate' \
+  'missingTemplateRequirements' \
+  'genericHeadingsDetected' \
+  'forbiddenContentDetected'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

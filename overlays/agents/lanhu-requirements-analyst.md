@@ -125,76 +125,950 @@ Allowed role-specific PRD content:
 
 ## Role PRD template contract
 
-The maintained source templates live in the adapter repository under `role-prd/frontend.md` and `role-prd/backend.md`. Installed agents must be self-contained, so follow the template structures below directly.
+The maintained source templates live in the adapter repository under `role-prd/frontend.md` and `role-prd/backend.md`. Installed agents must be self-contained, so the source templates are synchronized verbatim into this file before installation.
 
-For every `requirementsDocuments[].markdown`:
-- If `role: frontend`, use the frontend PRD headings exactly and in order.
-- If `role: backend`, use the backend PRD headings exactly and in order.
-- Do not omit a section. If Lanhu evidence is insufficient, fill it with reasonable assumptions marked `假设` and list unresolved items in `待确认问题`.
-- Do not output generic requirement headings instead of the selected role PRD template.
+The analyst owns the main template compliance self-check before returning YAML. For every `requirementsDocuments[].markdown`:
+- If `role: frontend`, use the complete frontend role PRD source template below.
+- If `role: backend`, use the complete backend role PRD source template below.
+- Check the generated PRD against the complete selected source template below, not against a hand-maintained summary or heading list.
+- Do not omit sections from the selected source template. If Lanhu evidence is insufficient, fill it with reasonable assumptions marked `假设` and list unresolved items in `待确认问题`.
+- Do not output generic requirement headings such as `来源信息`, `需求目标`, `页面结构`, or `操作规则` instead of the selected role PRD template.
+- Do not copy Lanhu MCP output-format headings such as `本组核心N点`, `功能清单表`, `字段规则表`, or `STAGE 4 输出要求` into the PRD schema.
+- Detect and remove forbidden content before returning, including tests, testing points, technical test plans, frontend component decomposition, backend API guesses, database impacts, implementation plans, and affected file analysis.
+- If the self-check fails, regenerate internally from the same page-by-page evidence before returning `status: ok`.
+- If the selected template contract cannot be satisfied, return `status: partial` with `templateCompliance.caveats` instead of `status: ok`.
 
-### Frontend role PRD template
+<!-- superpower-adapter:role-prd-templates:start -->
+<!-- Generated from role-prd/*.md. Run `./manage.sh install` or `python3 lib/sync_role_prd.py sync` to refresh. -->
 
-Use `# 前端开发角色视角 PRD` and these sections:
+### Frontend role PRD source template
 
-1. `## 一、需求概览`
-2. `## 二、需求思维导图` with Mermaid flowchart requirements structure overview covering 需求背景, 目标用户, 页面范围, 页面布局结构, 核心流程, 字段 UI, 页面状态, 权限表现, 异常场景, 待确认问题; use mindmap only for small/simple structures
-3. `## 三、页面与入口范围`
-4. `## 四、页面展示规则`
-   - include `### 4.1 页面布局结构草图` using low-fidelity XML-like tags to describe page/layout-area/information hierarchy
-   - include `### 4.2 展示规则说明` organized by the sketch's pages/layout areas
-5. `## 五、字段 UI 控件说明`
-6. `## 六、用户操作与交互规则`
-   - `### 6.1 用户操作流程` with normal flow, abnormal flow, and Mermaid flowchart describing only user actions and page feedback
-   - `### 6.2 交互规则` describing interaction feedback and constraints without repeating the flow steps
-7. `## 七、页面状态流转`
-8. `## 八、权限与可见性`
-9. `## 九、前后端协作信息`
-   - `### 9.1 页面初始化需要的信息`
-   - `### 9.2 用户提交时需要的信息`
-   - `### 9.3 后端返回时前端需要识别的信息`
-10. `## 十、异常与边界场景`
-11. `## 十一、埋点与数据分析需求`
-12. `## 十二、前端验收标准` using Given / When / Then
-13. `## 十三、风险与依赖`
-14. `## 十四、待确认问题`
-15. `## 十五、输出要求`
+Generated verbatim from `role-prd/frontend.md`. Treat the template content below as the selected role PRD contract.
 
-Frontend PRDs must focus on page scope, page display, field UI, user operation and interaction rules, page states, permission visibility, exceptions, frontend/backend collaboration information, analytics needs, and frontend acceptance standards. When `## 七、页面状态流转` describes a complex state page, add a Mermaid flowchart; simple pages can keep the table. Role PRD diagrams must use Mermaid flowchart by default for readability; mindmap is allowed only for small/simple structures. Diagram nodes must use short node labels, limited depth, and limited branching; do not put long sentences or detailed rules in nodes. Split dense diagrams or move details to tables and later sections. Frontend PRDs must include a low-fidelity 页面布局结构草图 under `## 四、页面展示规则`, using XML-like business-area tags such as `page`, `header-area`, `filter-area`, `content-area`, `form-area`, `action-area`, `modal-area`, and `empty-state` to describe page/layout-area/information hierarchy. Later frontend sections for display rules, field UI, user operation and interaction rules, page states, permission visibility, exceptions, analytics, and acceptance standards must be organized by those pages/layout areas where possible. The XML-like sketch is product structure only, not implementation code or HTML DOM; do not include CSS class/style, JavaScript, event handlers, framework names, component-library names, route paths, file names, component decomposition, state-management implementation, data-fetching implementation, code design, framework choices, component library implementation, concrete components, or development implementation plans.
+`````markdown
+# 前端开发角色视角 PRD 提示词模板
 
-### Backend role PRD template
+````text
+你是一名资深产品经理，请基于我提供的产品需求，生成一份「前端开发角色视角 PRD」。
 
-Use `# 后端开发角色视角 PRD` and these sections:
+注意：
+这不是前端技术方案，不要输出代码结构、框架选型、组件库实现、具体代码或开发实现方案。
+允许使用简单类 XML 标签表达页面布局层级，但该类 XML 仅作为低保真页面结构草图，用于说明页面、区域、信息层级和操作位置；不是前端实现代码，不代表 HTML DOM、组件结构、样式方案或开发方案。
+类 XML 草图不得包含 CSS class/style、JavaScript、事件绑定、框架名、组件库名、路由路径、文件名、组件拆分、状态管理或数据请求实现。
+请站在前端开发理解需求的角度，分析页面范围、页面展示、字段 UI、用户操作与交互规则、页面状态、权限表现、异常场景、前后端协作信息和验收标准。一个 PRD 可以覆盖列表页、详情弹窗、抽屉或跳转等多个页面级交互，只要它们服务同一用户目标和验收边界；跨 PRD 关系以需求包 `index.md` 为准，不要在单个 PRD 中重复维护复杂关系。
 
-1. `## 一、需求概览`
-2. `## 二、需求思维导图` with Mermaid flowchart requirements structure overview covering 需求背景, 核心业务对象, 业务流程, 业务规则, 状态流转, 数据需求, 权限边界, 异常场景, 待确认问题; use mindmap only for small/simple structures
-3. `## 三、业务对象分析`
-4. `## 四、业务对象关系图` with Mermaid when multiple business objects exist
-5. `## 五、业务流程`
-   - `### 5.1 正常业务流程`
-   - `### 5.2 异常业务流程`
-   - `### 5.3 业务流程图` with Mermaid flowchart describing business validation order and success/failure branches
-6. `## 六、业务规则`
-7. `## 七、业务状态流转`
-8. `## 八、数据需求`
-   - `### 8.1 需要保存的业务信息`
-   - `### 8.2 需要返回给前端的信息`
-   - `### 8.3 需要用于查询、筛选或统计的信息`
-9. `## 九、权限与数据范围`
-10. `## 十、前后端协作信息`
-    - `### 10.1 前端提交时后端需要接收的信息`
-    - `### 10.2 后端返回时需要告知前端的信息`
-    - `### 10.3 需要前后端共同确认的边界`
-11. `## 十一、异常与边界场景`
-12. `## 十二、日志、审计与追踪需求`
-13. `## 十三、统计与查询需求`
-14. `## 十四、安全与合规需求`
-15. `## 十五、后端验收标准` using Given / When / Then
-16. `## 十六、风险与依赖`
-17. `## 十七、待确认问题`
-18. `## 十八、输出要求`
+请输出以下内容。以下结构和清单是基础检查框架，不代表完整范围；请结合原始需求补充其他相关页面、流程、规则、边界和待确认问题：
 
-Backend PRDs must focus on business objects, business flows, business rules, state transitions, data needs, permission boundaries, exceptions, system dependencies, audit/logging, statistics/query needs, security/compliance, and backend acceptance standards. Role PRD diagrams must use Mermaid flowchart by default for readability; mindmap is allowed only for small/simple structures. Diagram nodes must use short node labels, limited depth, and limited branching; do not put long sentences or detailed rules in nodes. Split dense diagrams or move details to tables and later sections. Do not output database table design, API paths, request/response schemas, middleware choices, cache/lock schemes, architecture implementation, deployment plans, code structure, or implementation plans.
+# 前端开发角色视角 PRD
+
+## 一、需求概览
+
+- 需求名称：
+- 需求背景：
+- 解决的问题：
+- 目标用户：
+- 核心使用场景：
+- 前端侧体验目标：
+- 本期范围：
+- 非本期范围：
+
+---
+
+## 二、需求思维导图
+
+请使用 Mermaid 输出需求结构总览图，默认使用 `flowchart TB` 或 `flowchart LR`；只有在结构很小、层级很浅时才使用 `mindmap`。
+
+要求包含：
+- 需求背景
+- 目标用户
+- 页面范围
+- 页面布局结构
+- 核心流程
+- 字段 UI
+- 页面状态
+- 权限表现
+- 异常场景
+- 待确认问题
+
+图形可读性要求：
+- 优先使用 Mermaid flowchart，避免生成大型 mindmap。
+- 图中节点只放关键词，不放长句、字段说明、规则正文、验收标准或异常详情。
+- 单个节点建议 4–12 个中文字符。
+- 推荐最大层级 3 层。
+- 单个节点子节点建议不超过 5 个。
+- 如果内容过多，请拆成多个小图，或将细节放入后续表格和章节。
+- 多页面、多角色、多业务对象或 Lanhu tree mode 场景不要使用大型 mindmap。
+
+示例：
+
+flowchart TB
+  R[需求名称]
+  R --> B[需求背景]
+  R --> P[页面范围]
+  R --> F[核心流程]
+  R --> S[页面状态]
+  R --> E[异常场景]
+  R --> Q[待确认问题]
+
+  B --> B1[解决问题]
+  B --> B2[目标用户]
+  P --> P1[列表页]
+  P --> P2[详情页]
+  P --> P3[编辑页]
+  F --> F1[正常流程]
+  F --> F2[异常流程]
+  S --> S1[加载中]
+  S --> S2[空数据]
+  S --> S3[提交失败]
+
+---
+
+## 三、页面与入口范围
+
+请分析本需求涉及哪些页面、入口和跳转关系。
+
+| 页面名称 | 页面入口 | 页面类型 | 主要功能 | 是否新增 | 是否需要权限 |
+|---|---|---|---|---|---|
+
+页面类型示例：
+- 列表页
+- 详情页
+- 新增页
+- 编辑页
+- 配置页
+- 弹窗
+- 抽屉
+- 结果页
+
+请补充说明：
+- 用户从哪里进入该功能
+- 页面之间如何跳转
+- 操作完成后回到哪里
+- 是否影响已有页面
+- 是否存在移动端或响应式要求
+
+---
+
+## 四、页面展示规则
+
+### 4.1 页面布局结构草图
+
+请为每个核心页面输出一个简单类 XML 页面布局结构，用于描述页面、区域、信息层级和操作位置。
+
+要求：
+- 该类 XML 仅是低保真产品结构草图，不是前端实现代码
+- 标签名使用业务语义，不使用真实 HTML 标签作为实现暗示，例如 page、header-area、filter-area、content-area、form-area、action-area、modal-area、empty-state
+- 标签内容使用自然语言描述业务区域、字段信息和用户操作
+- 不输出 CSS class/style、JavaScript、事件绑定、组件名称、框架名称、路由路径、代码文件名或实现细节
+- 不描述组件拆分、状态管理、数据请求、渲染实现或开发方案
+- 多页面需求需分别输出每个页面的结构草图
+- 后续 PRD 章节中的展示规则、字段 UI、用户操作与交互规则、页面状态、权限表现、异常场景、埋点和验收标准，应尽量按该结构草图中的页面/区域展开说明
+
+示例：
+
+```xml
+<page name="需求列表页">
+  <header-area>页面标题、页面说明、主要操作入口</header-area>
+  <filter-area>关键词搜索、状态筛选、查询和重置操作</filter-area>
+  <content-area>需求列表、核心字段、行内操作</content-area>
+  <pagination-area>分页信息和翻页操作</pagination-area>
+  <modal-area>新增、编辑、删除确认等弹窗或抽屉</modal-area>
+  <empty-state>无数据时的提示文案和可执行操作</empty-state>
+</page>
+```
+
+### 4.2 展示规则说明
+
+请按本节「页面布局结构草图」中的页面/布局区域说明展示内容，页面/布局区域名称应尽量与类 XML 草图保持一致。
+
+| 页面/布局区域 | 展示内容 | 展示条件 | 数据来源说明 | 空状态表现 |
+|---|---|---|---|---|
+
+请至少从以下基础维度检查展示规则，并结合原始需求补充其他相关展示内容：
+- 页面标题
+- 页面说明文案
+- 核心信息展示
+- 操作按钮
+- 列表字段
+- 详情字段
+- 空数据展示
+- 加载中展示
+- 加载失败展示
+- 成功提示
+- 失败提示
+
+---
+
+## 五、字段 UI 控件说明
+
+请按第四节「页面展示规则」中的「页面布局结构草图」列出字段和 UI 控件。
+
+注意：
+只描述字段对应的 UI 形态和交互要求，不指定具体组件库或代码实现。
+
+| 页面/布局区域 | 字段名称 | 字段含义 | UI 控件类型 | 是否必填 | 默认值 | 可编辑条件 | 校验规则 | 错误提示 |
+|---|---|---|---|---|---|---|---|---|
+
+UI 控件类型示例：
+- 输入框
+- 文本域
+- 单选
+- 多选
+- 下拉选择
+- 日期选择
+- 时间选择
+- 开关
+- 上传控件
+- 表格
+- 树形选择
+- 级联选择
+- 弹窗
+- 抽屉
+
+请补充：
+- 字段是否只读
+- 字段是否可编辑
+- 字段是否有默认值
+- 字段之间是否存在联动关系
+- 字段为空时如何展示
+- 字段错误时如何提示
+
+---
+
+## 六、用户操作与交互规则
+
+### 6.1 用户操作流程
+
+请从用户视角描述完整流程，只描述用户操作路径和关键页面反馈，不展开字段校验、按钮禁用、提示文案等交互细节。
+
+#### 6.1.1 正常流程
+
+说明用户从进入页面到完成目标操作的完整路径。
+
+#### 6.1.2 异常流程
+
+请至少考虑以下异常流程，并结合原始需求补充其他相关流程：
+- 用户取消
+- 用户返回
+- 用户刷新页面
+- 用户重复点击
+- 表单填写错误
+- 网络异常
+- 接口失败
+- 权限不足
+- 数据不存在
+- 数据状态变化
+
+#### 6.1.3 前端用户流程图
+
+请使用 Mermaid flowchart 输出用户操作流程图。
+
+要求：
+- 只描述用户操作和页面反馈
+- 不描述代码逻辑
+- 不描述技术实现
+- 不重复 `### 6.2 交互规则` 中的字段校验、按钮状态和提示文案细节
+
+### 6.2 交互规则
+
+请描述用户可以进行的操作，并明确交互对象所在的页面/布局区域。只补充交互反馈和约束，不重复用户操作流程步骤。
+
+| 页面/布局区域 | 交互对象 | 触发动作 | 可操作条件 | 页面反馈 | 异常处理 |
+|---|---|---|---|---|---|
+
+请至少从以下基础操作类型检查交互规则，并结合原始需求补充其他相关交互：
+- 按钮点击
+- 表单输入
+- 搜索
+- 筛选
+- 排序
+- 分页
+- Tab 切换
+- 弹窗打开
+- 弹窗关闭
+- 二次确认
+- 保存
+- 提交
+- 取消
+- 删除
+- 返回
+- 刷新
+
+请明确：
+- 哪些按钮什么时候可点击
+- 哪些按钮什么时候置灰
+- 哪些操作需要二次确认
+- 操作成功后页面如何变化
+- 操作失败后用户如何继续操作
+
+---
+
+## 七、页面状态流转
+
+请描述页面在不同用户操作下的状态变化。复杂状态页面（状态切换较多、包含异步加载、权限分支、空态/错误态回退）应补一张 Mermaid flowchart；简单页面可只保留表格。
+
+| 当前页面状态 | 用户动作 | 系统反馈 | 下一个页面状态 | 异常表现 |
+|---|---|---|---|---|
+
+页面状态示例：
+- 初始态
+- 加载中
+- 加载成功
+- 空数据
+- 编辑中
+- 提交中
+- 提交成功
+- 提交失败
+- 无权限
+- 已失效
+- 数据不存在
+
+要求：
+- 只描述页面状态和用户感知
+- 如状态只影响局部区域，请说明对应的页面/布局区域；如影响整页，请明确为整页状态
+- 不描述前端状态管理实现方案
+
+---
+
+## 八、权限与可见性
+
+请说明不同用户角色下各页面/布局区域的页面表现。
+
+| 用户角色 | 可见页面/布局区域 | 可见内容 | 可见按钮 | 可执行操作 | 无权限表现 |
+|---|---|---|---|---|---|
+
+请明确：
+- 无权限时是隐藏、置灰还是提示
+- 直接访问无权限页面时如何展示
+- 无权限操作时如何提示
+- 字段级内容是否需要隐藏或脱敏
+- 不同角色是否看到不同文案或操作入口
+
+---
+
+## 九、前后端协作信息
+
+只描述前端需要什么业务信息，不设计接口路径、接口字段结构或技术实现。
+请按页面/布局区域说明前端需要的业务信息及其用途。
+
+请说明：
+
+### 9.1 页面初始化需要的信息
+
+- 页面打开时需要哪些业务数据
+- 哪些数据用于展示
+- 哪些数据用于判断权限
+- 哪些数据用于判断按钮状态
+
+### 9.2 用户提交时需要的信息
+
+- 用户操作时需要提交哪些业务信息
+- 哪些信息来自用户输入
+- 哪些信息来自当前页面上下文
+- 哪些信息需要后端校验
+
+### 9.3 后端返回时前端需要识别的信息
+
+- 操作是否成功
+- 失败原因
+- 当前业务状态
+- 权限结果
+- 是否允许继续操作
+- 是否需要刷新页面
+- 是否需要跳转页面
+
+---
+
+## 十、异常与边界场景
+
+请至少考虑以下场景，并结合原始需求补充其他相关边界场景；同时说明异常影响的是整页、特定页面/布局区域、字段区域、弹窗/抽屉，还是操作结果提示。
+
+| 场景 | 影响范围 | 页面表现 | 提示文案 | 用户可执行操作 |
+|---|---|---|---|---|
+
+基础场景包括但不限于：
+- 数据为空
+- 数据不存在
+- 数据已被删除
+- 数据状态已变化
+- 用户权限变化
+- 网络异常
+- 加载失败
+- 提交失败
+- 重复点击
+- 表单校验失败
+- 后端返回业务错误
+- 登录失效
+- 页面刷新
+- 用户中途退出
+
+---
+
+## 十一、埋点与数据分析需求
+
+请列出需要关注的用户行为，埋点场景应尽量关联到具体页面/布局区域或关键用户操作。
+
+| 页面/布局区域 | 埋点场景 | 触发时机 | 记录内容 | 业务目的 |
+|---|---|---|---|---|
+
+建议至少从以下基础维度检查埋点需求，并结合原始需求补充其他相关行为：
+- 页面曝光
+- 关键按钮点击
+- 表单提交
+- 提交成功
+- 提交失败
+- 搜索
+- 筛选
+- Tab 切换
+- 弹窗曝光
+- 异常提示曝光
+
+---
+
+## 十二、前端验收标准
+
+请使用 Given / When / Then 格式输出，并覆盖第四节「页面展示规则」中的核心页面/布局区域。
+
+请至少包含以下基础验收场景，并结合原始需求补充其他关键验收场景：
+- 页面正常展示
+- 空状态
+- 加载失败
+- 字段展示
+- 字段校验
+- 操作成功
+- 操作失败
+- 权限控制
+- 重复操作
+- 页面跳转
+- 异常提示
+
+示例：
+
+Given 用户已登录且拥有操作权限
+When 用户进入页面
+Then 页面应展示核心业务信息
+And 可操作按钮应根据当前业务状态正确展示
+
+Given 用户填写必填字段不完整
+When 用户点击提交
+Then 页面应阻止提交
+And 展示对应字段的错误提示
+
+---
+
+## 十三、风险与依赖
+
+请列出：
+
+| 风险/依赖 | 说明 | 影响范围 | 建议处理方式 |
+|---|---|---|---|
+
+建议至少从以下基础维度识别风险与依赖，并结合原始需求补充其他相关风险：
+- 页面范围不明确
+- 字段含义不明确
+- 权限表现不明确
+- 状态变化不明确
+- 异常提示不明确
+- 前后端协作边界不明确
+- UI 设计依赖
+- 埋点口径依赖
+- 测试数据依赖
+
+---
+
+## 十四、待确认问题
+
+如果原始需求中存在不明确的信息，请先基于合理假设补全，再列出待确认问题。
+
+| 问题 | 影响范围 | 建议确认对象 | 优先级 |
+|---|---|---|---|
+
+---
+
+## 十五、输出要求
+
+请使用 Markdown 输出完整「前端开发角色视角 PRD」。
+
+要求：
+- 面向前端开发理解需求
+- 必须在 `## 四、页面展示规则` 中包含页面布局结构草图，用简单类 XML 标签描述页面、区域和信息层级
+- 类 XML 草图仅用于产品结构说明，不得作为实现代码、HTML DOM、组件结构或 DOM 实现方案
+- 后续章节应按页面布局结构中的页面/区域展开字段 UI、用户操作与交互规则、页面状态、权限表现、异常场景、埋点和验收标准
+- 不输出技术方案
+- 不输出代码设计
+- 不输出框架选型
+- 不输出组件库实现方案
+- 重点描述页面范围、页面展示、字段 UI、用户操作与交互规则、页面状态、权限表现和异常场景
+- 所有不确定内容需标注“假设”或“待确认”
+
+````
+`````
+
+### Backend role PRD source template
+
+Generated verbatim from `role-prd/backend.md`. Treat the template content below as the selected role PRD contract.
+
+````markdown
+# 后端开发角色视角 PRD 提示词模板
+
+```text
+你是一名资深产品经理，请基于我提供的产品需求，生成一份「后端开发角色视角 PRD」。
+
+注意：
+这不是后端技术方案，不要输出具体数据库表设计、接口路径、代码结构、中间件选型、缓存方案、锁方案、架构实现或部署方案。
+请站在后端开发理解需求的角度，分析业务对象、业务流程、业务规则、数据需求、权限边界、状态流转、异常场景、系统依赖、日志审计和验收标准。一个 PRD 可以覆盖多个入口、页面级触发或操作链路，只要它们服务同一业务目标和验收边界；跨 PRD 关系以需求包 `index.md` 为准，不要在单个 PRD 中重复维护复杂关系。
+
+请输出以下内容。以下结构和清单是基础检查框架，不代表完整范围；请结合原始需求补充其他相关场景、规则、边界和待确认问题：
+
+# 后端开发角色视角 PRD
+
+## 一、需求概览
+
+- 需求名称：
+- 需求背景：
+- 解决的问题：
+- 目标用户：
+- 核心业务场景：
+- 后端需要支持的业务能力：
+- 本期范围：
+- 非本期范围：
+
+---
+
+## 二、需求思维导图
+
+请使用 Mermaid 输出需求结构总览图，默认使用 `flowchart TB` 或 `flowchart LR`；只有在结构很小、层级很浅时才使用 `mindmap`。
+
+要求包含：
+- 需求背景
+- 核心业务对象
+- 业务流程
+- 业务规则
+- 状态流转
+- 数据需求
+- 权限边界
+- 异常场景
+- 待确认问题
+
+图形可读性要求：
+- 优先使用 Mermaid flowchart，避免生成大型 mindmap。
+- 图中节点只放关键词，不放长句、业务规则正文、数据说明、验收标准或异常详情。
+- 单个节点建议 4–12 个中文字符。
+- 推荐最大层级 3 层。
+- 单个节点子节点建议不超过 5 个。
+- 如果内容过多，请拆成多个小图，或将细节放入后续表格和章节。
+- 多页面、多角色、多业务对象或 Lanhu tree mode 场景不要使用大型 mindmap。
+
+示例：
+
+flowchart TB
+  R[需求名称]
+  R --> B[需求背景]
+  R --> O[业务对象]
+  R --> F[业务流程]
+  R --> G[业务规则]
+  R --> S[状态流转]
+  R --> E[异常场景]
+  R --> Q[待确认问题]
+
+  O --> O1[用户]
+  O --> O2[订单]
+  O --> O3[任务]
+  F --> F1[创建]
+  F --> F2[修改]
+  F --> F3[查询]
+  G --> G1[权限规则]
+  G --> G2[唯一规则]
+  S --> S1[初始]
+  S --> S2[处理中]
+  S --> S3[完成]
+
+---
+
+## 三、业务对象分析
+
+请分析需求涉及的核心业务对象。
+
+| 业务对象 | 业务含义 | 关键业务信息 | 相关对象 | 是否存在状态 |
+|---|---|---|---|---|
+
+请说明：
+- 涉及哪些业务对象
+- 每个对象代表什么业务含义
+- 对象之间有什么业务关系
+- 哪些对象需要新增
+- 哪些对象需要修改
+- 哪些对象需要查询
+- 哪些对象需要删除、取消或关闭
+- 哪些对象存在状态变化
+
+---
+
+## 四、业务对象关系图
+
+如涉及多个对象，请使用 Mermaid 输出业务对象关系图。
+
+要求：
+- 只描述业务对象之间的关系
+- 不设计数据库表关系
+- 不输出表结构、主键、外键等技术实现
+
+示例：
+
+flowchart LR
+  用户 --> 订单
+  订单 --> 商品
+  订单 --> 支付记录
+
+---
+
+## 五、业务流程
+
+请从后端业务处理角度描述流程。
+
+### 5.1 正常业务流程
+
+请说明：
+- 用户发起什么业务动作
+- 系统需要校验什么业务条件
+- 系统需要处理什么业务对象
+- 操作成功后业务结果是什么
+- 需要通知前端什么结果
+
+### 5.2 异常业务流程
+
+请至少考虑以下异常类型，并结合原始需求补充其他相关异常：
+- 参数缺失
+- 参数不合法
+- 权限不足
+- 数据不存在
+- 数据重复
+- 状态不允许
+- 重复提交
+- 并发操作导致状态变化
+- 第三方服务失败
+- 系统处理失败
+
+### 5.3 业务流程图
+
+请使用 Mermaid flowchart 输出业务流程图。
+
+要求：
+- 描述业务校验顺序
+- 描述关键业务分支
+- 描述成功与失败路径
+- 不输出代码、架构、中间件或数据库实现
+
+---
+
+## 六、业务规则
+
+请明确系统需要遵守的业务规则。
+
+| 规则编号 | 规则说明 | 触发场景 | 允许条件 | 不允许条件 | 失败提示 |
+|---|---|---|---|---|---|
+
+请至少从以下基础维度检查业务规则，并结合原始需求补充其他相关规则：
+- 创建规则
+- 修改规则
+- 删除/取消规则
+- 查询规则
+- 状态变更规则
+- 权限规则
+- 数据唯一性规则
+- 数据可见性规则
+- 数量限制
+- 时间限制
+- 频率限制
+- 前后置条件
+- 跨对象校验
+
+---
+
+## 七、业务状态流转
+
+如需求涉及订单、任务、审批、发布、支付、报名、活动等状态，请必须输出状态流转。
+
+| 当前状态 | 触发动作 | 触发角色 | 前置条件 | 下一个状态 | 业务影响 | 不允许操作 |
+|---|---|---|---|---|---|---|
+
+请说明：
+- 初始状态
+- 中间状态
+- 结束状态
+- 每个状态允许的操作
+- 每个状态不允许的操作
+- 状态变化由谁触发
+- 状态变化后对业务的影响
+- 非法状态流转如何处理
+
+注意：
+只描述业务状态，不设计数据库字段、状态码或技术实现。
+
+---
+
+## 八、数据需求
+
+只描述业务数据需求，不设计数据库表。
+
+请说明：
+
+### 8.1 需要保存的业务信息
+
+| 信息名称 | 业务含义 | 来源 | 是否必填 | 使用场景 |
+|---|---|---|---|---|
+
+来源示例：
+- 用户填写
+- 系统生成
+- 后端判断
+- 第三方返回
+- 历史数据
+
+### 8.2 需要返回给前端的信息
+
+| 信息名称 | 业务含义 | 使用页面 | 用于展示/判断 |
+|---|---|---|---|
+
+### 8.3 需要用于查询、筛选或统计的信息
+
+| 信息名称 | 使用目的 | 查询维度 | 备注 |
+|---|---|---|---|
+
+---
+
+## 九、权限与数据范围
+
+请说明不同角色的数据访问和操作边界。
+
+| 用户角色 | 可访问数据范围 | 可执行动作 | 不可执行动作 | 无权限结果 |
+|---|---|---|---|---|
+
+请至少从以下基础维度检查权限与数据范围，并结合原始需求补充其他相关边界：
+- 哪些角色可以访问
+- 哪些角色可以新增
+- 哪些角色可以修改
+- 哪些角色可以删除或取消
+- 用户只能看到哪些数据
+- 管理员可以看到哪些数据
+- 是否存在组织、部门、租户、项目等隔离
+- 无权限时应返回什么业务结果
+- 后端需要校验哪些权限边界
+
+---
+
+## 十、前后端协作信息
+
+只描述协作所需的业务信息，不设计接口路径或接口实现。
+
+请说明：
+
+### 10.1 前端提交时后端需要接收的信息
+
+- 用户身份相关信息
+- 当前业务对象信息
+- 用户填写的信息
+- 用户触发的业务动作
+- 当前业务上下文
+
+### 10.2 后端返回时需要告知前端的信息
+
+- 操作是否成功
+- 当前业务状态
+- 失败原因
+- 权限结果
+- 是否允许继续操作
+- 前端是否需要刷新数据
+- 前端是否需要跳转页面
+
+### 10.3 需要前后端共同确认的边界
+
+- 字段含义
+- 字段是否必填
+- 状态含义
+- 错误提示
+- 权限表现
+- 异常处理
+- 列表筛选条件
+- 排序规则
+- 分页规则
+
+---
+
+## 十一、异常与边界场景
+
+请至少考虑以下场景，并结合原始需求补充其他相关边界场景：
+
+| 场景 | 触发条件 | 后端业务判断 | 返回给前端的业务结果 |
+|---|---|---|---|
+
+基础场景包括但不限于：
+- 参数缺失
+- 参数不合法
+- 数据不存在
+- 数据重复
+- 状态不允许
+- 权限不足
+- 用户不存在
+- 用户角色变化
+- 重复提交
+- 并发操作
+- 第三方服务失败
+- 系统处理失败
+- 历史数据不兼容
+- 数据已被删除
+- 数据已被其他人修改
+
+---
+
+## 十二、日志、审计与追踪需求
+
+请说明哪些业务操作需要记录。
+
+| 操作场景 | 记录内容 | 记录目的 | 是否敏感操作 |
+|---|---|---|---|
+
+请至少考虑以下基础记录维度，并结合原始需求补充其他相关审计信息：
+- 操作人
+- 操作时间
+- 操作对象
+- 操作类型
+- 操作结果
+- 失败原因
+- 变更前内容
+- 变更后内容
+- 是否用于问题排查
+- 是否用于审计追踪
+
+注意：
+只描述业务记录需求，不设计日志系统实现。
+
+---
+
+## 十三、统计与查询需求
+
+请说明是否存在查询、筛选、统计需求。
+
+| 查询/统计项 | 使用场景 | 筛选条件 | 排序要求 | 展示对象 |
+|---|---|---|---|---|
+
+请至少从以下基础维度检查查询、筛选和统计需求，并结合原始需求补充其他相关需求：
+- 列表查询
+- 详情查询
+- 条件筛选
+- 排序
+- 数量统计
+- 状态统计
+- 按时间查询
+- 按用户查询
+- 按组织查询
+- 导出需求
+
+---
+
+## 十四、安全与合规需求
+
+请从业务角度描述安全要求。
+
+请至少从以下基础维度检查安全与合规需求，并结合原始需求补充其他相关要求：
+- 是否涉及敏感数据
+- 是否需要脱敏展示
+- 是否需要操作审计
+- 是否需要防止越权访问
+- 是否需要限制高风险操作
+- 是否需要防止重复提交
+- 是否需要限制频繁操作
+- 是否涉及数据导出
+- 是否涉及用户隐私
+
+注意：
+不要输出具体安全技术方案。
+
+---
+
+## 十五、后端验收标准
+
+请使用 Given / When / Then 格式输出。
+
+请至少包含以下基础验收场景，并结合原始需求补充其他关键验收场景：
+- 正常创建
+- 正常查询
+- 正常修改
+- 正常删除/取消
+- 权限不足
+- 数据不存在
+- 数据重复
+- 状态不允许
+- 重复提交
+- 并发场景
+- 第三方失败
+- 系统异常
+- 日志记录
+- 数据范围控制
+
+示例：
+
+Given 用户已登录且拥有操作权限
+When 用户发起合法业务操作
+Then 系统应完成业务规则校验
+And 返回操作成功结果
+And 业务对象状态应符合预期
+And 需要记录的操作日志应被记录
+
+Given 用户没有操作权限
+When 用户发起该业务操作
+Then 系统应拒绝该操作
+And 返回无权限业务结果
+And 不应改变任何业务数据
+
+---
+
+## 十六、风险与依赖
+
+请列出：
+
+| 风险/依赖 | 说明 | 影响范围 | 建议处理方式 |
+|---|---|---|---|
+
+请至少从以下基础维度识别风险与依赖，并结合原始需求补充其他相关风险：
+- 业务规则不明确
+- 数据边界不明确
+- 权限边界不明确
+- 状态流转不明确
+- 前后端理解不一致
+- 历史数据兼容
+- 第三方依赖
+- 统计口径不明确
+- 异常提示不明确
+
+---
+
+## 十七、待确认问题
+
+如果原始需求中存在不明确的信息，请先基于合理假设补全，再列出待确认问题。
+
+| 问题 | 影响范围 | 建议确认对象 | 优先级 |
+|---|---|---|---|
+
+---
+
+## 十八、输出要求
+
+请使用 Markdown 输出完整「后端开发角色视角 PRD」。
+
+要求：
+- 面向后端开发理解需求
+- 不输出技术方案
+- 不输出代码设计
+- 不输出数据库表设计
+- 不输出接口路径设计
+- 重点描述业务对象、业务流程、业务规则、状态流转、数据需求、权限边界和异常场景
+- 所有不确定内容需标注“假设”或“待确认”
+
+```
+````
+
+<!-- superpower-adapter:role-prd-templates:end -->
 
 ## PRD split
 
@@ -212,6 +1086,13 @@ Return only structured YAML in this shape:
 status: ok | unavailable | partial | need_role
 role: frontend | backend
 prdTemplate: frontend_role_prd | backend_role_prd
+templateCompliance:
+  selectedTemplate: frontend | backend
+  checkedAgainstFullSourceTemplate: true
+  missingTemplateRequirements: []
+  genericHeadingsDetected: []
+  forbiddenContentDetected: []
+  caveats: []
 source:
   lanhuUrl: <url if known>
   allowedPages:
@@ -237,6 +1118,7 @@ requirementsDocuments:
       ...
   - relativePath: .lanhu/MM-DD-需求名称/prds/子需求.md
     pageName: <delivery boundary name>
+    documentRole: frontend | backend
     markdown: |
       # 前端开发角色视角 PRD
       ...

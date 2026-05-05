@@ -26,6 +26,8 @@ if [[ ! -d "$TARGET_DIR" ]]; then
   exit 1
 fi
 
+python3 "$SCRIPT_DIR/lib/sync_role_prd.py" sync "$SCRIPT_DIR"
+
 copy_overlay() {
   local source_rel="$1"
   local target_rel="$2"
