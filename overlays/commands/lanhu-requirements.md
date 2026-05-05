@@ -123,21 +123,20 @@ For `role: frontend`, every PRD must include `# 前端开发角色视角 PRD` an
 1. `## 一、需求概览`
 2. `## 二、需求思维导图`
 3. `## 三、页面与入口范围`
-4. `## 四、用户操作流程`
-5. `## 五、页面展示规则`
-6. `## 六、字段 UI 控件说明`
-7. `## 七、交互规则`
-8. `## 八、页面状态流转`
-9. `## 九、权限与可见性`
-10. `## 十、前后端协作信息`
-11. `## 十一、异常与边界场景`
-12. `## 十二、埋点与数据分析需求`
-13. `## 十三、前端验收标准`
-14. `## 十四、风险与依赖`
-15. `## 十五、待确认问题`
-16. `## 十六、输出要求`
+4. `## 四、页面展示规则`
+5. `## 五、字段 UI 控件说明`
+6. `## 六、用户操作与交互规则`
+7. `## 七、页面状态流转`
+8. `## 八、权限与可见性`
+9. `## 九、前后端协作信息`
+10. `## 十、异常与边界场景`
+11. `## 十一、埋点与数据分析需求`
+12. `## 十二、前端验收标准`
+13. `## 十三、风险与依赖`
+14. `## 十四、待确认问题`
+15. `## 十五、输出要求`
 
-Frontend PRDs must also satisfy these internal structure requirements without changing the top-level heading order: `## 二、需求思维导图` contains a Mermaid flowchart requirements structure overview by default and covers 页面布局结构; use mindmap only for small/simple structures; use short node labels, limited depth, and limited branching; split dense diagrams or move details to tables and later sections instead of putting long sentences or detailed rules in diagram nodes; `## 三、页面与入口范围` includes `### 3.1 页面布局结构草图`; the layout sketch uses low-fidelity XML-like business-area tags such as `page`, `header-area`, `filter-area`, `content-area`, `form-area`, `action-area`, `modal-area`, and `empty-state` to describe page/layout-area/information hierarchy; later sections for display rules, field UI, interactions, page states, permission visibility, exceptions, analytics, and acceptance standards are organized by those pages/layout areas where possible. The XML-like sketch is product structure only, not implementation code or HTML DOM; do not include CSS class/style, JavaScript, event handlers, framework names, component-library names, route paths, file names, component decomposition, state-management implementation, or data-fetching implementation.
+Frontend PRDs must also satisfy these internal structure requirements without changing the top-level heading order: `## 二、需求思维导图` contains a Mermaid flowchart requirements structure overview by default and covers 页面布局结构; use mindmap only for small/simple structures; use short node labels, limited depth, and limited branching; split dense diagrams or move details to tables and later sections instead of putting long sentences or detailed rules in diagram nodes; `## 四、页面展示规则` includes `### 4.1 页面布局结构草图` and `### 4.2 展示规则说明`; the layout sketch uses low-fidelity XML-like business-area tags such as `page`, `header-area`, `filter-area`, `content-area`, `form-area`, `action-area`, `modal-area`, and `empty-state` to describe page/layout-area/information hierarchy; `## 六、用户操作与交互规则` includes `### 6.1 用户操作流程` and `### 6.2 交互规则`; later sections for display rules, field UI, user operation and interaction rules, page states, permission visibility, exceptions, analytics, and acceptance standards are organized by those pages/layout areas where possible. The XML-like sketch is product structure only, not implementation code or HTML DOM; do not include CSS class/style, JavaScript, event handlers, framework names, component-library names, route paths, file names, component decomposition, state-management implementation, or data-fetching implementation.
 
 For `role: backend`, every PRD must include `# 后端开发角色视角 PRD` and these headings in order:
 
@@ -211,7 +210,7 @@ Allowed role-specific PRD content:
 - [ ] Role was confirmed as `frontend` or `backend` before Lanhu analysis.
 - [ ] Lanhu MCP unavailability did not block the user.
 - [ ] The PRD was sanitized to exclude tests, testing points, technical test plans, and code-development content.
-- [ ] Frontend output used `# 前端开发角色视角 PRD` and matched the `role-prd/frontend.md` section structure, including the low-fidelity XML-like page layout sketch under `## 三、页面与入口范围`, or backend output used `# 后端开发角色视角 PRD` and matched the `role-prd/backend.md` section structure.
+- [ ] Frontend output used `# 前端开发角色视角 PRD` and matched the `role-prd/frontend.md` section structure, including the low-fidelity XML-like page layout sketch under `## 四、页面展示规则` and the merged `## 六、用户操作与交互规则`, or backend output used `# 后端开发角色视角 PRD` and matched the `role-prd/backend.md` section structure.
 - [ ] Role PRD diagrams used Mermaid flowchart by default, used mindmap only for small/simple structures, used short node labels with limited depth/branching, and moved dense details to tables or later sections.
 - [ ] No-child content used `.lanhu/MM-DD-需求命名.md`.
 - [ ] Child-page content used `.lanhu/MM-DD-父级需求名称/` with a parent PRD named `<父级需求名称>.md`, child markdown files, and `index.md`.

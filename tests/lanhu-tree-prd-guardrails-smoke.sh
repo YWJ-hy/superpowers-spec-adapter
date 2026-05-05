@@ -34,6 +34,11 @@ for required in \
   'one combined parent+children MCP response' \
   'raw evidence labels or external tool commentary only' \
   'not the output schema' \
+  '## 四、页面展示规则' \
+  '### 4.1 页面布局结构草图' \
+  '## 六、用户操作与交互规则' \
+  '### 6.1 用户操作流程' \
+  '### 6.2 交互规则' \
   '本组核心N点' \
   '功能清单表' \
   '字段规则表' \

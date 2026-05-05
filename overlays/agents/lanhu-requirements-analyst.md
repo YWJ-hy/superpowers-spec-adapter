@@ -136,28 +136,27 @@ Use `# 前端开发角色视角 PRD` and these sections:
 1. `## 一、需求概览`
 2. `## 二、需求思维导图` with Mermaid flowchart requirements structure overview covering 需求背景, 目标用户, 页面范围, 页面布局结构, 核心流程, 字段 UI, 页面状态, 权限表现, 异常场景, 待确认问题; use mindmap only for small/simple structures
 3. `## 三、页面与入口范围`
-   - include `### 3.1 页面布局结构草图` using low-fidelity XML-like tags to describe page/layout-area/information hierarchy
-4. `## 四、用户操作流程`
-   - `### 4.1 正常流程`
-   - `### 4.2 异常流程`
-   - `### 4.3 前端用户流程图` with Mermaid flowchart describing only user actions and page feedback
-5. `## 五、页面展示规则`
-6. `## 六、字段 UI 控件说明`
-7. `## 七、交互规则`
-8. `## 八、页面状态流转`
-9. `## 九、权限与可见性`
-10. `## 十、前后端协作信息`
-    - `### 10.1 页面初始化需要的信息`
-    - `### 10.2 用户提交时需要的信息`
-    - `### 10.3 后端返回时前端需要识别的信息`
-11. `## 十一、异常与边界场景`
-12. `## 十二、埋点与数据分析需求`
-13. `## 十三、前端验收标准` using Given / When / Then
-14. `## 十四、风险与依赖`
-15. `## 十五、待确认问题`
-16. `## 十六、输出要求`
+4. `## 四、页面展示规则`
+   - include `### 4.1 页面布局结构草图` using low-fidelity XML-like tags to describe page/layout-area/information hierarchy
+   - include `### 4.2 展示规则说明` organized by the sketch's pages/layout areas
+5. `## 五、字段 UI 控件说明`
+6. `## 六、用户操作与交互规则`
+   - `### 6.1 用户操作流程` with normal flow, abnormal flow, and Mermaid flowchart describing only user actions and page feedback
+   - `### 6.2 交互规则` describing interaction feedback and constraints without repeating the flow steps
+7. `## 七、页面状态流转`
+8. `## 八、权限与可见性`
+9. `## 九、前后端协作信息`
+   - `### 9.1 页面初始化需要的信息`
+   - `### 9.2 用户提交时需要的信息`
+   - `### 9.3 后端返回时前端需要识别的信息`
+10. `## 十、异常与边界场景`
+11. `## 十一、埋点与数据分析需求`
+12. `## 十二、前端验收标准` using Given / When / Then
+13. `## 十三、风险与依赖`
+14. `## 十四、待确认问题`
+15. `## 十五、输出要求`
 
-Frontend PRDs must focus on page scope, user flows, field UI, interaction rules, page states, permission visibility, exceptions, frontend/backend collaboration information, analytics needs, and frontend acceptance standards. Role PRD diagrams must use Mermaid flowchart by default for readability; mindmap is allowed only for small/simple structures. Diagram nodes must use short node labels, limited depth, and limited branching; do not put long sentences or detailed rules in nodes. Split dense diagrams or move details to tables and later sections. Frontend PRDs must include a low-fidelity 页面布局结构草图 under `## 三、页面与入口范围`, using XML-like business-area tags such as `page`, `header-area`, `filter-area`, `content-area`, `form-area`, `action-area`, `modal-area`, and `empty-state` to describe page/layout-area/information hierarchy. Later frontend sections for display rules, field UI, interactions, page states, permission visibility, exceptions, analytics, and acceptance standards must be organized by those pages/layout areas where possible. The XML-like sketch is product structure only, not implementation code or HTML DOM; do not include CSS class/style, JavaScript, event handlers, framework names, component-library names, route paths, file names, component decomposition, state-management implementation, data-fetching implementation, code design, framework choices, component library implementation, concrete components, or development implementation plans.
+Frontend PRDs must focus on page scope, page display, field UI, user operation and interaction rules, page states, permission visibility, exceptions, frontend/backend collaboration information, analytics needs, and frontend acceptance standards. Role PRD diagrams must use Mermaid flowchart by default for readability; mindmap is allowed only for small/simple structures. Diagram nodes must use short node labels, limited depth, and limited branching; do not put long sentences or detailed rules in nodes. Split dense diagrams or move details to tables and later sections. Frontend PRDs must include a low-fidelity 页面布局结构草图 under `## 四、页面展示规则`, using XML-like business-area tags such as `page`, `header-area`, `filter-area`, `content-area`, `form-area`, `action-area`, `modal-area`, and `empty-state` to describe page/layout-area/information hierarchy. Later frontend sections for display rules, field UI, user operation and interaction rules, page states, permission visibility, exceptions, analytics, and acceptance standards must be organized by those pages/layout areas where possible. The XML-like sketch is product structure only, not implementation code or HTML DOM; do not include CSS class/style, JavaScript, event handlers, framework names, component-library names, route paths, file names, component decomposition, state-management implementation, data-fetching implementation, code design, framework choices, component library implementation, concrete components, or development implementation plans.
 
 ### Backend role PRD template
 

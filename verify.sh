@@ -91,6 +91,11 @@ check_optional_integration_overlays() {
     'Split dense diagrams' \
     'move details to tables' \
     '页面布局结构草图' \
+    '## 四、页面展示规则' \
+    '### 4.1 页面布局结构草图' \
+    '## 六、用户操作与交互规则' \
+    '### 6.1 用户操作流程' \
+    '### 6.2 交互规则' \
     'XML-like' \
     'role-prd/frontend.md' \
     'role-prd/backend.md' \
@@ -100,7 +105,8 @@ check_optional_integration_overlays() {
     '.lanhu/MM-DD-父级需求名称/' \
     '<父级需求名称>.md' \
     'index.md' \
-    'page flow' \
+    'page display' \
+    'user operation and interaction rules' \
     'state flow' \
     'business rules' \
     'explicitPageId' \
@@ -190,7 +196,8 @@ check_native_skill_residuals() {
     'index.md' \
     'Lanhu MCP is optional' \
     'do not block brainstorming' \
-    'page flow' \
+    'page display' \
+    'user operation and interaction rules' \
     'state flow' \
     'business rules' \
     'role-specific PRD bundle' \
@@ -223,6 +230,11 @@ check_native_skill_residuals() {
     'one combined MCP response to generate multiple PRD files' \
     'raw evidence only' \
     'not the adapter output schema' \
+    '## 四、页面展示规则' \
+    '### 4.1 页面布局结构草图' \
+    '## 六、用户操作与交互规则' \
+    '### 6.1 用户操作流程' \
+    '### 6.2 交互规则' \
     '本组核心N点' \
     '功能清单表' \
     '字段规则表' \

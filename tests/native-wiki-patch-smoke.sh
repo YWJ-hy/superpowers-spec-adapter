@@ -53,7 +53,8 @@ for required in \
   'index.md' \
   'Lanhu MCP is optional' \
   'do not block brainstorming' \
-  'page flow' \
+  'page display' \
+  'user operation and interaction rules' \
   'state flow' \
   'business rules' \
   'role-specific PRD bundle' \
@@ -86,6 +87,11 @@ for required in \
   'one combined MCP response to generate multiple PRD files' \
   'raw evidence only' \
   'not the adapter output schema' \
+  '## 四、页面展示规则' \
+  '### 4.1 页面布局结构草图' \
+  '## 六、用户操作与交互规则' \
+  '### 6.1 用户操作流程' \
+  '### 6.2 交互规则' \
   '本组核心N点' \
   '功能清单表' \
   '字段规则表' \
