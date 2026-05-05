@@ -81,7 +81,7 @@ The import recursively scans source wiki pages, copies each file into `.superpow
 
 ## Optional Lanhu requirements intake
 
-If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command and `lanhu-requirements-analyst` agent can produce a sanitized frontend/backend role-specific PRD package before Superpowers brainstorming. Role selection is required before Lanhu analysis.
+If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command confirms the PRD role and routes to `lanhu-frontend-requirements-analyst` or `lanhu-backend-requirements-analyst` to produce a sanitized role-specific PRD package before Superpowers brainstorming. Role selection is required before Lanhu analysis.
 
 ```text
 /lanhu-requirements <Lanhu link> 前端 <optional requirement name>
@@ -90,7 +90,7 @@ If the user provides a Lanhu link and Lanhu MCP tools are available, the install
 /lanhu-requirements --role backend <Lanhu link> <optional requirement name>
 ```
 
-If the role is missing or ambiguous, the command asks whether to generate a 前端开发角色视角 PRD or 后端开发角色视角 PRD before reading or analyzing Lanhu. If both roles are needed, generate two separate PRD packages by running the command twice. The maintained prompt sources for these role templates live in `role-prd/frontend.md` and `role-prd/backend.md`; `./manage.sh install` synchronizes those full source templates into the self-contained Lanhu command/agent overlays before installing, and installed agents do not read the source files at runtime. Role PRD diagrams default to Mermaid flowchart for readability, with mindmap reserved for small/simple structures. Frontend role PRDs now include a low-fidelity XML-like 页面布局结构草图 under `## 四、页面展示规则`, and later sections should be organized by those pages/layout areas where possible; `用户操作与交互规则` is grouped under one top-level section with flow and interaction subsections. When `## 七、页面状态流转` is a complex state page, add a Mermaid flowchart; simple pages can keep the table.
+If the role is missing or ambiguous, the command asks whether to generate a 前端开发角色视角 PRD or 后端开发角色视角 PRD before reading or analyzing Lanhu. If both roles are needed, generate two separate PRD packages by running the command twice. The maintained prompt sources for these role templates live in `role-prd/frontend.md` and `role-prd/backend.md`; `./manage.sh install` generates self-contained frontend/backend Lanhu analyst agents from the shared skeleton and the selected role template before installing, and installed agents do not read the source files at runtime. Role PRD diagrams default to Mermaid flowchart for readability, with mindmap reserved for small/simple structures. Frontend role PRDs now include a low-fidelity XML-like 页面布局结构草图 under `## 四、页面展示规则`, and later sections should be organized by those pages/layout areas where possible; `用户操作与交互规则` is grouped under one top-level section with flow and interaction subsections. When `## 七、页面状态流转` is a complex state page, add a Mermaid flowchart; simple pages can keep the table.
 
 The Lanhu output is written to the current project root as a requirement package:
 

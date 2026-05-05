@@ -11,8 +11,13 @@ if [[ ! -f "${TARGET_INPUT}/agents/wiki-researcher.md" ]]; then
   exit 1
 fi
 
-if [[ ! -f "${TARGET_INPUT}/agents/lanhu-requirements-analyst.md" ]]; then
-  printf 'Expected installed lanhu-requirements-analyst agent\n' >&2
+if [[ ! -f "${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md" ]]; then
+  printf 'Expected installed lanhu-frontend-requirements-analyst agent\n' >&2
+  exit 1
+fi
+
+if [[ ! -f "${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md" ]]; then
+  printf 'Expected installed lanhu-backend-requirements-analyst agent\n' >&2
   exit 1
 fi
 
@@ -46,7 +51,8 @@ if ! grep -Fq 'wiki-researcher' "$BRAINSTORMING_SKILL"; then
 fi
 
 for required in \
-  'lanhu-requirements-analyst' \
+  'lanhu-frontend-requirements-analyst' \
+  'lanhu-backend-requirements-analyst' \
   '.lanhu/MM-DD-需求名称/prd.md' \
   '.lanhu/MM-DD-需求名称/' \
   '.lanhu/MM-DD-需求名称/prds/' \

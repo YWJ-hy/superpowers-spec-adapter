@@ -50,9 +50,22 @@ check_optional_integration_overlays() {
   python3 "$SCRIPT_DIR/lib/sync_role_prd.py" check "$SCRIPT_DIR"
   python3 "$SCRIPT_DIR/lib/sync_role_prd.py" check "$SCRIPT_DIR" --target-root "$TARGET_DIR"
 
-  local lanhu_agent="$TARGET_DIR/agents/lanhu-requirements-analyst.md"
+  local lanhu_frontend_agent="$TARGET_DIR/agents/lanhu-frontend-requirements-analyst.md"
+  local lanhu_backend_agent="$TARGET_DIR/agents/lanhu-backend-requirements-analyst.md"
   local lanhu_command="$TARGET_DIR/commands/lanhu-requirements.md"
   local graphify_agent="$TARGET_DIR/agents/graphify-researcher.md"
+
+  for required_file in "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_command"; do
+    if [[ ! -f "$required_file" ]]; then
+      printf 'Missing Lanhu integration file: %s\n' "$required_file" >&2
+      exit 1
+    fi
+  done
+
+  if [[ -f "$TARGET_DIR/agents/lanhu-requirements-analyst.md" ]] && grep -Fq "$MARKER" "$TARGET_DIR/agents/lanhu-requirements-analyst.md"; then
+    printf 'Deprecated Lanhu dual-role analyst remains installed\n' >&2
+    exit 1
+  fi
 
   for forbidden in \
     '# 设计稿事实索引' \
@@ -66,7 +79,7 @@ check_optional_integration_overlays() {
     'design resource links' \
     'UI appearance reference only'
   do
-    if grep -Fq -- "$forbidden" "$lanhu_agent" "$lanhu_command"; then
+    if grep -Fq -- "$forbidden" "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_command"; then
       printf 'Lanhu files still use old design-oriented text: %s\n' "$forbidden" >&2
       exit 1
     fi
@@ -76,34 +89,19 @@ check_optional_integration_overlays() {
     'test cases' \
     'testing points' \
     'technical test plans' \
-    'frontend components' \
+    'frontend component' \
     'backend API' \
     'database' \
     'affected file analysis' \
     'Role PRD acceptance standards' \
     'Given / When / Then' \
-    'role: frontend | backend' \
-    'need_role' \
-    '前端开发角色视角 PRD' \
-    '后端开发角色视角 PRD' \
     'role-specific PRD' \
     'Mermaid flowchart' \
     'mindmap' \
-    '复杂状态页面' \
-    '简单页面可只保留表格' \
     '单个节点建议 4–12 个中文字符' \
     '推荐最大层级 3 层' \
     '如果内容过多，请拆成多个小图' \
     '将细节放入后续表格和章节' \
-    '页面布局结构草图' \
-    '## 四、页面展示规则' \
-    '### 4.1 页面布局结构草图' \
-    '## 六、用户操作与交互规则' \
-    '### 6.1 用户操作流程' \
-    '### 6.2 交互规则' \
-    'XML' \
-    'role-prd/frontend.md' \
-    'role-prd/backend.md' \
     '.superpowers/wiki/' \
     'graphify' \
     '.lanhu/MM-DD-需求名称/prd.md' \
@@ -117,11 +115,7 @@ check_optional_integration_overlays() {
     'lanhu_get_ai_analyze_page_result' \
     'page_names: all' \
     'indexMarkdown' \
-    'Mermaid' \
-    'Do not require Lanhu MCP to be installed' \
-    'Always ask the user to review and confirm' \
     'Do not write `.superpowers/wiki/`' \
-    'Do not invoke graphify' \
     'page-by-page full analysis' \
     'mode: full' \
     'page_names` containing exactly one page' \
@@ -133,17 +127,42 @@ check_optional_integration_overlays() {
     '功能清单表' \
     '字段规则表' \
     'STAGE 4 输出要求' \
-    'index.md` is never a substitute' \
-    '.lanhu/MM-DD-需求名称/prds/'
+    'index.md` is never a substitute'
   do
-    if ! grep -Fq "$required" "$lanhu_agent" "$lanhu_command"; then
+    if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_command"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
       exit 1
     fi
   done
 
-  if grep -Fq '## Role PRD template validation' "$lanhu_command" || grep -Fq 'validate the selected role output against the complete source template below' "$lanhu_command"; then
-    printf 'Lanhu command still owns deep Role PRD template validation wording\n' >&2
+  for required in \
+    'lanhu-frontend-requirements-analyst' \
+    'lanhu-backend-requirements-analyst' \
+    'role: frontend | backend' \
+    'Do not require Lanhu MCP to be installed' \
+    'Always ask the user to review and confirm' \
+    'Do not invoke graphify' \
+    'Lightweight Role PRD pre-write gate' \
+    'templateCompliance' \
+    'selectedTemplate' \
+    'checkedAgainstFullSourceTemplate' \
+    'missingTemplateRequirements' \
+    'genericHeadingsDetected' \
+    'forbiddenContentDetected' \
+    'documentRole' \
+    'requirementsDocuments' \
+    'do not write `.lanhu/` files' \
+    '# 前端开发角色视角 PRD' \
+    '# 后端开发角色视角 PRD'
+  do
+    if ! grep -Fq "$required" "$lanhu_command"; then
+      printf 'Missing Lanhu command guardrail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+
+  if grep -Fq 'Use the `lanhu-requirements-analyst` agent' "$lanhu_command" || grep -Fq 'validate the selected role output against the complete source template below' "$lanhu_command"; then
+    printf 'Lanhu command still references old dual-role analyst or owns deep template validation wording\n' >&2
     exit 1
   fi
 
@@ -154,34 +173,61 @@ check_optional_integration_overlays() {
     'checkedAgainstFullSourceTemplate' \
     'missingTemplateRequirements' \
     'genericHeadingsDetected' \
-    'forbiddenContentDetected' \
-    'complete frontend role PRD source template' \
-    'complete backend role PRD source template'
+    'forbiddenContentDetected'
   do
-    if ! grep -Fq "$required" "$lanhu_agent"; then
+    if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_backend_agent"; then
       printf 'Missing Lanhu analyst compliance guardrail: %s\n' "$required" >&2
       exit 1
     fi
   done
 
   for required in \
-    'Lightweight Role PRD pre-write gate' \
-    'templateCompliance' \
-    'selectedTemplate' \
-    'checkedAgainstFullSourceTemplate' \
-    'missingTemplateRequirements' \
-    'genericHeadingsDetected' \
-    'forbiddenContentDetected' \
-    'documentRole' \
-    'requirementsDocuments' \
-    'indexMarkdown' \
-    'do not write `.lanhu/` files'
+    'role-prd/frontend.md' \
+    'complete frontend role PRD source template' \
+    '前端开发角色视角 PRD' \
+    '页面布局结构草图' \
+    '## 四、页面展示规则' \
+    '### 4.1 页面布局结构草图' \
+    '## 六、用户操作与交互规则' \
+    '### 6.1 用户操作流程' \
+    '### 6.2 交互规则' \
+    'XML' \
+    '复杂状态页面' \
+    '简单页面可只保留表格'
   do
-    if ! grep -Fq "$required" "$lanhu_command"; then
-      printf 'Missing Lanhu command lightweight gate guardrail: %s\n' "$required" >&2
+    if ! grep -Fq "$required" "$lanhu_frontend_agent"; then
+      printf 'Missing frontend Lanhu analyst guardrail: %s\n' "$required" >&2
       exit 1
     fi
   done
+
+  for required in \
+    'role-prd/backend.md' \
+    'complete backend role PRD source template' \
+    '后端开发角色视角 PRD' \
+    '业务对象' \
+    '业务流程' \
+    '业务规则' \
+    '业务状态流转' \
+    '权限与数据范围' \
+    '日志、审计与追踪需求' \
+    '统计与查询需求' \
+    '安全与合规需求'
+  do
+    if ! grep -Fq "$required" "$lanhu_backend_agent"; then
+      printf 'Missing backend Lanhu analyst guardrail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+
+  if grep -Fq '# 后端开发角色视角 PRD 提示词模板' "$lanhu_frontend_agent"; then
+    printf 'Frontend Lanhu analyst contains backend role template\n' >&2
+    exit 1
+  fi
+  if grep -Fq '# 前端开发角色视角 PRD 提示词模板' "$lanhu_backend_agent"; then
+    printf 'Backend Lanhu analyst contains frontend role template\n' >&2
+    exit 1
+  fi
 
   for required in \
     'Graphify is optional' \
@@ -230,7 +276,8 @@ check_native_skill_residuals() {
   fi
   local brainstorming_skill="$TARGET_DIR/skills/brainstorming/SKILL.md"
   for required in \
-    'lanhu-requirements-analyst' \
+    'lanhu-frontend-requirements-analyst' \
+    'lanhu-backend-requirements-analyst' \
     '.lanhu/MM-DD-需求名称/prd.md' \
     '.lanhu/MM-DD-需求名称/' \
     '.lanhu/MM-DD-需求名称/prds/' \
