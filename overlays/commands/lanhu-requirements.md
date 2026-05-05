@@ -137,6 +137,8 @@ For `role: frontend`, every PRD must include `# 前端开发角色视角 PRD` an
 15. `## 十五、待确认问题`
 16. `## 十六、输出要求`
 
+Frontend PRDs must also satisfy these internal structure requirements without changing the top-level heading order: `## 二、需求思维导图` contains a Mermaid flowchart requirements structure overview by default and covers 页面布局结构; use mindmap only for small/simple structures; use short node labels, limited depth, and limited branching; split dense diagrams or move details to tables and later sections instead of putting long sentences or detailed rules in diagram nodes; `## 三、页面与入口范围` includes `### 3.1 页面布局结构草图`; the layout sketch uses low-fidelity XML-like business-area tags such as `page`, `header-area`, `filter-area`, `content-area`, `form-area`, `action-area`, `modal-area`, and `empty-state` to describe page/layout-area/information hierarchy; later sections for display rules, field UI, interactions, page states, permission visibility, exceptions, analytics, and acceptance standards are organized by those pages/layout areas where possible. The XML-like sketch is product structure only, not implementation code or HTML DOM; do not include CSS class/style, JavaScript, event handlers, framework names, component-library names, route paths, file names, component decomposition, state-management implementation, or data-fetching implementation.
+
 For `role: backend`, every PRD must include `# 后端开发角色视角 PRD` and these headings in order:
 
 1. `## 一、需求概览`
@@ -157,6 +159,8 @@ For `role: backend`, every PRD must include `# 后端开发角色视角 PRD` and
 16. `## 十六、风险与依赖`
 17. `## 十七、待确认问题`
 18. `## 十八、输出要求`
+
+Backend PRDs must also satisfy these internal diagram requirements without changing the top-level heading order: `## 二、需求思维导图` contains a Mermaid flowchart requirements structure overview by default; use mindmap only for small/simple structures; use short node labels, limited depth, and limited branching; split dense diagrams or move details to tables and later sections instead of putting long sentences or detailed rules in diagram nodes.
 
 ## Sanitization rules
 
@@ -207,7 +211,8 @@ Allowed role-specific PRD content:
 - [ ] Role was confirmed as `frontend` or `backend` before Lanhu analysis.
 - [ ] Lanhu MCP unavailability did not block the user.
 - [ ] The PRD was sanitized to exclude tests, testing points, technical test plans, and code-development content.
-- [ ] Frontend output used `# 前端开发角色视角 PRD` and matched the `role-prd/frontend.md` section structure, or backend output used `# 后端开发角色视角 PRD` and matched the `role-prd/backend.md` section structure.
+- [ ] Frontend output used `# 前端开发角色视角 PRD` and matched the `role-prd/frontend.md` section structure, including the low-fidelity XML-like page layout sketch under `## 三、页面与入口范围`, or backend output used `# 后端开发角色视角 PRD` and matched the `role-prd/backend.md` section structure.
+- [ ] Role PRD diagrams used Mermaid flowchart by default, used mindmap only for small/simple structures, used short node labels with limited depth/branching, and moved dense details to tables or later sections.
 - [ ] No-child content used `.lanhu/MM-DD-需求命名.md`.
 - [ ] Child-page content used `.lanhu/MM-DD-父级需求名称/` with a parent PRD named `<父级需求名称>.md`, child markdown files, and `index.md`.
 - [ ] Role PRD acceptance standards used Given / When / Then product-behavior criteria only.

@@ -134,8 +134,9 @@ For every `requirementsDocuments[].markdown`:
 Use `# 前端开发角色视角 PRD` and these sections:
 
 1. `## 一、需求概览`
-2. `## 二、需求思维导图` with Mermaid mindmap covering 需求背景, 目标用户, 页面范围, 核心流程, 字段 UI, 页面状态, 权限表现, 异常场景, 待确认问题
+2. `## 二、需求思维导图` with Mermaid flowchart requirements structure overview covering 需求背景, 目标用户, 页面范围, 页面布局结构, 核心流程, 字段 UI, 页面状态, 权限表现, 异常场景, 待确认问题; use mindmap only for small/simple structures
 3. `## 三、页面与入口范围`
+   - include `### 3.1 页面布局结构草图` using low-fidelity XML-like tags to describe page/layout-area/information hierarchy
 4. `## 四、用户操作流程`
    - `### 4.1 正常流程`
    - `### 4.2 异常流程`
@@ -156,14 +157,14 @@ Use `# 前端开发角色视角 PRD` and these sections:
 15. `## 十五、待确认问题`
 16. `## 十六、输出要求`
 
-Frontend PRDs must focus on page scope, user flows, field UI, interaction rules, page states, permission visibility, exceptions, frontend/backend collaboration information, analytics needs, and frontend acceptance standards. Do not output code design, framework choices, component library implementation, concrete components, or development implementation plans.
+Frontend PRDs must focus on page scope, user flows, field UI, interaction rules, page states, permission visibility, exceptions, frontend/backend collaboration information, analytics needs, and frontend acceptance standards. Role PRD diagrams must use Mermaid flowchart by default for readability; mindmap is allowed only for small/simple structures. Diagram nodes must use short node labels, limited depth, and limited branching; do not put long sentences or detailed rules in nodes. Split dense diagrams or move details to tables and later sections. Frontend PRDs must include a low-fidelity 页面布局结构草图 under `## 三、页面与入口范围`, using XML-like business-area tags such as `page`, `header-area`, `filter-area`, `content-area`, `form-area`, `action-area`, `modal-area`, and `empty-state` to describe page/layout-area/information hierarchy. Later frontend sections for display rules, field UI, interactions, page states, permission visibility, exceptions, analytics, and acceptance standards must be organized by those pages/layout areas where possible. The XML-like sketch is product structure only, not implementation code or HTML DOM; do not include CSS class/style, JavaScript, event handlers, framework names, component-library names, route paths, file names, component decomposition, state-management implementation, data-fetching implementation, code design, framework choices, component library implementation, concrete components, or development implementation plans.
 
 ### Backend role PRD template
 
 Use `# 后端开发角色视角 PRD` and these sections:
 
 1. `## 一、需求概览`
-2. `## 二、需求思维导图` with Mermaid mindmap covering 需求背景, 核心业务对象, 业务流程, 业务规则, 状态流转, 数据需求, 权限边界, 异常场景, 待确认问题
+2. `## 二、需求思维导图` with Mermaid flowchart requirements structure overview covering 需求背景, 核心业务对象, 业务流程, 业务规则, 状态流转, 数据需求, 权限边界, 异常场景, 待确认问题; use mindmap only for small/simple structures
 3. `## 三、业务对象分析`
 4. `## 四、业务对象关系图` with Mermaid when multiple business objects exist
 5. `## 五、业务流程`
@@ -190,7 +191,7 @@ Use `# 后端开发角色视角 PRD` and these sections:
 17. `## 十七、待确认问题`
 18. `## 十八、输出要求`
 
-Backend PRDs must focus on business objects, business flows, business rules, state transitions, data needs, permission boundaries, exceptions, system dependencies, audit/logging, statistics/query needs, security/compliance, and backend acceptance standards. Do not output database table design, API paths, request/response schemas, middleware choices, cache/lock schemes, architecture implementation, deployment plans, code structure, or implementation plans.
+Backend PRDs must focus on business objects, business flows, business rules, state transitions, data needs, permission boundaries, exceptions, system dependencies, audit/logging, statistics/query needs, security/compliance, and backend acceptance standards. Role PRD diagrams must use Mermaid flowchart by default for readability; mindmap is allowed only for small/simple structures. Diagram nodes must use short node labels, limited depth, and limited branching; do not put long sentences or detailed rules in nodes. Split dense diagrams or move details to tables and later sections. Do not output database table design, API paths, request/response schemas, middleware choices, cache/lock schemes, architecture implementation, deployment plans, code structure, or implementation plans.
 
 ## PRD split
 

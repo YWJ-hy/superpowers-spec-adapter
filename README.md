@@ -90,7 +90,7 @@ If the user provides a Lanhu link and Lanhu MCP tools are available, the install
 /lanhu-requirements --role backend <Lanhu link> <optional requirement name>
 ```
 
-If the role is missing or ambiguous, the command asks whether to generate a 前端开发角色视角 PRD or 后端开发角色视角 PRD before reading or analyzing Lanhu. If both roles are needed, generate two separate PRD bundles by running the command twice. The maintained prompt sources for these role templates live in `role-prd/frontend.md` and `role-prd/backend.md`; installed agents are self-contained and do not read those files at runtime.
+If the role is missing or ambiguous, the command asks whether to generate a 前端开发角色视角 PRD or 后端开发角色视角 PRD before reading or analyzing Lanhu. If both roles are needed, generate two separate PRD bundles by running the command twice. The maintained prompt sources for these role templates live in `role-prd/frontend.md` and `role-prd/backend.md`; installed agents are self-contained and do not read those files at runtime. Role PRD diagrams default to Mermaid flowchart for readability, with mindmap reserved for small/simple structures. Frontend role PRDs now include a low-fidelity XML-like 页面布局结构草图 under `## 三、页面与入口范围`, and later sections should be organized by those pages/layout areas where possible.
 
 The Lanhu output is written to the current project root in one of two shapes:
 

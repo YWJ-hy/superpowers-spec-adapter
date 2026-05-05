@@ -39,7 +39,13 @@ for required in \
   '字段规则表' \
   'STAGE 4 输出要求' \
   '.lanhu/MM-DD-账单寄送/账单寄送.md' \
-  'index.md` is never a substitute'
+  'index.md` is never a substitute' \
+  'Mermaid flowchart' \
+  'mindmap only for small/simple structures' \
+  'short node labels' \
+  'limited depth' \
+  'Split dense diagrams' \
+  'move details to tables'
 do
   require_in_file "$LANHU_AGENT" "$required"
 done
@@ -56,7 +62,12 @@ for required in \
   '# 前端开发角色视角 PRD' \
   '# 后端开发角色视角 PRD' \
   '<父级需求名称>.md' \
-  'index.md` is never a substitute'
+  'index.md` is never a substitute' \
+  'Mermaid flowchart' \
+  'mindmap only for small/simple structures' \
+  'short node labels' \
+  'limited depth' \
+  'dense details to tables'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
@@ -75,7 +86,13 @@ for required in \
   'STAGE 4 输出要求' \
   '<父级需求名称>.md' \
   'Every parent and child PRD file must be a complete selected-role PRD' \
-  'index.md` is never a substitute'
+  'index.md` is never a substitute' \
+  'Mermaid flowchart' \
+  'mindmap is allowed only for small/simple structures' \
+  'short node labels' \
+  'limited depth' \
+  'Split dense diagrams' \
+  'move details to tables'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

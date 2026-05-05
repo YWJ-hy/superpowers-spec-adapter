@@ -91,7 +91,13 @@ for required in \
   '字段规则表' \
   'STAGE 4 输出要求' \
   'Every parent and child PRD file must be a complete selected-role PRD' \
-  'index.md` is never a substitute'
+  'index.md` is never a substitute' \
+  'Mermaid flowchart' \
+  'mindmap is allowed only for small/simple structures' \
+  'short node labels' \
+  'limited depth' \
+  'Split dense diagrams' \
+  'move details to tables'
 do
   if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
     printf 'Expected brainstorming patch to contain optional Lanhu requirement: %s\n' "$required" >&2

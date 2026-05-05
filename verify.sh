@@ -84,7 +84,14 @@ check_optional_integration_overlays() {
     '前端开发角色视角 PRD' \
     '后端开发角色视角 PRD' \
     'role-specific PRD' \
-    'Mermaid mindmap' \
+    'Mermaid flowchart' \
+    'mindmap only for small/simple structures' \
+    'short node labels' \
+    'limited depth' \
+    'Split dense diagrams' \
+    'move details to tables' \
+    '页面布局结构草图' \
+    'XML-like' \
     'role-prd/frontend.md' \
     'role-prd/backend.md' \
     '.superpowers/wiki/' \
