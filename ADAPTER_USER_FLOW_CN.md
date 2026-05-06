@@ -81,7 +81,7 @@ Superpowers 插件目录
 | 顺序 | 阶段 | 入口 | 是否每次都需要 | 目的 |
 |---|---|---|---|---|
 | 0 | 安装 Superpowers | `/plugin install superpowers@claude-plugins-official` | 只需一次 | 先安装 Superpowers 主插件 |
-| 1 | 安装 adapter | `./manage.sh install` | 只需一次；Superpowers 升级后重跑 | 写入 adapter overlay、agent、command、skill、script |
+| 1 | 安装 adapter | `./manage.sh install` | 只需一次；Superpowers 升级后重跑 | 写入 adapter overlay、agent、command、skill、script；默认覆盖所有已安装 Superpowers 版本目录 |
 | 2 | 校验 adapter | `./manage.sh verify` | 安装或升级后 | 确认安装产物和 native skill patch 完整 |
 | 3 | 初始化 wiki 模板 | `./manage.sh bootstrap-wiki /path/to/project --template standard` | 每个目标项目一次 | 创建 `.superpowers/wiki/` wiki 目录 |
 | 4 | 导入已有 wiki | `/import-wiki` | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/` 格式 |
@@ -127,6 +127,8 @@ Superpowers 插件目录
 ./manage.sh install
 ./manage.sh verify
 ```
+
+如果本机同时保留多个 Superpowers 插件版本，默认会对 `installed_plugins.json` 中所有唯一的 Superpowers 安装目录执行安装和校验；如只想操作某一个版本，可显式传入该 Superpowers 目录。
 
 如果 adapter 是作为其他项目中的 `superpower-adapter/` 目录存在，也可以从宿主项目执行：
 

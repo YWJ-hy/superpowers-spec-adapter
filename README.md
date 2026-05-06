@@ -39,7 +39,7 @@ If this adapter lives as `superpower-adapter/` inside another project, run the s
 ./superpower-adapter/manage.sh verify
 ```
 
-Install-related commands target the user's installed Superpowers Claude Code plugin by default. Commands that read or write `.superpowers/wiki/` require an explicit project root argument.
+Install-related commands target all unique installed Superpowers Claude Code plugin directories by default, so multiple installed versions are patched together. Pass an explicit Superpowers target path to operate on only one plugin directory. Commands that read or write `.superpowers/wiki/` require an explicit project root argument.
 
 ## Bootstrap wiki
 
@@ -221,7 +221,7 @@ The self-test covers:
 
 ## Upgrade workflow
 
-After upgrading the Superpowers plugin, reinstall the adapter overlay:
+After upgrading the Superpowers plugin, reinstall the adapter overlay. If both old and new Superpowers versions remain installed, the default install and verify commands cover both unique plugin directories:
 
 ```bash
 ./manage.sh install

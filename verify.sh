@@ -3,12 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_INPUT="${1:-}"
-TARGET_JSON="$(python3 "$SCRIPT_DIR/lib/resolve_target.py" "$TARGET_INPUT")"
-TARGET_DIR="$(python3 - <<'PY' "$TARGET_JSON"
+TARGETS_JSON="$(python3 "$SCRIPT_DIR/lib/resolve_target.py" --all "$TARGET_INPUT")"
+mapfile -t TARGET_DIRS < <(python3 - <<'PY' "$TARGETS_JSON"
 import json, sys
-print(json.loads(sys.argv[1])['target'])
+for item in json.loads(sys.argv[1])['targets']:
+    print(item['target'])
 PY
-)"
+)
 HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
 NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
@@ -403,11 +404,15 @@ check_native_skill_residuals() {
   printf 'Native skill residual checks OK\n'
 }
 
-while IFS= read -r relative; do
-  relative="${relative%$'\r'}"
-  [[ -z "$relative" ]] && continue
-  check_file "$relative"
-done < <(python3 - <<'PY' "$SCRIPT_DIR"
+verify_target() {
+  TARGET_DIR="$1"
+  printf 'Verifying superpower-adapter in %s\n' "$TARGET_DIR"
+
+  while IFS= read -r relative; do
+    relative="${relative%$'\r'}"
+    [[ -z "$relative" ]] && continue
+    check_file "$relative"
+  done < <(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(sys.argv[1]) / 'lib'))
@@ -415,10 +420,16 @@ from adapter_manifest import installed_paths
 for item in installed_paths(Path(sys.argv[1])):
     print(item)
 PY
-)
-python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
-python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
-check_optional_integration_overlays
-check_native_skill_residuals
+  )
+  python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
+  python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
+  check_optional_integration_overlays
+  check_native_skill_residuals
+}
 
-printf 'superpower-adapter verify complete\n'
+for target_dir in "${TARGET_DIRS[@]}"; do
+  target_dir="${target_dir%$'\r'}"
+  verify_target "$target_dir"
+done
+
+printf 'superpower-adapter verify complete (%s target(s))\n' "${#TARGET_DIRS[@]}"

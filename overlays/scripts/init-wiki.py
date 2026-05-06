@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 from collections import Counter
 from pathlib import Path
 
@@ -35,19 +34,18 @@ STACK_HINTS = {
 
 
 def run_find(project_root: Path) -> list[Path]:
-    command = [
-        "find", str(project_root), "-type", "f", "(",
-        "-name", "*.py", "-o", "-name", "*.ts", "-o", "-name", "*.tsx", "-o",
-        "-name", "*.js", "-o", "-name", "*.jsx", "-o", "-name", "*.go", "-o",
-        "-name", "*.rs", "-o", "-name", "*.java", "-o", "-name", "*.kt", "-o",
-        "-name", "*.swift", "-o", "-name", "*.rb", "-o", "-name", "*.php",
-        ")", "-not", "-path", "*/node_modules/*", "-not", "-path", "*/.git/*",
-        "-not", "-path", "*/dist/*", "-not", "-path", "*/build/*", "-not", "-path", "*/coverage/*",
-        "-not", "-path", "*/.next/*", "-not", "-path", "*/target/*", "-print",
-    ]
-    result = subprocess.run(command, capture_output=True, text=True, check=True)
-    paths = [Path(line.strip()) for line in result.stdout.splitlines() if line.strip()]
-    return paths[:MAX_SCAN_RESULTS]
+    ignored_directories = {"node_modules", ".git", "dist", "build", "coverage", ".next", "target"}
+    suffixes = {suffix for group in EXTENSION_GROUPS.values() for suffix in group}
+    paths: list[Path] = []
+    for path in sorted(project_root.rglob("*")):
+        relative = path.relative_to(project_root)
+        if any(part in ignored_directories for part in relative.parts):
+            continue
+        if path.is_file() and path.suffix.lower() in suffixes:
+            paths.append(path)
+            if len(paths) >= MAX_SCAN_RESULTS:
+                break
+    return paths
 
 
 def read_package_json(project_root: Path) -> dict:
