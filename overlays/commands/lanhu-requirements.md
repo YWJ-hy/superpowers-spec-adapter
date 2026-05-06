@@ -38,6 +38,7 @@ When the requirement needs multiple deliverables, keep the same package director
 - Do not invoke graphify.
 - Do not implement code.
 - Do not run Superpowers writing-plans or execution from this command.
+- Treat this as a standalone adapter requirements-intake command until the user confirms the generated `.lanhu/.../index.md`; do not invoke Superpowers completion, review, verification, or similar workflow skills when this command finishes its local PRD package work.
 - The `.lanhu/` output is a user-confirmed role-specific PRD input, not durable project wiki.
 - Always ask the user to review and confirm the written `.lanhu/.../index.md` entry point before continuing to Superpowers brainstorming.
 - Role selection is mandatory before analysis; if the user asks for both frontend and backend, ask them to choose one for this run.

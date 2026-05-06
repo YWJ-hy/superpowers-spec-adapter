@@ -223,7 +223,7 @@ python3 "$TARGET_DIR/scripts/wiki_update_check.py" --json
 python3 "$TARGET_DIR/scripts/update-wiki.py"
 ```
 
-`/init-wiki` 和 `/import-wiki` 是独立 adapter command，完成后不触发 Superpowers completion verification；`update-wiki` 是自动触发 skill，不保留 slash command 入口。
+`/init-wiki`、`/import-wiki` 和 `/lanhu-requirements` 是独立 adapter command，完成后不触发 Superpowers completion / review / verification；只有命令明确 handoff 且用户确认后，才进入下一步 Superpowers workflow。`update-wiki` 是自动触发 skill，不保留 slash command 入口；它是 adapter 维护和 durable-knowledge review，本地 wiki 校验不等于 Superpowers 实现验证。
 
 ---
 

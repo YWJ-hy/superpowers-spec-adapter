@@ -9,6 +9,12 @@ When you learn something valuable from implementation, debugging, review, or dis
 
 **Timing**: After completing a task, fixing a bug, discovering a new pattern, or making a design decision that future sessions should know.
 
+## Adapter Maintenance Boundary
+
+This skill performs wiki maintenance and durable-knowledge review only. Its local completion proves at most that wiki maintenance ran, indexes were refreshed, mechanical validation was checked, or no durable knowledge needed to persist; it does not prove that implementation, debugging, tests, builds, review, commit readiness, PR readiness, or plan tasks are complete.
+
+Do not invoke Superpowers completion, review, verification, or similar workflow skills solely because `update-wiki` wrote a wiki page, skipped a wiki edit, refreshed indexes, or ran local wiki validation. If you are about to claim the preceding implementation or bug fix is complete, fixed, passing, or ready, that claim must be verified by the originating Superpowers development workflow; `update-wiki` does not replace implementation verification.
+
 ### Input from break-loop
 
 When invoked after `break-loop`, treat the break-loop output as post-debugging context and candidate input only.

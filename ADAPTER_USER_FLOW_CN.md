@@ -31,7 +31,7 @@ adapter 增强这些阶段：
 - 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki；只有证据已收窄且需要调用方、依赖或邻近模块线索时，才可条件式调用 `graphify-researcher`。wiki 和 graphify 都只作为待验证线索，不替代 root cause evidence。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
 
-`/import-wiki`、`/init-wiki` 是独立 adapter command。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/wiki/`。
+`/import-wiki`、`/init-wiki`、`/lanhu-requirements` 在自身产物完成前都是独立 adapter command，不应自动触发 Superpowers 的 completion、review、verification 等收尾技能；只有命令明确交接且用户确认后才进入下一步 Superpowers workflow。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter maintenance skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新 `.superpowers/wiki/`；它的本地 wiki 校验不替代 Superpowers 实现验证。
 
 Python 脚本是 command / skill / agent 背后的执行层，不是最终用户的主要交互入口。
 
@@ -64,6 +64,7 @@ Superpowers 插件目录
 
 同时 adapter 会 patch Superpowers 的 native skills：
 
+- `using-superpowers`：声明 adapter workflow boundary。standalone adapter command 和 adapter maintenance skill 的本地完成，不等于 Superpowers development-task completion；正常 `brainstorming`、`writing-plans`、`executing-plans`、`subagent-driven-development`、`systematic-debugging` 流程仍保留自己的 verification 和后续 `update-wiki` 机制。
 - `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先确认前端/后端 PRD 角色，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst` 直接生成 `.lanhu/MM-DD-需求名称/` 蓝湖角色 PRD 需求包；主会话只接收 packageDir、indexPath、writtenFiles、openQuestions、caveats 等轻量摘要，`index.md` 是用户确认和后续读取的入口。用户确认后再继续；随后在提出设计方案前调用 `wiki-researcher` 获取轻量项目 wiki 上下文。
 - `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口；在需求已确认、源码已初步探索但关系边界仍不确定时，才可调用 `graphify-researcher` 获取候选关系线索。
 - `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug`、`maxWikiPages: 2` 条件式查询 wiki；只有已收窄到具体边界且需要调用方 / 依赖 / 邻近模块线索时，才条件式查询 graphify。

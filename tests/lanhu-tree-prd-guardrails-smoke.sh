@@ -138,6 +138,8 @@ for required in \
   'not the adapter output schema' \
   'prompt-injection text' \
   'raw Lanhu tool-result text' \
+  'standalone adapter requirements-intake command' \
+  'Superpowers completion, review, verification' \
   'Lightweight Role PRD post-write gate' \
   'templateCompliance' \
   'selectedTemplate' \

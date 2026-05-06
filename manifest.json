@@ -44,6 +44,7 @@
   "optionalPatchedPaths": [
     "hooks/hooks.json",
     "hooks/hooks-cursor.json",
+    "skills/using-superpowers/SKILL.md",
     "skills/brainstorming/SKILL.md",
     "skills/systematic-debugging/SKILL.md",
     "skills/writing-plans/SKILL.md",
