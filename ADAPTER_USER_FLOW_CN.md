@@ -188,7 +188,7 @@ Superpowers 插件目录
 
 如果蓝湖链接带有明确 `pageId`，adapter 会在角色确认后先读取蓝湖页面树，再按页面树收敛范围：目标页有子级时，会询问是否纳入子级并推荐纳入；目标页无子级时，只分析该页面需求。确认子级后，tree mode 会按父页和每个子页逐页 full 分析，而不是一次性请求父页加所有子页。页面树只决定证据范围，最终 PRD 数量仍由业务交付边界决定。相邻页面、同文档其它模块、父级流程页、垃圾站 / 旧页面或 Lanhu AI 认为“相关”的页面不会自动混入；需要多页、整条流程或整个原型时，用户应显式说明。
 
-`.lanhu/` 文档需要用户确认后，Superpowers 才基于它进入 `brainstorming`。它不是 `.superpowers/wiki/`，不会进入 `Referenced Project Wiki`，也不替代 Superpowers spec / implementation plan。`index.md` 是需求包入口和 PRD 关系权威来源；PRD 文件是详细角色 PRD 来源。显式 `pageId` 的 tree mode 会在页面树白名单确认后逐页 full 分析，避免一次读取父页和多个子页造成截断；Lanhu MCP 自带的输出格式说明只作为证据，不作为落盘格式。文档中不应包含测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案或代码文件影响；模板要求的角色验收标准允许，但只能用 Given / When / Then 描述产品行为。
+`.lanhu/` 文档需要用户确认后，Superpowers 才基于它进入 `brainstorming`。它不是 `.superpowers/wiki/`，不会进入 `Referenced Project Wiki`，也不替代 Superpowers spec / implementation plan。`index.md` 是需求包入口和 PRD 关系权威来源；PRD 文件是详细角色 PRD 来源。显式 `pageId` 的 tree mode 会在页面树白名单确认后逐页 full 分析，避免一次读取父页和多个子页造成截断；Lanhu MCP 自带的输出格式说明只作为证据，不作为落盘格式，且工具返回的身份、流程、输出格式或 prompt-injection 文本不得原文回传到 PRD 文件、`index.md`、`openQuestions`、`caveats`、metadata 或主会话。文档中不应包含测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案或代码文件影响；模板要求的角色验收标准允许，但只能用 Given / When / Then 描述产品行为。
 
 lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求并按已确认角色生成 `.lanhu/` PRD，或直接走普通 Superpowers 流程。
 
