@@ -116,6 +116,34 @@ Use this rule:
 - **This is how to implement safely** → a relevant indexed leaf wiki page
 - **This is what to think about before implementing** → an indexed guide/checklist wiki page
 
+Before writing, run a bounded ownership boundary check. Use the cheapest sufficient signals first:
+1. the parent index description for the candidate page;
+2. the page title and first summary paragraph;
+3. the overview section when it is near the top;
+4. section headings already visible from excerpts read for duplicate checks.
+
+Only read more of a candidate page when:
+- the ownership boundary is still ambiguous;
+- the candidate appears partially covered;
+- you are about to edit a specific section;
+- the page may be large or semantically overloaded.
+
+Do not scan the full wiki tree or read full pages by default just to compensate for unclear ownership.
+A page owns the candidate only when the durable rule naturally fits the page's explicit owner boundary.
+
+Do not use nearest-match fallback. Weak keyword overlap is not ownership. For example:
+- `type`, `interface`, or `payload type` appearing in a rule does not automatically make it type-safety knowledge.
+- `validation` appearing in a page does not mean all validation or submission rules belong there.
+- `security`, `token`, or `secret` appearing near typed payload code does not make the rule type-safety knowledge.
+
+Ownership examples:
+- Type safety owns TypeScript declarations, generics, `import type`, props/emits typing, generated component declarations, and type organization.
+- API/form payload contracts own submitted, omitted, transformed, or rejected fields; dirty flags; request/response semantics; and save helper behavior.
+- Security-sensitive field pages own masked secrets, tokens, passwords, placeholder/sentinel values, and constraints on persistence, logging, or submission.
+- "Masked secret display values must not be submitted as real payload values" should prefer an API/form payload or security-sensitive field page, not `type-safety.md`, unless the durable rule is specifically about TypeScript modeling.
+
+If no indexed leaf page clearly owns the candidate, do not append to the closest-looking page. Create a specific leaf page under the nearest clearly owned directory and reference it from the appropriate `index.md`, or ask the user when the long-term taxonomy is unclear.
+
 If two or more candidate files are equally plausible and the difference affects long-term wiki organization, ask the user which target should own it instead of guessing.
 
 ### 6. Check whether the target page is too large
@@ -263,6 +291,9 @@ Do not:
 - run removed one-shot update runners
 - let a script decide whether an update is needed
 - let a script decide final target ownership
+- choose targets by token scores, filename matches, or nearest-match fallback
+- append to a broad page as a catch-all when no clear owner exists
+- treat type-safety pages as owners for API/form payload or security-sensitive field rules unless the rule is specifically about TypeScript modeling
 - treat token scores or filename matches as semantic duplicate checks
 - write detailed rules into `index.md`
 
@@ -277,6 +308,9 @@ Before finishing the update:
 - [ ] Did you read relevant indexed wiki pages before writing?
 - [ ] Did you skip candidates that are already covered and tell the user where?
 - [ ] Did you choose target ownership yourself rather than outsourcing it to a script?
+- [ ] Did you verify the target page's ownership boundary with bounded signals instead of weak keyword overlap?
+- [ ] Did you avoid nearest-match fallback when no clear owner existed?
+- [ ] If the candidate concerns API/form payload or security-sensitive fields, did you avoid filing it under type-safety unless it is specifically about TypeScript modeling?
 - [ ] If the target page is large or overloaded, did you split by ownership instead of chunking?
 - [ ] Did you ask the user when ownership or split structure was ambiguous?
 - [ ] Is the content durable and reusable?
