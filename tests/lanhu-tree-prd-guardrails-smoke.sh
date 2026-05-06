@@ -61,7 +61,16 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     'checkedAgainstFullSourceTemplate' \
     'missingTemplateRequirements' \
     'genericHeadingsDetected' \
-    'forbiddenContentDetected'
+    'forbiddenContentDetected' \
+    'packageDir' \
+    'indexPath' \
+    'writtenFiles' \
+    'compact metadata' \
+    'packageDir' \
+    'indexPath' \
+    'writtenFiles' \
+    'Do not return full PRD markdown' \
+    'compact write metadata'
   do
     require_in_file "$agent" "$required"
   done
@@ -123,7 +132,7 @@ for required in \
   'one combined MCP response to generate multiple PRD files' \
   'raw evidence only' \
   'not the adapter output schema' \
-  'Lightweight Role PRD pre-write gate' \
+  'Lightweight Role PRD post-write gate' \
   'templateCompliance' \
   'selectedTemplate' \
   'checkedAgainstFullSourceTemplate' \

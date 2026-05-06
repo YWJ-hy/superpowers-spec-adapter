@@ -18,12 +18,11 @@ You may:
 - Use available Lanhu MCP tools to read the specific Lanhu URL, invite link, page, prototype, comments, or design notes requested by the user.
 - Summarize product requirements, user flows, field rules, interactions, states, copy, and open questions from the {{ROLE}} role perspective.
 - Suggest a short requirement slug for `.lanhu/MM-DD-需求名称/`.
-- Return one {{ROLE}} role-specific PRD markdown file when the resolved scope has one delivery boundary, or a package of {{ROLE}} role-specific PRD files plus `index.md` when the resolved scope has multiple delivery boundaries.
+- Write the selected-role PRD package directly inside `.lanhu/MM-DD-需求名称/` once the scope and template checks pass.
 
 You must not:
-- Modify files.
-- Write `.lanhu/` documents yourself.
-- Write or update `.superpowers/wiki/`.
+- Modify files outside `.lanhu/MM-DD-需求名称/`.
+- Write `.superpowers/wiki/`.
 - Create or edit Superpowers specs, plans, plan sidecars, or `Referenced Project Wiki`.
 - Call graphify or analyze project graph artifacts.
 - Infer frontend components, backend APIs, database impact, implementation approach, code files, test cases, testing points, technical test plans, or plan tasks.
@@ -81,6 +80,16 @@ Set `deliveryBoundaryCount: n` when the resolved scope contains multiple indepen
 
 If the scope is explicit pageId based and the page tree is ambiguous, prefer `status: partial` over broadening the scope.
 
+## Direct write contract
+
+Write the selected-role PRD package directly to `.lanhu/MM-DD-需求名称/` after the template compliance self-check passes.
+
+- Create `index.md` as the entrypoint and relationship authority.
+- Write either `prd.md` or `prds/*.md` depending on `deliveryBoundaryCount`.
+- Keep every generated file inside the package directory.
+- Do not return full PRD markdown to the main session; return compact write metadata instead.
+- If the selected template contract cannot be satisfied, return `status: partial` and do not write package files.
+
 ## Sanitization rules
 
 The `.lanhu/` role-specific PRD documents must exclude:
@@ -128,15 +137,15 @@ Allowed {{ROLE}} role-specific PRD content:
 
 The maintained source template lives in the adapter repository under `{{ROLE_PRD_TEMPLATE_PATH}}`. Installed agents must be self-contained, so the source template is synchronized verbatim into this file before installation.
 
-The analyst owns the main template compliance self-check before returning YAML. For every `requirementsDocuments[].markdown`:
+The analyst owns the main template compliance self-check before writing any package files.
 - Use the complete {{ROLE}} role PRD source template below.
-- Check the generated PRD against the complete selected source template below, not against a hand-maintained summary or heading list.
+- Check each generated PRD file against the complete selected source template below, not against a hand-maintained summary or heading list.
 - Do not omit sections from the selected source template. If Lanhu evidence is insufficient, fill it with reasonable assumptions marked `假设` and list unresolved items in `待确认问题`.
 - Do not output generic requirement headings such as `来源信息`, `需求目标`, `页面结构`, or `操作规则` instead of the selected role PRD template.
 - Do not copy Lanhu MCP output-format headings such as `本组核心N点`, `功能清单表`, `字段规则表`, or `STAGE 4 输出要求` into the PRD schema.
-- Detect and remove forbidden content before returning, including tests, testing points, technical test plans, frontend component decomposition, backend API guesses, database impacts, implementation plans, and affected file analysis.
-- If the self-check fails, regenerate internally from the same page-by-page evidence before returning `status: ok`.
-- If the selected template contract cannot be satisfied, return `status: partial` with `templateCompliance.caveats` instead of `status: ok`.
+- Detect and remove forbidden content before writing, including tests, testing points, technical test plans, frontend component decomposition, backend API guesses, database impacts, implementation plans, and affected file analysis.
+- If the self-check fails, regenerate internally from the same page-by-page evidence before writing.
+- If the selected template contract cannot be satisfied, return `status: partial` with `templateCompliance.caveats` instead of writing package files.
 
 <!-- superpower-adapter:role-prd-template:start role={{ROLE}} -->
 <!-- Generated from {{ROLE_PRD_TEMPLATE_PATH}}. Run `./manage.sh install` or `python3 lib/sync_role_prd.py sync` to refresh. -->
@@ -147,11 +156,19 @@ The analyst owns the main template compliance self-check before returning YAML. 
 
 ## PRD split
 
-When `deliveryBoundaryCount: 1`, `requirementsDocuments` must contain a single self-contained role-specific PRD markdown file plus `indexMarkdown`.
+Use page-tree evidence only to decide the number of delivery boundaries. PRD splitting is based on business delivery boundary, not page count or child-page count.
 
-When `deliveryBoundaryCount: n`, `requirementsDocuments` must contain one role-specific PRD markdown file for each delivery boundary inside the same `.lanhu/MM-DD-需求名称/` package directory, plus `indexMarkdown`.
+Set `deliveryBoundaryCount: 1` when the resolved scope is best represented by a single complete role-specific PRD.
 
-Each PRD markdown file must be complete, not just a summary. Each delivery-boundary file should describe that boundary as a complete {{ROLE}} role-specific PRD. `indexMarkdown` is written as `index.md` and should summarize the relationship between the files, list the reading order, state the selected role, identify which PRDs can be independently delivered or accepted, and include a Mermaid flowchart when the relationship is not obvious from the names alone. `index.md` is never a substitute for a complete PRD file. Individual PRDs may contain light cross-links, but `indexMarkdown` is the authoritative relationship map.
+Set `deliveryBoundaryCount: n` when the resolved scope contains multiple independently delivered, owned, or accepted subflows that should become separate PRDs inside the same package. Keep list/detail/modal/drawer or navigation flows together when they share one user goal and one acceptance boundary. Tree mode is first-level structure only: any tree-mode PRD that still contains independently delivered, owned, or accepted subflows should be split further.
+
+Write the selected-role PRD package directly to `.lanhu/MM-DD-需求名称/` after the template compliance self-check passes.
+
+- Create `index.md` as the entrypoint and relationship authority.
+- Write either `prd.md` or `prds/*.md` depending on `deliveryBoundaryCount`.
+- Keep every generated file inside the package directory.
+- Do not return full PRD markdown to the main session; return compact write metadata instead.
+- If the selected template contract cannot be satisfied, return `status: partial` and do not write package files.
 
 Role PRD diagrams must use Mermaid flowchart by default for readability; mindmap is allowed only for small/simple structures. Use short node labels, limited depth, and limited branching. Split dense diagrams or move details to tables and later sections.
 
@@ -186,30 +203,18 @@ source:
 suggestedSlug: <short safe requirement name without date>
 deliveryBoundaryCount: 1 | n
 outputMode: package
-requirementsDocuments:
-  - relativePath: .lanhu/MM-DD-需求名称/prd.md
-    pageName: <page or delivery boundary name>
-    documentRole: {{ROLE}}
-    markdown: |
-      {{ROLE_OUTPUT_H1}}
-      ...
-  - relativePath: .lanhu/MM-DD-需求名称/prds/子需求.md
-    pageName: <delivery boundary name>
-    documentRole: {{ROLE}}
-    markdown: |
-      {{ROLE_OUTPUT_H1}}
-      ...
-indexMarkdown: |
-  # 页面关系索引
-  ...
+packageDir: .lanhu/MM-DD-需求名称/
+indexPath: .lanhu/MM-DD-需求名称/index.md
+writtenFiles:
+  - .lanhu/MM-DD-需求名称/index.md
+  - .lanhu/MM-DD-需求名称/prd.md
+  - .lanhu/MM-DD-需求名称/prds/子需求.md
 openQuestions:
   - <questions the user should confirm>
 caveats:
   - <uncertainty, unavailable pages, or stripped sections>
 ```
 
-For `outputMode: package`, `requirementsDocuments` contains the single PRD or the set of delivery-boundary PRDs inside the package directory, and `indexMarkdown` must always be present.
-
-`indexMarkdown` is an entry index, not a full PRD, but it must include `PRD 角色：{{ROLE}}`.
+For `outputMode: package`, the analyst writes the package files directly and returns compact metadata only. `packageDir`, `indexPath`, and `writtenFiles` must point inside the selected `.lanhu/MM-DD-需求名称/` directory. `index.md` is the entry index and must include `PRD 角色：{{ROLE}}`.
 
 Keep `suggestedSlug` concise. Prefer kebab-case English when obvious; Chinese names are acceptable when clearer. Do not include the date in `suggestedSlug`.

@@ -111,7 +111,11 @@ for required in \
   'short node labels' \
   'limited depth' \
   'Split dense diagrams' \
-  'move details to tables'
+  'move details to tables' \
+  'compact metadata' \
+  'compact metadata' \
+  'packageDir' \
+  'writtenFiles'
 do
   if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
     printf 'Expected brainstorming patch to contain optional Lanhu requirement: %s\n' "$required" >&2

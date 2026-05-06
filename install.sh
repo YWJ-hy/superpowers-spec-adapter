@@ -16,7 +16,11 @@ print(generated_marker(Path(sys.argv[1])))
 PY
 )"
 
-mapfile -t TARGET_DIRS < <(python3 - <<'PY' "$TARGETS_JSON"
+TARGET_DIRS=()
+while IFS= read -r target_dir; do
+  [[ -z "$target_dir" ]] && continue
+  TARGET_DIRS+=("$target_dir")
+done < <(python3 - <<'PY' "$TARGETS_JSON"
 import json, sys
 for item in json.loads(sys.argv[1])['targets']:
     print(item['target'])

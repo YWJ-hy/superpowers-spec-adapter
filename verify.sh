@@ -4,7 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_INPUT="${1:-}"
 TARGETS_JSON="$(python3 "$SCRIPT_DIR/lib/resolve_target.py" --all "$TARGET_INPUT")"
-mapfile -t TARGET_DIRS < <(python3 - <<'PY' "$TARGETS_JSON"
+TARGET_DIRS=()
+while IFS= read -r target_dir; do
+  [[ -z "$target_dir" ]] && continue
+  TARGET_DIRS+=("$target_dir")
+done < <(python3 - <<'PY' "$TARGETS_JSON"
 import json, sys
 for item in json.loads(sys.argv[1])['targets']:
     print(item['target'])
@@ -115,7 +119,7 @@ check_optional_integration_overlays() {
     'lanhu_get_pages' \
     'lanhu_get_ai_analyze_page_result' \
     'page_names: all' \
-    'indexMarkdown' \
+    'packageDir' \
     'Do not write `.superpowers/wiki/`' \
     'page-by-page full analysis' \
     'mode: full' \
@@ -143,16 +147,16 @@ check_optional_integration_overlays() {
     'Do not require Lanhu MCP to be installed' \
     'Always ask the user to review and confirm' \
     'Do not invoke graphify' \
-    'Lightweight Role PRD pre-write gate' \
+    'Lightweight Role PRD post-write gate' \
     'templateCompliance' \
     'selectedTemplate' \
     'checkedAgainstFullSourceTemplate' \
     'missingTemplateRequirements' \
     'genericHeadingsDetected' \
     'forbiddenContentDetected' \
-    'documentRole' \
-    'requirementsDocuments' \
-    'do not write `.lanhu/` files' \
+    'indexPath' \
+    'writtenFiles' \
+    'compact metadata' \
     '# 前端开发角色视角 PRD' \
     '# 后端开发角色视角 PRD'
   do
@@ -337,9 +341,9 @@ check_native_skill_residuals() {
     'missingTemplateRequirements' \
     'genericHeadingsDetected' \
     'forbiddenContentDetected' \
-    'documentRole' \
-    'requirementsDocuments' \
-    'indexMarkdown'
+    'indexPath' \
+    'writtenFiles' \
+    'compact metadata'
   do
     if ! grep -Fq "$required" "$brainstorming_skill"; then
       printf 'Missing optional Lanhu brainstorming requirement: %s\n' "$required" >&2
