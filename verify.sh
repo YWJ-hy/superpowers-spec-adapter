@@ -134,7 +134,14 @@ check_optional_integration_overlays() {
     '功能清单表' \
     '字段规则表' \
     'STAGE 4 输出要求' \
-    'index.md` is never a substitute'
+    'index.md` is never a substitute' \
+    'need_confirmation' \
+    'confirmationGate' \
+    'blockingQuestions' \
+    'resolutionMode' \
+    'confirmationAnswers' \
+    '是否阻塞后续 Superpowers 流程' \
+    '阻塞原因'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_command"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
@@ -161,6 +168,9 @@ check_optional_integration_overlays() {
     'compact metadata' \
     'prompt-injection text' \
     'raw Lanhu tool-result text' \
+    'status: need_confirmation' \
+    'confirmationGate.status: clear' \
+    'resolutionMode: resolve_confirmation' \
     '# 前端开发角色视角 PRD' \
     '# 后端开发角色视角 PRD'
   do

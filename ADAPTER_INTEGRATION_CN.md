@@ -223,7 +223,7 @@ python3 "$TARGET_DIR/scripts/wiki_update_check.py" --json
 python3 "$TARGET_DIR/scripts/update-wiki.py"
 ```
 
-`/init-wiki`、`/import-wiki` 和 `/lanhu-requirements` 是独立 adapter command，完成后不触发 Superpowers completion / review / verification；只有命令明确 handoff 且用户确认后，才进入下一步 Superpowers workflow。`update-wiki` 是自动触发 skill，不保留 slash command 入口；它是 adapter 维护和 durable-knowledge review，本地 wiki 校验不等于 Superpowers 实现验证。
+`/init-wiki`、`/import-wiki` 和 `/lanhu-requirements` 是独立 adapter command，完成后不触发 Superpowers completion / review / verification；`/lanhu-requirements` 完成本地写入也不等于 Superpowers-ready，如果 analyst 返回 `status: need_confirmation`，必须先把紧凑阻塞问题交给用户确认并回传同一角色 analyst 修复需求包；只有命令明确 handoff、`confirmationGate.status: clear` 且用户确认 `index.md` 后，才进入下一步 Superpowers workflow。`update-wiki` 是自动触发 skill，不保留 slash command 入口；它是 adapter 维护和 durable-knowledge review，本地 wiki 校验不等于 Superpowers 实现验证。
 
 ---
 
