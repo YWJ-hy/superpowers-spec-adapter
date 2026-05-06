@@ -15,6 +15,67 @@ from adapter_manifest import generated_marker
 print(generated_marker(Path(sys.argv[1])))
 PY
 )"
+ADAPTED_SUPERPOWERS_VERSION="$(python3 - <<'PY' "$SCRIPT_DIR"
+from pathlib import Path
+import sys
+import json
+manifest = json.loads((Path(sys.argv[1]) / 'manifest.json').read_text(encoding='utf-8'))
+print(manifest.get('adaptedSuperpowersVersion', ''))
+PY
+)"
+
+warn_if_target_is_newer() {
+  local target_dir="$1"
+  local target_version=""
+
+  if [[ -f "$target_dir/package.json" ]]; then
+    target_version="$(python3 - <<'PY' "$target_dir"
+from pathlib import Path
+import json
+import sys
+path = Path(sys.argv[1]) / 'package.json'
+if path.is_file():
+    data = json.loads(path.read_text(encoding='utf-8'))
+    print(data.get('version', ''))
+PY
+)"
+  fi
+
+  if [[ -z "$target_version" || -z "$ADAPTED_SUPERPOWERS_VERSION" ]]; then
+    return 0
+  fi
+
+  if python3 - "$target_version" "$ADAPTED_SUPERPOWERS_VERSION" <<'PY'
+import sys
+from itertools import zip_longest
+
+
+def parse(version: str) -> list[int]:
+    core = version.split('+', 1)[0].split('-', 1)[0]
+    parts = []
+    for item in core.split('.'):
+        if item.isdigit():
+            parts.append(int(item))
+        else:
+            digits = ''.join(ch for ch in item if ch.isdigit())
+            parts.append(int(digits) if digits else 0)
+    return parts
+
+
+def is_newer(left: str, right: str) -> bool:
+    for left_part, right_part in zip_longest(parse(left), parse(right), fillvalue=0):
+        if left_part != right_part:
+            return left_part > right_part
+    return False
+
+
+sys.exit(0 if is_newer(sys.argv[1], sys.argv[2]) else 1)
+PY
+  then
+    printf 'Warning: detected Superpowers %s in %s, but superpower-adapter is adapted against %s. Install will continue, but verify after the upgrade.\n' "$target_version" "$target_dir" "$ADAPTED_SUPERPOWERS_VERSION" >&2
+  fi
+}
+
 
 TARGET_DIRS=()
 while IFS= read -r target_dir; do
@@ -38,6 +99,7 @@ install_target() {
   fi
 
   printf 'Installing superpower-adapter to %s\n' "$target_dir"
+  warn_if_target_is_newer "$target_dir"
 
   copy_overlay() {
     local source_rel="$1"

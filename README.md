@@ -41,6 +41,8 @@ If this adapter lives as `superpower-adapter/` inside another project, run the s
 
 Install-related commands target all unique installed Superpowers Claude Code plugin directories by default, so multiple installed versions are patched together. Pass an explicit Superpowers target path to operate on only one plugin directory. Commands that read or write `.superpowers/wiki/` require an explicit project root argument.
 
+Current compatibility baseline: Superpowers 5.1.0. `./manage.sh install` warns, but does not block, when the detected target version is newer than the baseline. The compatibility check reads the installed Superpowers target's `package.json` version when available.
+
 ## Bootstrap wiki
 
 Import a wiki template into a target project without overwriting existing user files:
@@ -218,6 +220,13 @@ The self-test covers:
 - `wiki_update_check.py` index and format validation
 - index-driven wiki graph traversal
 - import command path handling
+
+## Compatibility
+
+- Adapter compatibility baseline: Superpowers 5.1.0.
+- `./manage.sh install` warns, but does not block, when the detected Superpowers target version is newer than the compatibility baseline.
+- Default target discovery currently keys off the Claude Code plugin install record for `superpowers@claude-plugins-official`.
+- Native skill patches depend on upstream skill headings and anchor text staying stable; if Superpowers changes those files, the adapter patch points need a sync pass.
 
 ## Upgrade workflow
 

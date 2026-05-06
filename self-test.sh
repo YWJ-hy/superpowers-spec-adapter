@@ -47,6 +47,7 @@ bash "$SCRIPT_DIR/tests/wiki-update-check-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/init-wiki-inventory-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/wiki-index-graph-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
 bash "$SCRIPT_DIR/tests/wiki-import-command-path-smoke.sh" "$TARGET_DIR" "$REPO_ROOT"
+bash "$SCRIPT_DIR/tests/install-version-warning-smoke.sh" "$TARGET_DIR"
 python3 "$SCRIPT_DIR/lib/hook_patch.py" verify "$TARGET_DIR"
 "$SCRIPT_DIR/status.sh" "$TARGET_INPUT"
 

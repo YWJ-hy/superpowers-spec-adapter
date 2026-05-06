@@ -130,6 +130,8 @@ Superpowers 插件目录
 
 如果本机同时保留多个 Superpowers 插件版本，默认会对 `installed_plugins.json` 中所有唯一的 Superpowers 安装目录执行安装和校验；如只想操作某一个版本，可显式传入该 Superpowers 目录。
 
+当前 adapter 以 Superpowers 5.1.0 为适配基线；如果安装到更高版本的 Superpowers，`./manage.sh install` 会先给出兼容性警告，但仍会继续安装。安装时会优先读取目标目录里的 `package.json` 版本号。`superpowers@claude-plugins-official` 是当前自动发现安装目标的默认插件键；如果将来 Superpowers 改了这个安装记录键，显式传目标路径会更稳。上游 skill 标题和锚点如果变化，adapter 的 native patch 也需要同步检查。
+
 如果 adapter 是作为其他项目中的 `superpower-adapter/` 目录存在，也可以从宿主项目执行：
 
 ```bash
