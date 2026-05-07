@@ -4,7 +4,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_INPUT="${1:-}"
 TARGETS_JSON="$(python3 "$SCRIPT_DIR/lib/resolve_target.py" --all "$TARGET_INPUT")"
-mapfile -t TARGET_DIRS < <(python3 - <<'PY' "$TARGETS_JSON"
+TARGET_DIRS=()
+while IFS= read -r target_dir; do
+  TARGET_DIRS+=("$target_dir")
+done < <(python3 - <<'PY' "$TARGETS_JSON"
 import json, sys
 for item in json.loads(sys.argv[1])['targets']:
     print(item['target'])
