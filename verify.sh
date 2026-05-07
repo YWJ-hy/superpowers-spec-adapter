@@ -72,6 +72,15 @@ check_optional_integration_overlays() {
     exit 1
   fi
 
+  if grep -Fq '## 十四、输出要求' "$lanhu_frontend_agent"; then
+    printf 'Frontend Lanhu analyst still contains role-template output requirement heading\n' >&2
+    exit 1
+  fi
+  if grep -Fq '## 十八、输出要求' "$lanhu_backend_agent"; then
+    printf 'Backend Lanhu analyst still contains role-template output requirement heading\n' >&2
+    exit 1
+  fi
+
   for forbidden in \
     '# 设计稿事实索引' \
     '- 可见文案:' \

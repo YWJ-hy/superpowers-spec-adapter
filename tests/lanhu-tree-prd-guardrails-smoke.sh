@@ -27,6 +27,18 @@ require_in_file() {
   fi
 }
 
+forbid_in_file() {
+  local file="$1"
+  local text="$2"
+  if grep -Fq "$text" "$file"; then
+    printf 'Expected %s to omit role-template output requirement heading: %s\n' "$file" "$text" >&2
+    exit 1
+  fi
+}
+
+forbid_in_file "$LANHU_FRONTEND_AGENT" '## 十四、输出要求'
+forbid_in_file "$LANHU_BACKEND_AGENT" '## 十八、输出要求'
+
 for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
   for required in \
     'page-by-page full analysis' \
