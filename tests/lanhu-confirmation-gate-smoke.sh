@@ -38,6 +38,8 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     'resolve_confirmation' \
     'confirmationAnswers' \
     'Blocking confirmation classification' \
+    'scopeConfirmationSummary' \
+    'requirementScopeJudgment' \
     'do not continue to Superpowers brainstorming' \
     'raw Lanhu tool-result text' \
     'full PRD markdown' \

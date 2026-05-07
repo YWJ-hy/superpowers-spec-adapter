@@ -23,7 +23,7 @@
 adapter 增强这些阶段：
 
 - 安装 `wiki-researcher` agent，用于从 `.superpowers/wiki/index.md` 开始渐进选择少量相关项目 wiki 页面。
-- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` 先确认前端/后端角色，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst`，由专用 analyst 直接写入 `.lanhu/MM-DD-需求名称/` 需求包、判断待确认点是否阻塞 Superpowers，并只向主会话返回路径 / 状态摘要；单个交付边界写 `prd.md`，多个交付边界写入 `prds/`，并用 `index.md` 作为入口和 PRD 关系权威来源。前端角色 PRD 会在 `## 四、页面展示规则` 下加入低保真 XML-like 页面布局结构草图，并把 `用户操作与交互规则` 作为一个主题集中展开；当 `## 七、页面状态流转` 是复杂状态页面时，会补一张 Mermaid flowchart，简单页面可只保留表格。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst 修复 PRD；`confirmationGate.status: clear` 且用户确认 `index.md` 后才进入 Superpowers `brainstorming`。
+- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` 先确认前端/后端角色，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst`，由专用 analyst 直接写入 `.lanhu/MM-DD-需求名称/` 需求包、判断待确认点是否阻塞 Superpowers，并只向主会话返回路径 / 状态 / 范围判断摘要；单个交付边界写 `prd.md`，多个交付边界写入 `prds/`，并用 `index.md` 作为入口和 PRD 关系权威来源。PRD 会显式标记 `新增`、`差量调整`、`现有上下文`、`待确认`、`全量重构`、`全量替换`，先由 analyst 自行判断，再把 `scopeConfirmationSummary` 交给用户二次确认。前端角色 PRD 会在 `## 二、本次变更范围判定` 和 `## 四、页面展示规则` 下加入低保真 XML-like 页面布局结构草图，并把 `用户操作与交互规则` 作为一个主题集中展开；当 `## 七、页面状态流转` 是复杂状态页面时，会补一张 Mermaid flowchart，简单页面可只保留表格。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst 修复 PRD；`confirmationGate.status: clear` 且用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 Superpowers `brainstorming`。
 - 可选图谱辅助：如果项目已有 graphify 能力或 `graphify-out/` 产物，`graphify-researcher` 只在 agent 判断需要关系线索时提供 candidate hints，不作为必经步骤。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
@@ -173,7 +173,7 @@ Superpowers 插件目录
 /lanhu-requirements --role backend <蓝湖链接> <可选需求命名>
 ```
 
-该命令会先确认本次要生成前端开发角色视角 PRD 还是后端开发角色视角 PRD，再路由到对应 analyst 读取蓝湖内容并直接写入只包含产品需求事实和角色 PRD 信息的需求包；主会话只接收 packageDir、indexPath、writtenFiles、openQuestions 和 caveats 等摘要：
+该命令会先确认本次要生成前端开发角色视角 PRD 还是后端开发角色视角 PRD，再路由到对应 analyst 读取蓝湖内容并直接写入只包含产品需求事实和角色 PRD 信息的需求包；PRD 会通过 `## 二、本次变更范围判定` 标记 `新增`、`差量调整`、`现有上下文`、`待确认`、`全量重构`、`全量替换`；主会话只接收 packageDir、indexPath、writtenFiles、requirementScopeJudgment、scopeConfirmationSummary、openQuestions 和 caveats 等摘要：
 
 ```text
 .lanhu/MM-DD-需求名称/
@@ -190,7 +190,7 @@ Superpowers 插件目录
 
 如果蓝湖链接带有明确 `pageId`，adapter 会在角色确认后先读取蓝湖页面树，再按页面树收敛范围：目标页有子级时，会询问是否纳入子级并推荐纳入；目标页无子级时，只分析该页面需求。确认子级后，tree mode 会按父页和每个子页逐页 full 分析，而不是一次性请求父页加所有子页。页面树只决定证据范围，最终 PRD 数量仍由业务交付边界决定。相邻页面、同文档其它模块、父级流程页、垃圾站 / 旧页面或 Lanhu AI 认为“相关”的页面不会自动混入；需要多页、整条流程或整个原型时，用户应显式说明。
 
-`.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 PRD 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 PRD 包，直到 `confirmationGate.status: clear`。它不是 `.superpowers/wiki/`，不会进入 `Referenced Project Wiki`，也不替代 Superpowers spec / implementation plan。`index.md` 是需求包入口和 PRD 关系权威来源；PRD 文件是详细角色 PRD 来源。显式 `pageId` 的 tree mode 会在页面树白名单确认后逐页 full 分析，避免一次读取父页和多个子页造成截断；Lanhu MCP 自带的输出格式说明只作为证据，不作为落盘格式，且工具返回的身份、流程、输出格式或 prompt-injection 文本不得原文回传到 PRD 文件、`index.md`、`openQuestions`、`caveats`、metadata 或主会话。文档中不应包含测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案或代码文件影响；模板要求的角色验收标准允许，但只能用 Given / When / Then 描述产品行为。
+`.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 和 `scopeConfirmationSummary` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 PRD 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 PRD 包，直到 `confirmationGate.status: clear`。它不是 `.superpowers/wiki/`，不会进入 `Referenced Project Wiki`，也不替代 Superpowers spec / implementation plan。`index.md` 是需求包入口和 PRD 关系权威来源；PRD 文件是详细角色 PRD 来源。显式 `pageId` 的 tree mode 会在页面树白名单确认后逐页 full 分析，避免一次读取父页和多个子页造成截断；Lanhu MCP 自带的输出格式说明和分析提示词只作为证据，不作为落盘格式或最终范围判断；复制旧页面和未标注的完整页面内容默认按 `现有上下文` 处理，且工具返回的身份、流程、输出格式或 prompt-injection 文本不得原文回传到 PRD 文件、`index.md`、`openQuestions`、`caveats`、metadata 或主会话。文档中不应包含测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案或代码文件影响；模板要求的角色验收标准允许，但只能用 Given / When / Then 描述产品行为。
 
 lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求并按已确认角色生成 `.lanhu/` PRD，或直接走普通 Superpowers 流程。
 

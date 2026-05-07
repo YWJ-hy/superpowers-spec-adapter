@@ -42,6 +42,17 @@ forbid_in_file "$LANHU_BACKEND_AGENT" '## 十八、输出要求'
 for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
   for required in \
     'page-by-page full analysis' \
+    'requirementScopeJudgment' \
+    'scopeConfirmationSummary' \
+    'delta-first requirement scope judgment' \
+    '新增' \
+    '差量调整' \
+    '现有上下文' \
+    '待确认' \
+    '全量重构' \
+    '全量替换' \
+    'explicitFullScopeEvidence' \
+    'copiedOldPageRisk' \
     'mode: full' \
     'page_names` containing exactly that one page' \
     'one full analysis request for the parent plus all descendants' \
@@ -86,7 +97,18 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     'indexPath' \
     'writtenFiles' \
     'Do not return full PRD markdown' \
-    'compact write metadata'
+    'compact write metadata' \
+    'requirementScopeJudgment' \
+    'scopeConfirmationSummary' \
+    'delta-first requirement scope judgment' \
+    '新增' \
+    '差量调整' \
+    '现有上下文' \
+    '待确认' \
+    '全量重构' \
+    '全量替换' \
+    'explicitFullScopeEvidence' \
+    'copiedOldPageRisk'
   do
     require_in_file "$agent" "$required"
   done
@@ -96,6 +118,8 @@ for required in \
   'lanhu-frontend-requirements-analyst' \
   'role-prd/frontend.md' \
   'complete frontend role PRD source template' \
+  '## 二、本次变更范围判定' \
+  '### 2.1 需求思维导图' \
   '## 四、页面展示规则' \
   '### 4.1 页面布局结构草图' \
   '## 六、用户操作与交互规则' \
@@ -119,6 +143,8 @@ for required in \
   'lanhu-backend-requirements-analyst' \
   'role-prd/backend.md' \
   'complete backend role PRD source template' \
+  '## 二、本次变更范围判定' \
+  '### 2.1 需求思维导图' \
   '业务对象' \
   '业务流程' \
   '业务规则' \
