@@ -211,6 +211,9 @@ check_optional_integration_overlays() {
     '### 6.1 用户操作流程' \
     '### 6.2 交互规则' \
     'XML' \
+    '低保真 1:1' \
+    '真实 Tab 标签' \
+    '源证据没有 Tab 时，不输出 `tab-area`' \
     '复杂状态页面' \
     '简单页面可只保留表格'
   do
