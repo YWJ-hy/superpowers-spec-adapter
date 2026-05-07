@@ -293,6 +293,11 @@ for required in \
   'does not prove that implementation, debugging, tests, builds, review, commit readiness, PR readiness, or plan tasks are complete' \
   'Do not invoke Superpowers completion, review, verification' \
   'update-wiki` does not replace implementation verification' \
+  'Default to not updating wiki' \
+  'Local Business Logic Exclusion' \
+  'reuse threshold' \
+  'explicit skip reason' \
+  'local business logic already represented in code/spec' \
   'ownership boundary' \
   'nearest-match fallback' \
   'masked secret' \

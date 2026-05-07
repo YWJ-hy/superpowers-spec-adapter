@@ -34,16 +34,38 @@ If the break-loop handoff says no durable knowledge should persist, skip wiki ed
 
 ## Wiki First Rule
 
-Wiki content should capture **durable implementation knowledge**, not generic prose.
+Wiki content should capture **durable implementation knowledge**, not generic prose or a summary of the latest code change.
 
-Good wiki updates include:
-- executable rules
-- API / payload / command contracts
-- validation and error behavior
+Default to not updating wiki. Only write when the knowledge is durable, reusable, and likely useful outside the immediate code context.
+
+Good wiki updates include engineering knowledge that passes at least one promotion test:
+- executable rules reused across modules, pages, workflows, or layers
+- API / payload / command contracts that remain stable outside one call site
+- validation and error behavior that future work must preserve
 - design decisions with rationale
 - project conventions
-- gotchas and common mistakes
+- gotchas and common mistakes that are not obvious from code, spec, or plan
 - cross-cutting thinking checklists in `guides/`
+
+### Local Business Logic Exclusion
+
+Default to skipping wiki updates for local business logic.
+
+Do not write wiki pages for:
+- single-page, single-flow, single-vendor, or single-customer branch rules
+- implementation details already obvious from the changed code
+- temporary rules that belong in the current spec, plan, PR, or commit message
+- compatibility handling that only exists because of one local call site
+
+Only promote local-looking knowledge when it represents a stable external/domain constraint, a cross-layer contract, reused project convention, or a repeated gotcha that future sessions are likely to rediscover incorrectly.
+
+Use this reuse threshold before writing:
+1. Does the knowledge apply across modules, pages, workflows, or layers?
+2. Does it remain true outside the current file or immediate task context?
+3. Would skipping the wiki make future developers likely to repeat a bug or miss a hidden constraint?
+4. Is wiki a better source of truth than code, spec, plan, PR, or commit message?
+
+If the candidate does not pass this threshold, state an explicit skip reason such as: `No wiki update: this is local business logic already represented in code/spec, not durable reusable knowledge.`
 
 Do not treat `index.md` files as the main place for detailed rules. Keep detailed content in leaf wiki page files and keep indexes lightweight.
 
@@ -55,16 +77,20 @@ Do the semantic work yourself. Python scripts are only mechanical helpers.
 
 ### 1. Decide whether there is durable knowledge
 
-Review the completed work and identify any implementation knowledge that future sessions should reuse.
+Review the completed work and identify only implementation knowledge that future sessions should reuse outside the immediate code context.
+
+Start from skip. Promote a candidate to wiki only when it passes the reuse threshold above and is better preserved in long-term wiki than in code, spec, plan, PR, or commit message.
 
 Skip the update when the work only produced:
 - temporary task notes
 - one-off debugging history
+- local business logic or single-context branch rules
 - obvious facts already visible from code
+- local compatibility handling tied to one call site
 - unverified guesses
 - formatting-only or typo-only changes
 
-If nothing should be written, report that conclusion and explain the judgment briefly. Do not force a wiki edit.
+If nothing should be written, report that conclusion and explain the judgment briefly with an explicit skip reason. Do not force a wiki edit.
 
 ### 2. Split the input into atomic candidates
 
@@ -309,7 +335,9 @@ Do not:
 
 Before finishing the update:
 
-- [ ] Did you decide whether the work produced durable knowledge before editing?
+- [ ] Did you start from the default of not updating wiki and require durable reusable knowledge before editing?
+- [ ] Did you exclude local business logic, single-context branch rules, and code-obvious implementation details unless they passed the reuse threshold?
+- [ ] If you skipped all candidates, did you state an explicit skip reason instead of forcing a wiki edit?
 - [ ] Did you split multi-point input into atomic candidates?
 - [ ] Did you read relevant indexed wiki pages before writing?
 - [ ] Did you skip candidates that are already covered and tell the user where?
