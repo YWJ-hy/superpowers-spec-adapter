@@ -74,9 +74,11 @@ python3 overlays/scripts/wiki_update_check.py --json
 
 ### 4.2 集成测试必须覆盖安装后的 command / skill 路径
 
-当改动影响用户功能时，至少要验证：
+如果用户提供了 Superpowers 源码目录，可以把它作为开发和调试时的初步测试目标，例如验证 overlay、patch 和脚本在源码树上是否能应用。但这只是辅助测试或非必要测试，不能替代最终验收。Superpowers 源码目录与 Claude Code 实际安装后的插件目录可能不完全相同，包括文件布局、插件缓存路径、安装记录、版本内容或运行时加载方式。
 
-1. adapter 能安装到 Superpowers 插件目录
+当改动影响用户功能时，必须验证安装后的 Superpowers 插件目录，至少要验证：
+
+1. adapter 能安装到 Claude Code 实际发现的 Superpowers 插件目录；如额外验证源码目录，只能作为补充
 2. `verify` 能检查到安装产物和 hook patch
 3. 对应 command、skill 或 agent 文档仍会引导 agent 走正确流程
 4. 在目标项目中能通过 Superpowers command / skill / agent 集成路径完成用户场景
@@ -202,7 +204,7 @@ bash tests/wiki-update-check-smoke.sh <installed-superpowers-target> /path/to/pr
 bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
 ```
 
-注意：这些测试需要传入安装后的 Superpowers target 和目标项目 root，不能只在 adapter 源码目录里假设路径成立。
+注意：这些测试需要传入安装后的 Superpowers target 和目标项目 root，不能只在 adapter 源码目录里假设路径成立。传入 Superpowers 源码目录只能作为开发期初筛；发布或完成前必须对 Claude Code 实际安装后的 Superpowers 插件目录运行安装和验证。
 
 ---
 
