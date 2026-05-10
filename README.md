@@ -43,6 +43,35 @@ Install-related commands target all unique installed Superpowers Claude Code plu
 
 Current compatibility baseline: Superpowers 5.1.0. `./manage.sh install` warns, but does not block, when the detected target version is newer than the baseline. The compatibility check reads the installed Superpowers target's `package.json` version when available.
 
+### Optional subagent model configuration
+
+By default, `adapter.config.json` is `{}` and the adapter does not change subagent model routing. Adapter agents keep `model: inherit`, and upstream Superpowers prompt templates keep their native `Task tool (general-purpose)` shape.
+
+To pin models, copy the relevant entries from `adapter.config.example.jsonc` into `adapter.config.json` as standard JSON without comments:
+
+```json
+{
+  "subagentModels": {
+    "agents": {
+      "wiki-researcher": "sonnet",
+      "graphify-researcher": "sonnet",
+      "lanhu-frontend-requirements-analyst": "opus",
+      "lanhu-backend-requirements-analyst": "opus"
+    },
+    "upstreamPromptTemplates": {
+      "spec-document-reviewer": "sonnet",
+      "plan-document-reviewer": "sonnet",
+      "code-reviewer": "opus",
+      "implementer": "sonnet",
+      "spec-compliance-reviewer": "sonnet",
+      "code-quality-reviewer": "opus"
+    }
+  }
+}
+```
+
+Empty or omitted entries are no-ops. If Superpowers changes an upstream prompt template after an upgrade, `./manage.sh install` reports every configured subagent whose model could not be applied, including the subagent id and target path.
+
 ## Bootstrap wiki
 
 Import a wiki template into a target project without overwriting existing user files:

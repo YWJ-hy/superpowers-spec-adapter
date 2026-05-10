@@ -7,6 +7,7 @@ TARGETS_JSON="$(python3 "$SCRIPT_DIR/lib/resolve_target.py" --all "$TARGET_INPUT
 OVERLAY_DIR="$SCRIPT_DIR/overlays"
 HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
 NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
+SUBAGENT_MODEL_PATCHER="$SCRIPT_DIR/lib/subagent_model_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -119,16 +120,22 @@ install_target() {
       exit 1
     fi
 
-    python3 - <<'PY' "$source" "$target" "$target_dir"
+    python3 - <<'PY' "$SCRIPT_DIR" "$source" "$target" "$target_dir" "$target_rel"
 from pathlib import Path
 import shlex
 import sys
 
-source = Path(sys.argv[1])
-target = Path(sys.argv[2])
-target_dir = shlex.quote(sys.argv[3])
+script_dir = Path(sys.argv[1])
+source = Path(sys.argv[2])
+target = Path(sys.argv[3])
+target_dir = shlex.quote(sys.argv[4])
+target_rel = sys.argv[5]
+sys.path.insert(0, str(script_dir / 'lib'))
+from subagent_models import apply_agent_model_override
+
 text = source.read_text(encoding='utf-8')
 text = text.replace('__SUPERPOWER_ADAPTER_PLUGIN_ROOT__', target_dir)
+text = apply_agent_model_override(text, script_dir, target_rel)
 target.write_text(text, encoding='utf-8')
 PY
     printf 'Installed %s\n' "$target_rel"
@@ -176,6 +183,7 @@ PY
     "$target_dir/scripts/wiki_apply_update.py"
   python3 "$HOOK_PATCHER" install "$target_dir"
   python3 "$NATIVE_SKILL_PATCHER" install "$target_dir"
+  python3 "$SUBAGENT_MODEL_PATCHER" install "$target_dir"
 }
 
 for target_dir in "${TARGET_DIRS[@]}"; do

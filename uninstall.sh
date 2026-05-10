@@ -12,6 +12,7 @@ PY
 )
 HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
 NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
+SUBAGENT_MODEL_PATCHER="$SCRIPT_DIR/lib/subagent_model_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -49,6 +50,7 @@ PY
   )
   python3 "$HOOK_PATCHER" uninstall "$target_dir"
   python3 "$NATIVE_SKILL_PATCHER" uninstall "$target_dir"
+  python3 "$SUBAGENT_MODEL_PATCHER" uninstall "$target_dir"
 }
 
 for target_dir in "${TARGET_DIRS[@]}"; do

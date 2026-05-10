@@ -54,6 +54,8 @@ adapter 分为四层：
 
 当前兼容性边界：adapter 以 Superpowers 5.1.0 为适配基线；`./manage.sh install` 发现目标 Superpowers 版本更高时只警告、不拦截，并优先读取目标安装目录里的 `package.json` 版本。自动发现安装目标目前依赖 `superpowers@claude-plugins-official` 的安装记录；native skill patch 依赖上游 skill 标题和锚点文本稳定，所以升级 Superpowers 后要重点复核这些 patch 位置。
 
+Subagent 模型配置由 `adapter.config.json` 控制，默认 `{}` 表示不改变模型路由；完整可配置 id 维护在 `adapter.config.example.jsonc`。配置会在安装阶段投射到 adapter agent frontmatter 和 Superpowers 上游 prompt template。修改 `lib/subagent_models.py`、`lib/subagent_model_patch.py`、安装脚本或相关 prompt template 匹配逻辑时，必须验证空配置 no-op、配置后可应用、清空配置可移除、Superpowers 上游模板变化时 install 能列出所有已配置但失败的 subagent。
+
 ---
 
 ## 4. 测试原则
@@ -195,6 +197,7 @@ writing-plans
 
 ```bash
 bash tests/native-wiki-patch-smoke.sh <installed-superpowers-target>
+bash tests/subagent-model-config-smoke.sh <installed-superpowers-target>
 bash tests/wiki-update-check-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
 ```

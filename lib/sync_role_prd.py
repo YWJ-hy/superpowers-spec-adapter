@@ -8,6 +8,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from subagent_models import apply_agent_model
+
 COMMON_SKELETON = Path('overlays/agents/lanhu-requirements-analyst.common.md')
 
 
@@ -123,6 +125,12 @@ def check(root: Path, target_root: Path | None = None) -> bool:
     check_root = target_root or root
     for config in ROLE_CONFIGS:
         rendered = render_agent(root, config)
+        if target_root:
+            from subagent_models import model_for_agent
+
+            model = model_for_agent(root, config.agent_name)
+            if model:
+                rendered = apply_agent_model(rendered, config.agent_name, model)
         relative = installed_relative(config.agent_path) if target_root else config.agent_path
         path = check_root / relative
         if not path.is_file():

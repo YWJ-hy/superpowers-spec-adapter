@@ -1,0 +1,23 @@
+{
+  // Actual configuration is read from adapter.config.json, which must be standard JSON.
+  // Copy the sections you need into adapter.config.json and remove comments.
+  "subagentModels": {
+    // Adapter overlay agents installed into Superpowers agents/.
+    "agents": {
+      "wiki-researcher": "sonnet",
+      "graphify-researcher": "sonnet",
+      "lanhu-frontend-requirements-analyst": "opus",
+      "lanhu-backend-requirements-analyst": "opus"
+    },
+
+    // Upstream Superpowers prompt templates that dispatch Task/general-purpose subagents.
+    "upstreamPromptTemplates": {
+      "spec-document-reviewer": "sonnet",
+      "plan-document-reviewer": "sonnet",
+      "code-reviewer": "opus",
+      "implementer": "sonnet",
+      "spec-compliance-reviewer": "sonnet",
+      "code-quality-reviewer": "opus"
+    }
+  }
+}

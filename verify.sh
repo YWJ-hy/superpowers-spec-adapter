@@ -16,6 +16,7 @@ PY
 )
 HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
 NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
+SUBAGENT_MODEL_PATCHER="$SCRIPT_DIR/lib/subagent_model_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -470,6 +471,7 @@ PY
   )
   python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
   python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
+  python3 "$SUBAGENT_MODEL_PATCHER" verify "$TARGET_DIR"
   check_optional_integration_overlays
   check_native_skill_residuals
 }
