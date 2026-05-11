@@ -6,16 +6,19 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import sys
 
-from wiki_common import build_wiki_index_graph, rel_posix, repo_root, summary_from_markdown
+from wiki_common import build_wiki_index_graph, display_wiki_path, repo_root, selected_wiki_roots, summary_from_markdown
 
 
-def candidate_rows(wiki_root: Path) -> list[dict[str, str]]:
+def candidate_rows(root_desc) -> list[dict[str, str]]:
+    wiki_root = root_desc.path
     graph = build_wiki_index_graph(wiki_root)
     return [
         {
-            "path": rel_posix(wiki_root.resolve(), path),
+            "root": root_desc.name,
+            "wikiRoot": str(wiki_root),
+            "path": display_wiki_path(root_desc, path),
+            "relativePath": path.relative_to(wiki_root).as_posix(),
             "summary": summary_from_markdown(path),
             "kind": "leaf",
         }
@@ -51,20 +54,34 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("hint", nargs="?", default="", help="Optional context to echo for the agent; not used for scoring.")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable candidate data.")
+    parser.add_argument("--wiki-root", choices=["project", "shared", "all"], default="all", help="Wiki root to list")
     return parser
 
 
 def main() -> int:
     args = build_parser().parse_args()
     root = repo_root(Path.cwd())
-    wiki_root = root / ".superpowers" / "wiki"
-    graph = build_wiki_index_graph(wiki_root)
+    roots = selected_wiki_roots(root, args.wiki_root, require_index=True)
+    candidates: list[dict[str, str]] = []
+    warnings: list[str] = []
+    wiki_roots: list[dict[str, str]] = []
+    for root_desc in roots:
+        graph = build_wiki_index_graph(root_desc.path)
+        wiki_roots.append({
+            "root": root_desc.name,
+            "wikiRoot": str(root_desc.path),
+            "displayPath": root_desc.display_path,
+        })
+        candidates.extend(candidate_rows(root_desc))
+        warnings.extend(f"{root_desc.display_path}: {warning}" for warning in graph.warnings)
+
     payload = {
         "decisionMade": False,
         "hint": args.hint,
-        "wikiRoot": str(wiki_root),
-        "candidates": candidate_rows(wiki_root),
-        "warnings": graph.warnings,
+        "wikiRoot": str((root / ".superpowers" / "wiki")),
+        "wikiRoots": wiki_roots,
+        "candidates": candidates,
+        "warnings": warnings,
     }
 
     if args.json:

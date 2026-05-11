@@ -8,25 +8,30 @@ from pathlib import Path
 import sys
 
 from wiki_common import (
+    WikiRoot,
     build_wiki_index_graph,
+    display_wiki_path,
     is_indexed_wiki_path,
     is_path_within,
+    parse_root_prefixed_wiki_path,
     read_text,
     repo_root,
+    selected_wiki_roots,
     summary_from_markdown,
+    wiki_root_by_name,
 )
 
 
-def render_tree(wiki_root: Path, depth: int) -> list[str]:
+def render_tree(root_desc: WikiRoot, depth: int) -> list[str]:
+    wiki_root = root_desc.path
     graph = build_wiki_index_graph(wiki_root)
-    lines: list[str] = ["Wiki root: `.superpowers/wiki/`"]
+    lines: list[str] = [f"Wiki root: `{root_desc.display_path}/`"]
     for path in graph.files:
-        rel = path.relative_to(wiki_root).as_posix()
-        display_path = f".superpowers/wiki/{rel}"
         level = len(path.relative_to(wiki_root).parts) - 1
         if level > depth:
             continue
         indent = "  " * level
+        display_path = display_wiki_path(root_desc, path)
         summary = summary_from_markdown(path)
         if summary:
             lines.append(f"{indent}- `{display_path}` — {summary}")
@@ -38,53 +43,91 @@ def render_tree(wiki_root: Path, depth: int) -> list[str]:
     return lines
 
 
+def resolve_file(project_root: Path, selector: str, value: str, is_category: bool = False) -> tuple[WikiRoot, Path] | None:
+    prefixed = parse_root_prefixed_wiki_path(project_root, value)
+    if prefixed:
+        root_desc, rel_path = prefixed
+        if selector != "all" and root_desc.name != selector:
+            raise SystemExit(f"Path root {root_desc.name} conflicts with --wiki-root {selector}")
+        target = (root_desc.path / rel_path).resolve()
+        if is_category:
+            target = (target / "index.md").resolve()
+        return root_desc, target
+
+    roots = selected_wiki_roots(project_root, selector, require_index=True)
+    matches: list[tuple[WikiRoot, Path]] = []
+    for root_desc in roots:
+        target = (root_desc.path / value).resolve()
+        if is_category:
+            target = (root_desc.path / value / "index.md").resolve()
+        if is_path_within(root_desc.path.resolve(), target) and target.is_file():
+            matches.append((root_desc, target))
+
+    if len(matches) > 1:
+        display = ", ".join(display_wiki_path(root_desc, target) for root_desc, target in matches)
+        raise SystemExit(f"Ambiguous wiki path: {value}. Use --wiki-root or a root-prefixed path. Matches: {display}")
+    return matches[0] if matches else None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file", help="Read one indexed wiki page file relative to .superpowers/wiki")
-    parser.add_argument("--category", help="Compatibility alias: read an indexed directory index relative to .superpowers/wiki")
+    parser.add_argument("--file", help="Read one indexed wiki page file relative to a wiki root or root-prefixed")
+    parser.add_argument("--category", help="Compatibility alias: read an indexed directory index relative to a wiki root")
     parser.add_argument("--tree", action="store_true", help="Render a lightweight index-driven summary tree")
     parser.add_argument("--depth", type=int, default=2, help="Maximum tree depth for --tree")
+    parser.add_argument("--wiki-root", choices=["project", "shared", "all"], default="all", help="Wiki root to read")
     args = parser.parse_args()
 
     root = repo_root(Path.cwd())
-    wiki_root = root / ".superpowers" / "wiki"
-    if not wiki_root.is_dir():
-        print("No .superpowers/wiki directory found", file=sys.stderr)
-        return 1
 
     if args.file:
-        target = (wiki_root / args.file).resolve()
-        if not is_path_within(wiki_root.resolve(), target) or not target.is_file():
+        resolved = resolve_file(root, args.wiki_root, args.file)
+        if not resolved:
             print(f"Wiki page not found: {args.file}", file=sys.stderr)
             return 1
-        if not is_indexed_wiki_path(wiki_root, target, include_indexes=True):
-            print(f"Wiki page is not indexed: {args.file}", file=sys.stderr)
+        root_desc, target = resolved
+        if not is_indexed_wiki_path(root_desc.path, target, include_indexes=True):
+            print(f"Wiki page is not indexed: {display_wiki_path(root_desc, target)}", file=sys.stderr)
             return 1
         print(read_text(target))
         return 0
 
     if args.category:
-        target = (wiki_root / args.category / "index.md").resolve()
-        if not is_path_within(wiki_root.resolve(), target) or not target.is_file():
+        resolved = resolve_file(root, args.wiki_root, args.category, is_category=True)
+        if not resolved:
             print(f"Indexed path not found: {args.category}", file=sys.stderr)
             return 1
-        if not is_indexed_wiki_path(wiki_root, target, include_indexes=True):
-            print(f"Wiki index is not indexed: {args.category}", file=sys.stderr)
+        root_desc, target = resolved
+        if not is_indexed_wiki_path(root_desc.path, target, include_indexes=True):
+            print(f"Wiki index is not indexed: {display_wiki_path(root_desc, target)}", file=sys.stderr)
             return 1
         print(read_text(target))
         return 0
 
+    roots = selected_wiki_roots(root, args.wiki_root, require_index=True)
     if args.tree:
-        tree = render_tree(wiki_root, max(args.depth, 0))
-        if not tree:
+        if not roots:
             print("- No wiki indexes discovered yet")
         else:
-            print("\n".join(tree))
+            sections: list[str] = []
+            for root_desc in roots:
+                sections.extend(render_tree(root_desc, max(args.depth, 0)))
+                sections.append("")
+            print("\n".join(sections).rstrip())
         return 0
 
-    entry = wiki_root / "index.md"
+    if args.wiki_root == "all" and len(roots) > 1:
+        for root_desc in roots:
+            entry = root_desc.path / "index.md"
+            print(f"# {root_desc.display_path}/index.md\n")
+            print(read_text(entry).rstrip())
+            print()
+        return 0
+
+    root_desc = roots[0] if roots else wiki_root_by_name(root, args.wiki_root if args.wiki_root != "all" else "project")
+    entry = root_desc.path / "index.md"
     if not entry.is_file():
-        print("Missing .superpowers/wiki/index.md", file=sys.stderr)
+        print("Missing wiki index. Expected .superpowers/wiki/index.md or .shared-superpowers/wiki/index.md", file=sys.stderr)
         return 1
     print(read_text(entry))
     return 0

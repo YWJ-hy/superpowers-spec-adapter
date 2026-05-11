@@ -4,9 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE_ROOT="$SCRIPT_DIR/wiki-template"
 TEMPLATE_NAME=""
+WIKI_ROOT_NAME="project"
+WIKI_ROOT_REL=".superpowers/wiki"
 
 usage() {
-  printf 'Usage: %s <project-root> [--template name]\n' "$0" >&2
+  printf 'Usage: %s <project-root> [--template name] [--wiki-root project|shared]\n' "$0" >&2
   exit 1
 }
 
@@ -17,12 +19,15 @@ fi
 
 REPO_ROOT="$(cd "$1" && pwd)"
 shift
-WIKI_ROOT="$REPO_ROOT/.superpowers/wiki"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --template)
       TEMPLATE_NAME="${2:-}"
+      shift 2
+      ;;
+    --wiki-root)
+      WIKI_ROOT_NAME="${2:-}"
       shift 2
       ;;
     *)
@@ -31,6 +36,21 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+case "$WIKI_ROOT_NAME" in
+  project)
+    WIKI_ROOT_REL=".superpowers/wiki"
+    ;;
+  shared)
+    WIKI_ROOT_REL=".shared-superpowers/wiki"
+    ;;
+  *)
+    printf 'Invalid --wiki-root: %s\n' "$WIKI_ROOT_NAME" >&2
+    usage
+    ;;
+esac
+
+WIKI_ROOT="$REPO_ROOT/$WIKI_ROOT_REL"
 
 list_templates() {
   find "$TEMPLATE_ROOT" -mindepth 1 -maxdepth 1 -type d -print | sort | while IFS= read -r template; do
@@ -98,7 +118,7 @@ copy_template() {
     local relative="${source#$template_dir/}"
     local target="$WIKI_ROOT/$relative"
     if [[ -e "$target" ]] && ! cmp -s "$source" "$target"; then
-      conflicts+=(".superpowers/wiki/$relative")
+      conflicts+=("$WIKI_ROOT_REL/$relative")
     fi
   done < <(find "$template_dir" -type f | sort)
 
@@ -138,4 +158,4 @@ if [[ ! -f "$TEMPLATE_DIR/index.md" ]]; then
 fi
 
 copy_template "$TEMPLATE_DIR"
-printf 'bootstrap-wiki complete: imported template %s\n' "$SELECTED_TEMPLATE"
+printf 'bootstrap-wiki complete: imported template %s into %s\n' "$SELECTED_TEMPLATE" "$WIKI_ROOT_REL"

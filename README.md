@@ -1,6 +1,6 @@
 # superpower-adapter
 
-This adapter keeps Superpowers as the primary workflow framework and adds a replayable overlay for project wiki pages under `.superpowers/wiki/`.
+This adapter keeps Superpowers as the primary workflow framework and adds a replayable overlay for project wiki pages under `.superpowers/wiki/` and shared wiki pages under `.shared-superpowers/wiki/`.
 
 Chinese user flow guide: [`ADAPTER_USER_FLOW_CN.md`](./ADAPTER_USER_FLOW_CN.md)
 Chinese adapter development guide: [`ADAPTER_DEVELOPMENT_CN.md`](./ADAPTER_DEVELOPMENT_CN.md)
@@ -9,7 +9,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 ## Purpose
 
-- Store project wiki pages in `.superpowers/wiki/`
+- Store project wiki pages in `.superpowers/wiki/` and optional shared wiki pages in `.shared-superpowers/wiki/`
 - Use `index.md` as the entry point
 - Optionally turn Lanhu links into confirmed frontend/backend role-specific PRD packages under `.lanhu/MM-DD-<requirement-name>/` before Superpowers brainstorming, with `index.md` as the entrypoint and relationship map
 - Optionally use graphify as agent-judged candidate relationship hints during planning or narrowed debugging, without making it a dependency or gate
@@ -39,7 +39,7 @@ If this adapter lives as `superpower-adapter/` inside another project, run the s
 ./superpower-adapter/manage.sh verify
 ```
 
-Install-related commands target all unique installed Superpowers Claude Code plugin directories by default, so multiple installed versions are patched together. Pass an explicit Superpowers target path to operate on only one plugin directory. Commands that read or write `.superpowers/wiki/` require an explicit project root argument.
+Install-related commands target all unique installed Superpowers Claude Code plugin directories by default, so multiple installed versions are patched together. Pass an explicit Superpowers target path to operate on only one plugin directory. Commands that read or write `.superpowers/wiki/` or `.shared-superpowers/wiki/` require an explicit project root argument.
 
 Current compatibility baseline: Superpowers 5.1.0. `./manage.sh install` warns, but does not block, when the detected target version is newer than the baseline. The compatibility check reads the installed Superpowers target's `package.json` version when available.
 
@@ -79,6 +79,7 @@ Import a wiki template into a target project without overwriting existing user f
 
 ```bash
 ./manage.sh bootstrap-wiki /path/to/project --template standard
+./manage.sh bootstrap-wiki /path/to/project --template standard --wiki-root shared
 ```
 
 Template structure is index-driven:
@@ -109,7 +110,7 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 /import-wiki path/to/original-wiki-dir --target imported
 ```
 
-The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` without overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
+The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
 
 ## Optional Lanhu requirements intake
 
@@ -145,8 +146,8 @@ The default selection path is the installed `wiki-researcher` agent. The install
 
 Progressive wiki reading still follows these rules:
 
-1. Read `.superpowers/wiki/index.md`
-2. Follow the index to narrower indexes or files
+1. Read existing root indexes: `.superpowers/wiki/index.md` and `.shared-superpowers/wiki/index.md`
+2. Follow each root index to narrower indexes or files
 3. Read only the files needed for the current phase
 4. Avoid full-tree wiki loading unless explicitly requested
 5. Use plan `Referenced Project Wiki` and linked `.wiki-context.md` during implementation and review
@@ -160,11 +161,13 @@ The installed `wiki-researcher` agent is the default path for selecting relevant
 ```yaml
 task: <user request or confirmed Superpowers spec>
 phase: brainstorm | plan | debug | implement | review
-wikiRoot: .superpowers/wiki
+wikiRoots:
+  - .superpowers/wiki
+  - .shared-superpowers/wiki
 maxWikiPages: 5
 ```
 
-It starts from `.superpowers/wiki/index.md`, follows index links progressively, and returns structured YAML selected wiki pages plus planning constraint hints. In `phase: debug`, it should be called only after `systematic-debugging` has narrowed the failing boundary, and it returns project-reference hints to verify rather than root-cause evidence. It does not modify files.
+It starts from existing project/shared root indexes, follows index links progressively within each root, and returns structured YAML selected wiki pages plus planning constraint hints with root-prefixed paths. In `phase: debug`, it should be called only after `systematic-debugging` has narrowed the failing boundary, and it returns project-reference hints to verify rather than root-cause evidence. It does not modify files.
 
 ## Referenced Project Wiki
 
@@ -200,7 +203,7 @@ For bugs, keep Superpowers `systematic-debugging` as the fix workflow. The adapt
 
 Debug wiki lookup uses `phase: debug` and should stay small, normally `maxWikiPages: 2`. If the bug happens while executing a Superpowers plan, read that plan's `Referenced Project Wiki` and linked `.wiki-context.md` first instead of reselecting wiki pages; without a current plan context, do not search old plans by default. Missing or irrelevant wiki does not block debugging, and wiki context is not root-cause evidence. Verify every wiki-derived idea against code, logs, tests, reproduction steps, or diagnostics.
 
-During `systematic-debugging`, do not write `.wiki-context.md`, update `.superpowers/wiki/`, or run `update-wiki`. After the bug is fixed and verified, use the installed `break-loop` skill when the work needs a deeper retrospective: root cause category, failed attempts, prevention mechanisms, similar risks, and durable knowledge candidates.
+During `systematic-debugging`, do not write `.wiki-context.md`, update `.superpowers/wiki/` or `.shared-superpowers/wiki/`, or run `update-wiki`. After the bug is fixed and verified, use the installed `break-loop` skill when the work needs a deeper retrospective: root cause category, failed attempts, prevention mechanisms, similar risks, and durable knowledge candidates.
 
 `break-loop` does not replace `systematic-debugging` or `update-wiki`. When durable implementation knowledge should persist, it hands atomic candidates to `update-wiki`, which performs duplicate checks, target selection, wiki edits, index refresh, and validation.
 
@@ -214,9 +217,10 @@ Execution-layer helpers are mainly useful for adapter development or debugging. 
 
 ```bash
 TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
-python3 "$TARGET_DIR/scripts/wiki_select_target.py" --json
-python3 "$TARGET_DIR/scripts/wiki_update_check.py" --json
-python3 "$TARGET_DIR/scripts/update-wiki.py"
+python3 "$TARGET_DIR/scripts/wiki_select_target.py" --wiki-root all --json
+python3 "$TARGET_DIR/scripts/wiki_update_check.py" --wiki-root all --json
+python3 "$TARGET_DIR/scripts/update-wiki.py" --wiki-root project
+python3 "$TARGET_DIR/scripts/update-wiki.py" --wiki-root shared
 ```
 
 ## Export manifest
@@ -227,7 +231,7 @@ Export adapter and wiki state for upgrade-time comparison:
 ./manage.sh export-manifest /path/to/project ./manifest-output.json
 ```
 
-The manifest includes installed adapter files, native skill patch targets, hook config state, and a `.superpowers/wiki` snapshot with both raw and ignore-filtered effective views.
+The manifest includes installed adapter files, native skill patch targets, hook config state, and `.superpowers/wiki` and `.shared-superpowers/wiki` snapshots with both raw and ignore-filtered effective views.
 
 ## Release check
 

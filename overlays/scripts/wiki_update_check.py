@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from wiki_common import build_wiki_index_graph, rel_posix, repo_root
+from wiki_common import build_wiki_index_graph, display_wiki_path, rel_posix, repo_root, selected_wiki_roots, wiki_root_by_name
 
 VALID = "valid"
 WARNING = "warning"
@@ -54,11 +54,12 @@ def oversized_level(lines_count: int, chars_count: int) -> str | None:
     return None
 
 
-def check_leaf(wiki_root: Path, path: Path) -> tuple[list[str], list[str], dict | None]:
+def check_leaf(root_desc, path: Path) -> tuple[list[str], list[str], dict | None]:
+    wiki_root = root_desc.path
     warnings: list[str] = []
     errors: list[str] = []
     oversized: dict | None = None
-    rel = rel_posix(wiki_root.resolve(), path)
+    rel = display_wiki_path(root_desc, path)
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -78,6 +79,8 @@ def check_leaf(wiki_root: Path, path: Path) -> tuple[list[str], list[str], dict 
     if level:
         oversized = {
             "path": rel,
+            "relativePath": rel_posix(wiki_root.resolve(), path),
+            "root": root_desc.name,
             "lines": lines_count,
             "chars": chars_count,
             "level": level,
@@ -94,31 +97,69 @@ def check_leaf(wiki_root: Path, path: Path) -> tuple[list[str], list[str], dict 
     return warnings, errors, oversized
 
 
-def check_wiki_tree() -> dict:
-    root = repo_root(Path.cwd())
-    wiki_root = root / ".superpowers" / "wiki"
+def check_root(root_desc) -> dict:
+    wiki_root = root_desc.path
     graph = build_wiki_index_graph(wiki_root)
-    warnings = list(graph.warnings)
+    warnings = [f"{root_desc.display_path}: {warning}" for warning in graph.warnings]
     errors: list[str] = []
     oversized_pages: list[dict] = []
 
     for leaf in graph.leaves:
-        leaf_warnings, leaf_errors, oversized = check_leaf(wiki_root, leaf)
+        leaf_warnings, leaf_errors, oversized = check_leaf(root_desc, leaf)
         warnings.extend(leaf_warnings)
         errors.extend(leaf_errors)
         if oversized:
             oversized_pages.append(oversized)
 
     if not graph.leaves:
-        warnings.append("No indexed leaf wiki pages found")
+        warnings.append(f"No indexed leaf wiki pages found in {root_desc.display_path}")
 
     status = INVALID if errors else WARNING if warnings else VALID
     return {
         "status": status,
+        "root": root_desc.name,
         "wikiRoot": str(wiki_root),
+        "displayPath": root_desc.display_path,
         "filesChecked": len(graph.files),
         "indexesChecked": len(graph.indexes),
         "leavesChecked": len(graph.leaves),
+        "oversizedPages": oversized_pages,
+        "warnings": warnings,
+        "errors": errors,
+    }
+
+
+def aggregate_status(roots: list[dict], warnings: list[str], errors: list[str]) -> str:
+    if errors or any(root["status"] == INVALID for root in roots):
+        return INVALID
+    if warnings or any(root["status"] == WARNING for root in roots):
+        return WARNING
+    return VALID
+
+
+def check_wiki_tree(selector: str) -> dict:
+    root = repo_root(Path.cwd())
+    root_descs = selected_wiki_roots(root, selector, require_index=True)
+    missing_warnings: list[str] = []
+    if selector in {"project", "shared"} and not root_descs:
+        root_desc = wiki_root_by_name(root, selector)
+        root_descs = [root_desc]
+    elif selector == "all" and not root_descs:
+        missing_warnings.append("No wiki indexes found under .superpowers/wiki or .shared-superpowers/wiki")
+
+    root_results = [check_root(root_desc) for root_desc in root_descs]
+    warnings = [*missing_warnings, *(warning for item in root_results for warning in item["warnings"])]
+    errors = [error for item in root_results for error in item["errors"]]
+    oversized_pages = [page for item in root_results for page in item["oversizedPages"]]
+    status = aggregate_status(root_results, missing_warnings, errors)
+    project_wiki_root = root / ".superpowers" / "wiki"
+    return {
+        "status": status,
+        "wikiRoot": str(project_wiki_root),
+        "roots": root_results,
+        "filesChecked": sum(item["filesChecked"] for item in root_results),
+        "indexesChecked": sum(item["indexesChecked"] for item in root_results),
+        "leavesChecked": sum(item["leavesChecked"] for item in root_results),
         "oversizedPages": oversized_pages,
         "warnings": warnings,
         "errors": errors,
@@ -134,6 +175,10 @@ def render_text(result: dict) -> str:
         INVALID: "WIKI_UPDATE_CHECK_INVALID: mechanical errors found",
     }[status]
     lines = [heading, f"Files checked: {result['filesChecked']}"]
+    if result["roots"]:
+        lines.extend(["", "Roots:"])
+        for root_result in result["roots"]:
+            lines.append(f"- {root_result['displayPath']}: {root_result['filesChecked']} files checked")
     if result["oversizedPages"]:
         lines.extend(["", "Oversized pages:"])
         lines.extend(
@@ -151,16 +196,17 @@ def render_text(result: dict) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Validate .superpowers/wiki index and leaf mechanics.")
+    parser = argparse.ArgumentParser(description="Validate project/shared wiki index and leaf mechanics.")
     parser.add_argument("--json", action="store_true", help="Emit JSON validation result.")
     parser.add_argument("--summary", default="", help="Deprecated compatibility option; ignored.")
     parser.add_argument("--changed-file", action="append", default=[], help="Deprecated compatibility option; ignored.")
+    parser.add_argument("--wiki-root", choices=["project", "shared", "all"], default="project", help="Wiki root to validate")
     return parser
 
 
 def main() -> int:
     args = build_parser().parse_args()
-    result = check_wiki_tree()
+    result = check_wiki_tree(args.wiki_root)
     if args.summary or args.changed_file:
         result["warnings"].append("Deprecated semantic inputs were ignored: --summary / --changed-file")
         if result["status"] == VALID:

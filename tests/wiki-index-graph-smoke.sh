@@ -6,8 +6,10 @@ ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TARGET_INPUT="${1:-${ROOT}/../superpowers}"
 PROJECT_ROOT="${2:-${ROOT}/..}"
 WIKI_ROOT="${PROJECT_ROOT}/.superpowers/wiki"
+SHARED_WIKI_ROOT="${PROJECT_ROOT}/.shared-superpowers/wiki"
 
 mkdir -p "${WIKI_ROOT}/platform/api" "${WIKI_ROOT}/guides" "${WIKI_ROOT}/shared/deep" "${WIKI_ROOT}/unindexed"
+mkdir -p "${SHARED_WIKI_ROOT}/platform/shared" "${SHARED_WIKI_ROOT}/unindexed"
 cat > "${WIKI_ROOT}/index.md" <<'EOF'
 # Project Wiki
 
@@ -28,9 +30,18 @@ printf '# API Contract\n\nContract behavior.\n' > "${WIKI_ROOT}/platform/api/con
 printf '# Debugging\n\nDebugging behavior.\n' > "${WIKI_ROOT}/guides/debugging.md"
 printf '# Deep Rule\n\nDeep indexed behavior.\n' > "${WIKI_ROOT}/shared/deep/rule.md"
 printf '# Secret\n\nUnindexed behavior.\n' > "${WIKI_ROOT}/unindexed/secret.md"
+cat > "${SHARED_WIKI_ROOT}/index.md" <<'EOF'
+# Shared Wiki
+
+<!-- superpower-adapter:auto:start -->
+- `platform/shared/conventions.md`
+<!-- superpower-adapter:auto:end -->
+EOF
+printf '# Shared Conventions\n\nShared behavior.\n' > "${SHARED_WIKI_ROOT}/platform/shared/conventions.md"
+printf '# Shared Secret\n\nUnindexed shared behavior.\n' > "${SHARED_WIKI_ROOT}/unindexed/secret.md"
 
 tree_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/wiki-context.py" --tree --depth 5)"
-for expected in "Wiki root: \`.superpowers/wiki/\`" ".superpowers/wiki/platform/api/contract.md" ".superpowers/wiki/guides/index.md" ".superpowers/wiki/guides/debugging.md" ".superpowers/wiki/shared/deep/rule.md"; do
+for expected in "Wiki root: \`.superpowers/wiki/\`" "Wiki root: \`.shared-superpowers/wiki/\`" ".superpowers/wiki/platform/api/contract.md" ".superpowers/wiki/guides/index.md" ".superpowers/wiki/guides/debugging.md" ".superpowers/wiki/shared/deep/rule.md" ".shared-superpowers/wiki/platform/shared/conventions.md"; do
   case "${tree_output}" in
     *"${expected}"*) : ;;
     *) printf 'Expected index-driven tree to include %s\n%s\n' "${expected}" "${tree_output}" >&2; exit 1 ;;
@@ -39,6 +50,12 @@ done
 case "${tree_output}" in
   *"unindexed/secret.md"*) printf 'Expected tree to exclude unindexed file\n' >&2; exit 1 ;;
   *) : ;;
+esac
+
+shared_file_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/wiki-context.py" --file .shared-superpowers/wiki/platform/shared/conventions.md)"
+case "${shared_file_output}" in
+  *"Shared behavior."*) : ;;
+  *) printf 'Expected root-prefixed shared file read to work\n%s\n' "${shared_file_output}" >&2; exit 1 ;;
 esac
 
 cat > "${WIKI_ROOT}/index.md" <<'EOF'

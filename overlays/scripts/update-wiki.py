@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import re
 from pathlib import Path
 
@@ -11,7 +12,9 @@ from wiki_common import (
     AUTO_START,
     ENTRY_STUB,
     build_wiki_index_graph,
+    existing_wiki_roots,
     repo_root,
+    select_wiki_root,
     summary_from_markdown,
 )
 
@@ -57,19 +60,36 @@ def refresh_auto_section(index_path: Path, wiki_root: Path) -> None:
     index_path.write_text(text[:start] + body + text[end:], encoding="utf-8")
 
 
-def main() -> int:
-    root = repo_root(Path.cwd())
-    wiki_root = root / ".superpowers" / "wiki"
+def refresh_root(root_desc) -> list[str]:
+    wiki_root = root_desc.path
     wiki_root.mkdir(parents=True, exist_ok=True)
     ensure_root_index(wiki_root)
-
     graph = build_wiki_index_graph(wiki_root)
     for index_path in graph.indexes:
         refresh_auto_section(index_path, wiki_root)
+    return graph.warnings
 
-    for warning in graph.warnings:
-        print(f"Warning: {warning}")
-    print(f"Updated indexed wiki page references under {wiki_root}")
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Refresh indexed wiki page references.")
+    parser.add_argument("--wiki-root", choices=["project", "shared", "all-existing"], default="project", help="Wiki root to refresh")
+    args = parser.parse_args()
+
+    root = repo_root(Path.cwd())
+    if args.wiki_root == "all-existing":
+        roots = existing_wiki_roots(root, require_index=True)
+    else:
+        roots = [select_wiki_root(root, args.wiki_root, create=True)]
+
+    if not roots:
+        print("No existing wiki roots with index.md found")
+        return 0
+
+    for root_desc in roots:
+        warnings = refresh_root(root_desc)
+        for warning in warnings:
+            print(f"Warning: {root_desc.display_path}: {warning}")
+        print(f"Updated indexed wiki page references under {root_desc.path}")
     return 0
 
 

@@ -6,14 +6,14 @@ ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TARGET_INPUT="${1:-${ROOT}/../superpowers}"
 PROJECT_ROOT="${2:-${ROOT}/..}"
 
-before="$(cd "${PROJECT_ROOT}" && find .superpowers/wiki -type f -name '*.md' -print0 2>/dev/null | xargs -0 shasum 2>/dev/null || true)"
+before="$(cd "${PROJECT_ROOT}" && { find .superpowers/wiki .shared-superpowers/wiki -type f -name '*.md' -print0 2>/dev/null || true; } | xargs -0 shasum 2>/dev/null || true)"
 json_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/init-wiki.py" . "self-test" --json)"
-after="$(cd "${PROJECT_ROOT}" && find .superpowers/wiki -type f -name '*.md' -print0 2>/dev/null | xargs -0 shasum 2>/dev/null || true)"
+after="$(cd "${PROJECT_ROOT}" && { find .superpowers/wiki .shared-superpowers/wiki -type f -name '*.md' -print0 2>/dev/null || true; } | xargs -0 shasum 2>/dev/null || true)"
 
 python3 - <<'PY' "${json_output}"
 import json, sys
 payload = json.loads(sys.argv[1])
-for key in ['projectRoot', 'wikiRoot', 'focusHint', 'languages', 'stackSignals', 'topDirectories', 'sampleFiles', 'indexedWikiPages', 'warnings', 'mechanicalOnly']:
+for key in ['projectRoot', 'wikiRoot', 'wikiRoots', 'focusHint', 'languages', 'stackSignals', 'topDirectories', 'sampleFiles', 'indexedWikiPages', 'warnings', 'mechanicalOnly']:
     if key not in payload:
         raise SystemExit(f"Missing key: {key}")
 if payload.get('mechanicalOnly') is not True:

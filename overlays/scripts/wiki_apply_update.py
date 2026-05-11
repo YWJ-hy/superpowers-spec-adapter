@@ -3,10 +3,17 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
-import sys
 
-from wiki_common import append_index_reference, is_indexed_wiki_path, is_path_within, repo_root
+from wiki_common import (
+    append_index_reference,
+    is_indexed_wiki_path,
+    is_path_within,
+    parse_root_prefixed_wiki_path,
+    repo_root,
+    select_wiki_root,
+)
 
 
 SECTION_PREFIX = '## Update: '
@@ -89,7 +96,6 @@ def merge_update_block(existing: str, title: str, why: str, rules: list[str]) ->
     keep_start, keep_end = ranges[0]
     block_lines = lines[keep_start:keep_end]
 
-    why_slice = section_slice(block_lines, WHY_HEADER)
     rules_slice = section_slice(block_lines, RULES_HEADER)
     notes_slice = section_slice(block_lines, NOTES_HEADER)
 
@@ -119,22 +125,38 @@ def merge_update_block(existing: str, title: str, why: str, rules: list[str]) ->
     return '\n'.join(new_lines).rstrip() + '\n'
 
 
-def main() -> int:
-    if len(sys.argv) < 4:
-        raise SystemExit(
-            'Usage: wiki_apply_update.py <agent-decided-target-relative-path> <title> <why> [rule ...]\n'
-            'This is a mechanical writer only; decide target ownership and duplicate coverage before running it.'
-        )
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description='Mechanical wiki update writer; decide target ownership and duplicate coverage before running it.'
+    )
+    parser.add_argument('--wiki-root', choices=['project', 'shared'], default=None, help='Wiki root to update')
+    parser.add_argument('target', help='Agent-decided target path, root-relative or root-prefixed')
+    parser.add_argument('title')
+    parser.add_argument('why')
+    parser.add_argument('rules', nargs='*')
+    return parser.parse_args()
 
-    target_rel = sys.argv[1]
-    title = sys.argv[2].strip()
-    why = sys.argv[3].strip()
-    rules = [rule.strip() for rule in sys.argv[4:] if rule.strip()]
+
+def main() -> int:
+    args = parse_args()
+    target_rel = args.target
+    title = args.title.strip()
+    why = args.why.strip()
+    rules = [rule.strip() for rule in args.rules if rule.strip()]
 
     root = repo_root(Path.cwd())
-    wiki_root = root / '.superpowers' / 'wiki'
+    prefixed = parse_root_prefixed_wiki_path(root, target_rel)
+    if prefixed:
+        root_desc, relative = prefixed
+        if args.wiki_root and root_desc.name != args.wiki_root:
+            raise SystemExit(f'Path root {root_desc.name} conflicts with --wiki-root {args.wiki_root}')
+    else:
+        root_desc = select_wiki_root(root, args.wiki_root or 'project', create=True)
+        relative = Path(target_rel)
+
+    wiki_root = root_desc.path
     wiki_root.mkdir(parents=True, exist_ok=True)
-    target = (wiki_root / target_rel).resolve()
+    target = (wiki_root / relative).resolve()
     if not is_path_within(wiki_root.resolve(), target):
         raise SystemExit(f'Invalid target: {target_rel}')
     if target.suffix != '.md':

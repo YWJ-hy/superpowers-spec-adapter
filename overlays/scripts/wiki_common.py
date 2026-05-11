@@ -10,7 +10,16 @@ import re
 DEFAULT_IGNORED_DIR_NAMES = {"draft", "archive", "examples"}
 AUTO_START = "<!-- superpower-adapter:auto:start -->"
 AUTO_END = "<!-- superpower-adapter:auto:end -->"
+PROJECT_WIKI_REL = Path(".superpowers") / "wiki"
+SHARED_WIKI_REL = Path(".shared-superpowers") / "wiki"
 ENTRY_STUB = "# Project Wiki\n\nUse this file as the entry point for project-specific wiki pages.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
+
+
+@dataclass(frozen=True)
+class WikiRoot:
+    name: str
+    path: Path
+    display_path: str
 
 
 @dataclass(frozen=True)
@@ -43,9 +52,70 @@ class WikiIndexGraph:
 def repo_root(start: Path) -> Path:
     current = start.resolve()
     for candidate in (current, *current.parents):
-        if (candidate / ".superpowers").exists() or (candidate / "superpowers").exists():
+        if (candidate / ".superpowers").exists() or (candidate / ".shared-superpowers").exists() or (candidate / "superpowers").exists():
             return candidate
     return current
+
+
+def known_wiki_roots(project_root: Path) -> list[WikiRoot]:
+    project_root = project_root.resolve()
+    return [
+        WikiRoot("project", project_root / PROJECT_WIKI_REL, PROJECT_WIKI_REL.as_posix()),
+        WikiRoot("shared", project_root / SHARED_WIKI_REL, SHARED_WIKI_REL.as_posix()),
+    ]
+
+
+def wiki_root_by_name(project_root: Path, name: str) -> WikiRoot:
+    for root in known_wiki_roots(project_root):
+        if root.name == name:
+            return root
+    raise ValueError(f"Unknown wiki root: {name}")
+
+
+def existing_wiki_roots(project_root: Path, require_index: bool = True) -> list[WikiRoot]:
+    roots: list[WikiRoot] = []
+    for root in known_wiki_roots(project_root):
+        if require_index:
+            if (root.path / "index.md").is_file():
+                roots.append(root)
+        elif root.path.is_dir():
+            roots.append(root)
+    return roots
+
+
+def select_wiki_root(project_root: Path, selector: str = "project", create: bool = False) -> WikiRoot:
+    root = wiki_root_by_name(project_root, selector)
+    if create:
+        root.path.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def selected_wiki_roots(project_root: Path, selector: str = "all", require_index: bool = True) -> list[WikiRoot]:
+    if selector == "all":
+        return existing_wiki_roots(project_root, require_index=require_index)
+    if selector in {"project", "shared"}:
+        root = wiki_root_by_name(project_root, selector)
+        if require_index and not (root.path / "index.md").is_file():
+            return []
+        if not require_index and not root.path.is_dir():
+            return []
+        return [root]
+    raise ValueError(f"Unknown wiki root selector: {selector}")
+
+
+def display_wiki_path(root: WikiRoot, file_path: Path) -> str:
+    return f"{root.display_path}/{rel_posix(root.path.resolve(), file_path.resolve())}"
+
+
+def parse_root_prefixed_wiki_path(project_root: Path, value: str) -> tuple[WikiRoot, Path] | None:
+    clean = value.strip().strip("/")
+    for root in known_wiki_roots(project_root):
+        prefix = root.display_path.rstrip("/")
+        if clean == prefix:
+            return root, Path("index.md")
+        if clean.startswith(prefix + "/"):
+            return root, Path(clean[len(prefix) + 1:])
+    return None
 
 
 def read_text(path: Path) -> str:

@@ -8,13 +8,13 @@ PROJECT_ROOT="${2:-${ROOT}/..}"
 TMP_PROJECT="$(mktemp -d)"
 trap 'rm -rf "${TMP_PROJECT}"' EXIT
 
-json_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/wiki_update_check.py" --json)"
+json_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/wiki_update_check.py" --wiki-root all --json)"
 python3 - <<'PY' "${json_output}"
 import json, sys
 payload = json.loads(sys.argv[1])
 if payload.get('status') not in {'valid', 'warning', 'invalid'}:
     raise SystemExit(f"Unexpected status: {payload.get('status')}")
-for key in ['filesChecked', 'warnings', 'errors', 'oversizedPages', 'mechanicalOnly']:
+for key in ['filesChecked', 'warnings', 'errors', 'oversizedPages', 'roots', 'mechanicalOnly']:
     if key not in payload:
         raise SystemExit(f"Missing key: {key}")
 if payload.get('mechanicalOnly') is not True:
@@ -59,7 +59,7 @@ page = pages[0]
 for key in ['path', 'lines', 'chars', 'level']:
     if key not in page:
         raise SystemExit(f"Missing oversized page key: {key}")
-if page.get('path') != 'large.md':
+if page.get('path') != '.superpowers/wiki/large.md':
     raise SystemExit(f"Unexpected oversized path: {page.get('path')}")
 for forbidden in ['nextSteps', 'signals']:
     if forbidden in payload:
@@ -71,7 +71,7 @@ case "${oversized_text}" in
   *) printf 'Expected oversized pages section from wiki_update_check\n' >&2; exit 1 ;;
 esac
 
-candidate_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/wiki_select_target.py" --json)"
+candidate_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/wiki_select_target.py" --wiki-root all --json)"
 python3 - <<'PY' "${candidate_output}"
 import json, sys
 payload = json.loads(sys.argv[1])
@@ -79,6 +79,10 @@ if payload.get('decisionMade') is not False:
     raise SystemExit('Expected candidate listing to make no target decision')
 if 'candidates' not in payload:
     raise SystemExit('Expected candidates list')
+for candidate in payload.get('candidates', []):
+    for key in ['root', 'wikiRoot', 'relativePath']:
+        if key not in candidate:
+            raise SystemExit(f'Missing candidate key: {key}')
 PY
 
 printf 'wiki-update-check smoke test complete\n'

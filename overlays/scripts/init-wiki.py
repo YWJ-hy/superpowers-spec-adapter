@@ -8,7 +8,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from wiki_common import build_wiki_index_graph, rel_posix, repo_root, summary_from_markdown
+from wiki_common import build_wiki_index_graph, display_wiki_path, known_wiki_roots, repo_root, summary_from_markdown
 
 MAX_SCAN_RESULTS = 400
 MAX_FILE_SAMPLES = 12
@@ -102,11 +102,14 @@ def file_samples(files: list[Path], project_root: Path) -> list[str]:
     return samples
 
 
-def indexed_wiki_pages(wiki_root: Path) -> tuple[list[dict[str, str]], list[str]]:
-    graph = build_wiki_index_graph(wiki_root)
+def indexed_wiki_pages(root_desc) -> tuple[list[dict[str, str]], list[str]]:
+    graph = build_wiki_index_graph(root_desc.path)
     wiki_pages = [
         {
-            "path": rel_posix(wiki_root.resolve(), path),
+            "root": root_desc.name,
+            "wikiRoot": str(root_desc.path),
+            "path": display_wiki_path(root_desc, path),
+            "relativePath": path.relative_to(root_desc.path).as_posix(),
             "summary": summary_from_markdown(path),
             "kind": "leaf",
         }
@@ -117,19 +120,37 @@ def indexed_wiki_pages(wiki_root: Path) -> tuple[list[dict[str, str]], list[str]
 
 def build_inventory(project_root_arg: str, hint: str) -> dict:
     project_root = repo_root(Path(project_root_arg).resolve())
-    wiki_root = project_root / ".superpowers" / "wiki"
+    project_wiki_root = project_root / ".superpowers" / "wiki"
     files = run_find(project_root)
     package_json = read_package_json(project_root)
     languages = detect_languages(files)
     stack = detect_stack(package_json, languages)
-    wiki_pages, warnings = indexed_wiki_pages(wiki_root)
+    wiki_roots: list[dict[str, object]] = []
+    wiki_pages: list[dict[str, str]] = []
+    warnings: list[str] = []
 
-    if not (wiki_root / "index.md").is_file():
-        warnings.append("Missing .superpowers/wiki/index.md; run bootstrap-wiki before initializing starter wiki pages")
+    for root_desc in known_wiki_roots(project_root):
+        index_exists = (root_desc.path / "index.md").is_file()
+        wiki_roots.append({
+            "root": root_desc.name,
+            "wikiRoot": str(root_desc.path),
+            "displayPath": root_desc.display_path,
+            "indexExists": index_exists,
+        })
+        if index_exists:
+            pages, graph_warnings = indexed_wiki_pages(root_desc)
+            wiki_pages.extend(pages)
+            warnings.extend(f"{root_desc.display_path}: {warning}" for warning in graph_warnings)
+        else:
+            warnings.append(f"Missing {root_desc.display_path}/index.md")
+
+    if not any(item["indexExists"] for item in wiki_roots):
+        warnings.append("No wiki indexes found; run bootstrap-wiki with --wiki-root project or --wiki-root shared before initializing starter wiki pages")
 
     return {
         "projectRoot": str(project_root),
-        "wikiRoot": str(wiki_root),
+        "wikiRoot": str(project_wiki_root),
+        "wikiRoots": wiki_roots,
         "focusHint": hint,
         "languages": languages,
         "stackSignals": stack,
@@ -146,7 +167,11 @@ def render_text(inventory: dict) -> str:
         "Project inventory only; no wiki content was written.",
         f"Project root: {inventory['projectRoot']}",
         f"Wiki root: {inventory['wikiRoot']}",
+        "Wiki roots:",
     ]
+    for root_info in inventory["wikiRoots"]:
+        state = "index present" if root_info["indexExists"] else "missing index"
+        lines.append(f"- {root_info['displayPath']} ({root_info['root']}, {state})")
     if inventory["focusHint"]:
         lines.append(f"Focus hint: {inventory['focusHint']}")
     lines.extend([
@@ -172,7 +197,7 @@ def render_text(inventory: dict) -> str:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Output project inventory for agent-led .superpowers/wiki initialization.")
+    parser = argparse.ArgumentParser(description="Output project inventory for agent-led project/shared wiki initialization.")
     parser.add_argument("project_root", help="Project root to inspect")
     parser.add_argument("analysis_hint", nargs="?", default="", help="Optional focus hint for the agent")
     parser.add_argument("--json", action="store_true", help="Emit JSON inventory")

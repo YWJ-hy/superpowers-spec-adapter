@@ -7,7 +7,7 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
-from wiki_common import AUTO_END, AUTO_START, ENTRY_STUB, is_path_within, repo_root, summary_from_markdown
+from wiki_common import AUTO_END, AUTO_START, ENTRY_STUB, is_path_within, repo_root, select_wiki_root, summary_from_markdown
 
 SUPPORTED_SUFFIXES = {".md", ".markdown", ".mdx", ".txt"}
 CHILD_STUB = "# Wiki Index\n\nUse this index to navigate the wiki pages in this section.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
@@ -132,19 +132,20 @@ def rebuild_indexes(wiki_root: Path) -> None:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Structurally import an existing wiki tree into index-driven .superpowers/wiki.")
+    parser = argparse.ArgumentParser(description="Structurally import an existing wiki tree into an index-driven wiki root.")
     parser.add_argument("source", help="Path to a source wiki page or directory")
     parser.add_argument("--hint", default="", help="Deprecated compatibility option; ignored by structural import")
-    parser.add_argument("--target", default="", help="Optional target subdirectory or file under .superpowers/wiki")
+    parser.add_argument("--target", default="", help="Optional target subdirectory or file under the selected wiki root")
     parser.add_argument("--merge-existing", action="store_true", help="Allow identical existing files; never overwrites different content")
+    parser.add_argument("--wiki-root", choices=["project", "shared"], default="project", help="Wiki root to import into")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     root = repo_root(Path.cwd())
-    wiki_root = root / ".superpowers" / "wiki"
-    wiki_root.mkdir(parents=True, exist_ok=True)
+    root_desc = select_wiki_root(root, args.wiki_root, create=True)
+    wiki_root = root_desc.path
 
     target_prefix = Path(args.target) if args.target else Path()
     items = plan_import_items(Path(args.source), target_prefix)
@@ -165,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Imported {item}")
     for item in skipped:
         print(f"Skipped identical {item}")
-    print(f"Imported {len(imported)} wiki page(s), skipped {len(skipped)} existing file(s)")
+    print(f"Imported {len(imported)} wiki page(s), skipped {len(skipped)} existing file(s) into {root_desc.display_path}")
     return 0
 
 

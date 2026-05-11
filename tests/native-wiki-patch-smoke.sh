@@ -10,6 +10,12 @@ if [[ ! -f "${TARGET_INPUT}/agents/wiki-researcher.md" ]]; then
   printf 'Expected installed wiki-researcher agent\n' >&2
   exit 1
 fi
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'root-prefixed wiki paths'; do
+  if ! grep -Fq "$required" "${TARGET_INPUT}/agents/wiki-researcher.md"; then
+    printf 'Expected installed wiki-researcher shared-root text: %s\n' "$required" >&2
+    exit 1
+  fi
+done
 
 if [[ ! -f "${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md" ]]; then
   printf 'Expected installed lanhu-frontend-requirements-analyst agent\n' >&2
@@ -73,6 +79,12 @@ if ! grep -Fq 'wiki-researcher' "$BRAINSTORMING_SKILL"; then
   printf 'Expected brainstorming patch to mention wiki-researcher\n' >&2
   exit 1
 fi
+for required in 'wikiRoots:' '.shared-superpowers/wiki'; do
+  if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
+    printf 'Expected brainstorming patch to contain shared wiki root: %s\n' "$required" >&2
+    exit 1
+  fi
+done
 
 for required in \
   'lanhu-frontend-requirements-analyst' \
@@ -205,6 +217,13 @@ if grep -Fq 'Before attempting ANY fix, use wiki-researcher' "$SYSTEMATIC_SKILL"
   printf 'Expected systematic-debugging patch not to make wiki-researcher a debugging prerequisite\n' >&2
   exit 1
 fi
+
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'selected project/shared wiki pages'; do
+  if ! grep -Fq "$required" "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
+    printf 'Expected writing-plans patch to contain shared wiki root: %s\n' "$required" >&2
+    exit 1
+  fi
+done
 
 if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
   printf 'Expected writing-plans patch to require Referenced Project Wiki\n' >&2

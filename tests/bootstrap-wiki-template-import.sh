@@ -16,6 +16,12 @@ if [[ -d "${PROJECT_ROOT}/.superpowers/wiki/categories" ]]; then
   exit 1
 fi
 
+"${ROOT}/bootstrap-wiki.sh" "${PROJECT_ROOT}" --template standard --wiki-root shared > /dev/null
+if [[ ! -f "${PROJECT_ROOT}/.shared-superpowers/wiki/index.md" ]]; then
+  printf 'Expected shared imported index.md\n' >&2
+  exit 1
+fi
+
 printf '# User Index\n\nDo not overwrite.\n' > "${PROJECT_ROOT}/.superpowers/wiki/index.md"
 if "${ROOT}/bootstrap-wiki.sh" "${PROJECT_ROOT}" --template standard > /dev/null 2>&1; then
   printf 'Expected bootstrap conflict to fail\n' >&2
