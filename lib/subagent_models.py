@@ -27,6 +27,7 @@ UPSTREAM_TEMPLATE_IDS = frozenset(
         'spec-document-reviewer',
         'plan-document-reviewer',
         'code-reviewer',
+        'final-code-reviewer',
         'implementer',
         'spec-compliance-reviewer',
         'code-quality-reviewer',

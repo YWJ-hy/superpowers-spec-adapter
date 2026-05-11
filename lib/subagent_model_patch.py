@@ -38,6 +38,48 @@ class PromptTemplateSpec:
 
 
 @dataclass(frozen=True)
+class FinalReviewerSpec:
+    subagent_id: str
+    relative_path: Path
+    expected_text: str
+    insert_before: str
+
+    @property
+    def start_marker(self) -> str:
+        return f'{START_PREFIX}{self.subagent_id} -->'
+
+    @property
+    def end_marker(self) -> str:
+        return f'{END_PREFIX}{self.subagent_id} -->'
+
+    def rendered_block(self, model: str) -> str:
+        return '\n'.join(
+            [
+                self.start_marker,
+                '## Adapter Final Code Reviewer Model Override',
+                '',
+                'For the terminal final code-reviewer step after all implementation-plan tasks are complete, use the shared `requesting-code-review/code-reviewer.md` template with this dedicated model route:',
+                '',
+                '```yaml',
+                'Task tool (general-purpose):',
+                f'  model: {model}',
+                '  description: "Final code review for entire implementation"',
+                '  prompt: |',
+                '    Use template at requesting-code-review/code-reviewer.md',
+                '',
+                '    DESCRIPTION: Entire implementation from the executed plan',
+                '    PLAN_OR_REQUIREMENTS: Full implementation plan and relevant referenced context',
+                '    BASE_SHA: Commit before the first implementation task',
+                '    HEAD_SHA: Current commit after all per-task reviews pass',
+                '```',
+                '',
+                'This override applies only to the final whole-implementation review. Per-task code quality reviews continue to use `code-quality-reviewer-prompt.md`; ordinary shared code review continues to use `requesting-code-review/code-reviewer.md`.',
+                self.end_marker,
+            ]
+        )
+
+
+@dataclass(frozen=True)
 class PatchFailure:
     subagent_id: str
     path: Path
@@ -78,8 +120,15 @@ SPECS = (
     ),
 )
 
+FINAL_CODE_REVIEWER_SPEC = FinalReviewerSpec(
+    subagent_id='final-code-reviewer',
+    relative_path=Path('skills/subagent-driven-development/SKILL.md'),
+    expected_text='Dispatch final code reviewer subagent for entire implementation',
+    insert_before='## Example Workflow',
+)
 
-def strip_model_block(text: str, spec: PromptTemplateSpec) -> tuple[str, bool]:
+
+def strip_model_block(text: str, spec: PromptTemplateSpec | FinalReviewerSpec) -> tuple[str, bool]:
     start = text.find(spec.start_marker)
     if start == -1:
         return text, False
@@ -169,7 +218,7 @@ def apply_spec(path: Path, spec: PromptTemplateSpec, model: str) -> tuple[bool, 
     return removed, f'Configured subagent model already satisfied: {spec.subagent_id} -> {model}'
 
 
-def remove_spec(path: Path, spec: PromptTemplateSpec) -> bool:
+def remove_spec(path: Path, spec: PromptTemplateSpec | FinalReviewerSpec) -> bool:
     if not path.is_file():
         return False
     text = path.read_text(encoding='utf-8')
@@ -190,6 +239,42 @@ def verify_spec(path: Path, spec: PromptTemplateSpec, model: str | None) -> None
     if spec.rendered_block(model, '') in text:
         return
     if f'model: {model}' in text and spec.start_marker in text and spec.end_marker in text:
+        return
+    raise ValueError(f'configured model was not applied: {model}')
+
+
+def find_final_reviewer_insert(text: str, spec: FinalReviewerSpec) -> int:
+    if spec.expected_text not in text:
+        raise ValueError(f'expected prompt identity text not found: {spec.expected_text}')
+    insert_at = text.find(spec.insert_before)
+    if insert_at == -1:
+        raise ValueError(f'could not find insertion heading: {spec.insert_before}')
+    if insert_at > 0 and text[insert_at - 1:insert_at] == '\n':
+        insert_at -= 1
+    return insert_at
+
+
+def apply_final_reviewer_spec(path: Path, spec: FinalReviewerSpec, model: str) -> tuple[bool, str]:
+    text = path.read_text(encoding='utf-8')
+    text, removed = strip_model_block(text, spec)
+    insert_at = find_final_reviewer_insert(text, spec)
+    block = spec.rendered_block(model)
+    updated = text[:insert_at] + '\n\n' + block + '\n\n' + text[insert_at:].lstrip('\n')
+    if updated != path.read_text(encoding='utf-8'):
+        path.write_text(updated, encoding='utf-8')
+        return True, f'Configured subagent model: {spec.subagent_id} -> {model}'
+    return removed, f'Configured subagent model already satisfied: {spec.subagent_id} -> {model}'
+
+
+def verify_final_reviewer_spec(path: Path, spec: FinalReviewerSpec, model: str | None) -> None:
+    if not path.is_file():
+        raise ValueError('target file is missing')
+    text = path.read_text(encoding='utf-8')
+    if model is None:
+        if spec.start_marker in text or spec.end_marker in text:
+            raise ValueError('adapter model marker remains but no model is configured')
+        return
+    if spec.start_marker in text and spec.end_marker in text and f'model: {model}' in text:
         return
     raise ValueError(f'configured model was not applied: {model}')
 
@@ -251,6 +336,43 @@ def main() -> int:
         except ValueError as exc:
             if model is not None or (mode == 'verify' and config.has_effective_upstream_models):
                 failures.append(PatchFailure(spec.subagent_id, path, str(exc), model))
+
+    final_spec = FINAL_CODE_REVIEWER_SPEC
+    final_path = target / final_spec.relative_path
+    final_model = config.upstream_prompt_templates.get('final-code-reviewer')
+    if final_model is None:
+        final_model = config.upstream_prompt_templates.get('code-reviewer')
+    try:
+        if mode == 'install':
+            if final_path.is_file():
+                removed = remove_spec(final_path, final_spec)
+                changed = changed or removed
+            if final_model is not None:
+                if not final_path.is_file():
+                    raise ValueError('target file is missing')
+                spec_changed, message = apply_final_reviewer_spec(final_path, final_spec, final_model)
+                changed = changed or spec_changed
+                print(message)
+        elif mode == 'uninstall':
+            changed = remove_spec(final_path, final_spec) or changed
+        else:
+            if final_model is None and not config.has_effective_upstream_models:
+                if final_path.is_file():
+                    text = final_path.read_text(encoding='utf-8')
+                    if final_spec.start_marker in text or final_spec.end_marker in text:
+                        failures.append(
+                            PatchFailure(
+                                final_spec.subagent_id,
+                                final_path,
+                                'adapter model marker remains but no model is configured',
+                                final_model,
+                            )
+                        )
+            else:
+                verify_final_reviewer_spec(final_path, final_spec, final_model)
+    except ValueError as exc:
+        if final_model is not None or (mode == 'verify' and config.has_effective_upstream_models):
+            failures.append(PatchFailure(final_spec.subagent_id, final_path, str(exc), final_model))
 
     if failures:
         raise SystemExit(format_failures(failures, mode))

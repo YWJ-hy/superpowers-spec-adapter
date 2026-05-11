@@ -14,7 +14,8 @@
     "upstreamPromptTemplates": {
       "spec-document-reviewer": "sonnet",
       "plan-document-reviewer": "sonnet",
-      "code-reviewer": "opus",
+      "code-reviewer": "sonnet",
+      "final-code-reviewer": "opus",
       "implementer": "sonnet",
       "spec-compliance-reviewer": "sonnet",
       "code-quality-reviewer": "opus"

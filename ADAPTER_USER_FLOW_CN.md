@@ -134,7 +134,7 @@ Superpowers 插件目录
 
 当前 adapter 以 Superpowers 5.1.0 为适配基线；如果安装到更高版本的 Superpowers，`./manage.sh install` 会先给出兼容性警告，但仍会继续安装。安装时会优先读取目标目录里的 `package.json` 版本号。`superpowers@claude-plugins-official` 是当前自动发现安装目标的默认插件键；如果将来 Superpowers 改了这个安装记录键，显式传目标路径会更稳。上游 skill 标题和锚点如果变化，adapter 的 native patch 也需要同步检查。
 
-高级配置：`adapter.config.json` 默认是 `{}`，不会改变任何 subagent 模型；adapter agent 会保持 `model: inherit`，Superpowers 上游 prompt template 也不会插入模型字段。如果需要为 `wiki-researcher`、`graphify-researcher`、Lanhu analyst 或 Superpowers 的 implementer / reviewer 类 prompt template 指定模型，可参考 `adapter.config.example.jsonc`，把需要的条目复制为无注释 JSON 后再运行 `./manage.sh install`。Superpowers 升级后，如果某个已配置模型的上游 prompt template 结构变化导致无法应用，install 会一次性列出失败的 subagent id、目标路径和原因；未配置模型的 subagent 不会因为模板变化阻塞安装。
+高级配置：`adapter.config.json` 默认是 `{}`，不会改变任何 subagent 模型；adapter agent 会保持 `model: inherit`，Superpowers 上游 prompt template 也不会插入模型字段。如果需要为 `wiki-researcher`、`graphify-researcher`、Lanhu analyst 或 Superpowers 的 implementer / reviewer 类 prompt template 指定模型，可参考 `adapter.config.example.jsonc`，把需要的条目复制为无注释 JSON 后再运行 `./manage.sh install`。其中 `final-code-reviewer` 只作用于 `subagent-driven-development` 所有任务完成后的最终整体评审；未配置时会降级使用 `code-reviewer` 的模型配置。Superpowers 升级后，如果某个已配置模型的上游 prompt template 结构变化导致无法应用，install 会一次性列出失败的 subagent id、目标路径和原因；未配置模型的 subagent 不会因为模板变化阻塞安装。
 
 如果 adapter 是作为其他项目中的 `superpower-adapter/` 目录存在，也可以从宿主项目执行：
 

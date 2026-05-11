@@ -61,6 +61,7 @@ UPSTREAM_FILES=(
   "$TARGET_INPUT/skills/subagent-driven-development/implementer-prompt.md"
   "$TARGET_INPUT/skills/subagent-driven-development/spec-reviewer-prompt.md"
   "$TARGET_INPUT/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  "$TARGET_INPUT/skills/subagent-driven-development/SKILL.md"
 )
 
 write_config <<'JSON'
@@ -88,10 +89,11 @@ write_config <<'JSON'
     "upstreamPromptTemplates": {
       "spec-document-reviewer": "haiku",
       "plan-document-reviewer": "sonnet",
-      "code-reviewer": "opus",
+      "code-reviewer": "haiku",
+      "final-code-reviewer": "opus",
       "implementer": "sonnet",
       "spec-compliance-reviewer": "haiku",
-      "code-quality-reviewer": "opus"
+      "code-quality-reviewer": "sonnet"
     }
   }
 }
@@ -105,10 +107,29 @@ assert_agent_model lanhu-backend-requirements-analyst sonnet
 require_in_file "$TARGET_INPUT/skills/brainstorming/spec-document-reviewer-prompt.md" 'superpower-adapter:subagent-model:spec-document-reviewer'
 require_in_file "$TARGET_INPUT/skills/brainstorming/spec-document-reviewer-prompt.md" 'model: haiku'
 require_in_file "$TARGET_INPUT/skills/writing-plans/plan-document-reviewer-prompt.md" 'model: sonnet'
-require_in_file "$TARGET_INPUT/skills/requesting-code-review/code-reviewer.md" 'model: opus'
+require_in_file "$TARGET_INPUT/skills/requesting-code-review/code-reviewer.md" 'superpower-adapter:subagent-model:code-reviewer'
+require_in_file "$TARGET_INPUT/skills/requesting-code-review/code-reviewer.md" 'model: haiku'
 require_in_file "$TARGET_INPUT/skills/subagent-driven-development/implementer-prompt.md" 'model: sonnet'
 require_in_file "$TARGET_INPUT/skills/subagent-driven-development/spec-reviewer-prompt.md" 'model: haiku'
-require_in_file "$TARGET_INPUT/skills/subagent-driven-development/code-quality-reviewer-prompt.md" 'model: opus'
+require_in_file "$TARGET_INPUT/skills/subagent-driven-development/code-quality-reviewer-prompt.md" 'model: sonnet'
+require_in_file "$TARGET_INPUT/skills/subagent-driven-development/SKILL.md" 'superpower-adapter:subagent-model:final-code-reviewer'
+require_in_file "$TARGET_INPUT/skills/subagent-driven-development/SKILL.md" 'model: opus'
+
+write_config <<'JSON'
+{
+  "subagentModels": {
+    "upstreamPromptTemplates": {
+      "code-reviewer": "haiku"
+    }
+  }
+}
+JSON
+"$ROOT/install.sh" "$TARGET_INPUT" >/dev/null
+"$ROOT/verify.sh" "$TARGET_INPUT" >/dev/null
+require_in_file "$TARGET_INPUT/skills/requesting-code-review/code-reviewer.md" 'superpower-adapter:subagent-model:code-reviewer'
+require_in_file "$TARGET_INPUT/skills/requesting-code-review/code-reviewer.md" 'model: haiku'
+require_in_file "$TARGET_INPUT/skills/subagent-driven-development/SKILL.md" 'superpower-adapter:subagent-model:final-code-reviewer'
+require_in_file "$TARGET_INPUT/skills/subagent-driven-development/SKILL.md" 'model: haiku'
 
 write_config <<'JSON'
 {}
@@ -160,7 +181,8 @@ write_config <<'JSON'
   "subagentModels": {
     "upstreamPromptTemplates": {
       "implementer": "sonnet",
-      "code-reviewer": "opus"
+      "code-reviewer": "opus",
+      "final-code-reviewer": "haiku"
     }
   }
 }
@@ -177,6 +199,10 @@ for relative in [
     text = path.read_text(encoding='utf-8')
     text = text.replace('Task tool', 'removed-task-tool', 1)
     path.write_text(text, encoding='utf-8')
+path = root / 'skills/subagent-driven-development/SKILL.md'
+text = path.read_text(encoding='utf-8')
+text = text.replace('Dispatch final code reviewer subagent for entire implementation', 'removed final reviewer dispatch')
+path.write_text(text, encoding='utf-8')
 PY
 if "$ROOT/install.sh" "$TEMP_TARGET" >/tmp/subagent-model-compat.out 2>&1; then
   printf 'Expected broken configured upstream templates to fail install\n' >&2
@@ -184,6 +210,7 @@ if "$ROOT/install.sh" "$TEMP_TARGET" >/tmp/subagent-model-compat.out 2>&1; then
 fi
 require_in_file /tmp/subagent-model-compat.out 'implementer model=sonnet'
 require_in_file /tmp/subagent-model-compat.out 'code-reviewer model=opus'
+require_in_file /tmp/subagent-model-compat.out 'final-code-reviewer model=haiku'
 
 write_config <<'JSON'
 {}
