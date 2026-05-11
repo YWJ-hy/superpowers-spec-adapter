@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE_ROOT="$SCRIPT_DIR/wiki-template"
+SHARED_TEMPLATE_ROOT="$SCRIPT_DIR/shared-superpowers-template"
 TEMPLATE_NAME=""
 WIKI_ROOT_NAME="project"
 WIKI_ROOT_REL=".superpowers/wiki"
@@ -108,19 +109,25 @@ select_template() {
   printf '%s\n' "${templates[$((choice - 1))]}"
 }
 
-copy_template() {
-  local template_dir="$1"
+copy_files_to_root() {
+  local source_root="$1"
+  local target_root="$2"
+  local display_prefix="$3"
   local conflicts=()
   local files=()
 
+  if [[ ! -d "$source_root" ]]; then
+    return 0
+  fi
+
   while IFS= read -r source; do
     files+=("$source")
-    local relative="${source#$template_dir/}"
-    local target="$WIKI_ROOT/$relative"
+    local relative="${source#$source_root/}"
+    local target="$target_root/$relative"
     if [[ -e "$target" ]] && ! cmp -s "$source" "$target"; then
-      conflicts+=("$WIKI_ROOT_REL/$relative")
+      conflicts+=("$display_prefix/$relative")
     fi
-  done < <(find "$template_dir" -type f | sort)
+  done < <(find "$source_root" -type f | sort)
 
   if [[ ${#conflicts[@]} -gt 0 ]]; then
     printf 'Refusing to overwrite existing user files:\n' >&2
@@ -131,10 +138,10 @@ copy_template() {
     exit 1
   fi
 
-  mkdir -p "$WIKI_ROOT"
+  mkdir -p "$target_root"
   for source in "${files[@]}"; do
-    local relative="${source#$template_dir/}"
-    local target="$WIKI_ROOT/$relative"
+    local relative="${source#$source_root/}"
+    local target="$target_root/$relative"
     if [[ -e "$target" ]]; then
       printf 'Kept identical %s\n' "$target"
       continue
@@ -143,6 +150,22 @@ copy_template() {
     cp "$source" "$target"
     printf 'Created %s\n' "$target"
   done
+}
+
+copy_template() {
+  local template_dir="$1"
+  copy_files_to_root "$template_dir" "$WIKI_ROOT" "$WIKI_ROOT_REL"
+}
+
+copy_shared_support_template() {
+  if [[ "$WIKI_ROOT_NAME" != "shared" ]]; then
+    return 0
+  fi
+  local support_dir="$SHARED_TEMPLATE_ROOT/$SELECTED_TEMPLATE/.shared-superpowers"
+  copy_files_to_root "$support_dir" "$REPO_ROOT/.shared-superpowers" ".shared-superpowers"
+  if [[ -d "$REPO_ROOT/.shared-superpowers/scripts" ]]; then
+    chmod +x "$REPO_ROOT/.shared-superpowers/scripts"/*.sh "$REPO_ROOT/.shared-superpowers/scripts"/*.py
+  fi
 }
 
 SELECTED_TEMPLATE="$(select_template)"
@@ -158,4 +181,5 @@ if [[ ! -f "$TEMPLATE_DIR/index.md" ]]; then
 fi
 
 copy_template "$TEMPLATE_DIR"
+copy_shared_support_template
 printf 'bootstrap-wiki complete: imported template %s into %s\n' "$SELECTED_TEMPLATE" "$WIKI_ROOT_REL"

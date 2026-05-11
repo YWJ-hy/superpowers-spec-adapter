@@ -150,14 +150,33 @@ Superpowers 插件目录
 ./manage.sh bootstrap-wiki /path/to/project --template standard --wiki-root shared
 ```
 
-第一条会在目标项目创建 `.superpowers/wiki/`；第二条会创建同级共享 wiki root `.shared-superpowers/wiki/`，可由用户用 git submodule 管理同步。入口分别为：
+第一条会在目标项目创建 `.superpowers/wiki/`；第二条会创建同级共享 wiki root `.shared-superpowers/wiki/`，并同时落地 `.shared-superpowers/scripts/` 和 `.shared-superpowers/settings.json.example`，方便用户把 shared wiki 作为项目本地 submodule 管理。入口分别为：
 
 ```text
 .superpowers/wiki/index.md
 .shared-superpowers/wiki/index.md
+.shared-superpowers/scripts/run-hook.py
 ```
 
-### 4.3 可选：导入已有 wiki
+### 4.3 可选：同步 / 发布 shared wiki submodule
+
+如果团队把 `.shared-superpowers/wiki/` 配成 git submodule，bootstrap 生成的 `.shared-superpowers/settings.json` 可以直接使用，也可参考 `.shared-superpowers/settings.json.example` 调整；进入 Superpowers 主流程前可运行：
+
+```bash
+python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
+```
+
+这只负责把 shared wiki submodule 拉到最新，不替代 `wiki-researcher` 的按需选择，也不替代 `update-wiki` 对 durable knowledge 的审查。
+
+当 shared wiki 内容已经更新并需要推送远程、同时更新主项目 submodule 指针时，在 Claude Code 中使用：
+
+```text
+/publish-shared-wiki
+```
+
+该 command 会先确认 commit/push 范围，再通过 `.shared-superpowers/settings.json` 调用项目本地 runner 执行发布。
+
+### 4.4 可选：导入已有 wiki
 
 ```text
 /import-wiki path/to/original-wiki-dir
@@ -167,7 +186,7 @@ Superpowers 插件目录
 
 `/import-wiki` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；如果导入内容需要语义整理，后续由 `update-wiki` skill 判断写入 `.superpowers/wiki/` 还是 `.shared-superpowers/wiki/` 并审查更新。
 
-### 4.4 可选：从蓝湖生成角色 PRD
+### 4.5 可选：从蓝湖生成角色 PRD
 
 如果用户已配置 lanhu-mcp，可以用：
 
@@ -199,7 +218,7 @@ Superpowers 插件目录
 
 lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求并按已确认角色生成 `.lanhu/` PRD，或直接走普通 Superpowers 流程。
 
-### 4.5 初始化项目 wiki 知识
+### 4.6 初始化项目 wiki 知识
 
 ```text
 /init-wiki
@@ -358,7 +377,8 @@ wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-d
 |---|---|---|
 | 安装 adapter | `./manage.sh install` | 将 overlay 写入 Superpowers 插件目录 |
 | 校验安装 | `./manage.sh verify` | 检查 overlay、agent、native skill patch 和 hook 配置 |
-| 初始化 wiki 模板 | `./manage.sh bootstrap-wiki /path/to/project --template standard` / `--wiki-root shared` | 创建 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/` |
+| 初始化 wiki 模板 | `./manage.sh bootstrap-wiki /path/to/project --template standard` / `--wiki-root shared` | 创建 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/`；shared root 会同时落地 `.shared-superpowers/scripts/` |
+| 发布 shared wiki | `/publish-shared-wiki` | 提交并推送 `.shared-superpowers/wiki` submodule，更新主项目 submodule 指针 |
 | 导入已有 wiki | `/import-wiki` | 有已有wiki 目录时在 Claude Code 中执行 |
 | 初次生成 starter wiki | `/init-wiki` | 在 Claude Code 中执行 |
 | 设计阶段参考项目 wiki | Superpowers `brainstorming` + `wiki-researcher` | 自动轻量披露相关项目 wiki 页面 |

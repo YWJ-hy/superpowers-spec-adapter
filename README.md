@@ -88,7 +88,35 @@ Template structure is index-driven:
 - Leaf wiki pages are discoverable only when linked from `index.md` or a child index.
 - `index.md` may link to same-level or deep files/directories; scripts do not assume fixed wiki directories.
 
+For shared wiki bootstrap, the adapter also copies `.shared-superpowers/scripts/` and `.shared-superpowers/settings.json.example` into the target project, so the project can use a local runner to sync or publish the shared wiki submodule.
+
 Existing files are never overwritten. If a target file exists with different content, bootstrap exits with a conflict list before copying anything.
+
+### Shared wiki submodule workflow
+
+After `--wiki-root shared`, the target project will also contain:
+
+- `.shared-superpowers/scripts/run-hook.py`
+- `.shared-superpowers/scripts/sync-submodule.sh`
+- `.shared-superpowers/scripts/publish-submodule.sh`
+- `.shared-superpowers/scripts/verify-submodule.sh`
+- `.shared-superpowers/scripts/status-submodule.sh`
+- `.shared-superpowers/settings.json`
+- `.shared-superpowers/settings.json.example`
+
+Adjust `.shared-superpowers/settings.json` if needed, then use the local runner before Superpowers starts working on the project:
+
+```bash
+python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
+```
+
+To publish shared wiki changes and update the parent repository pointer, use the installed command:
+
+```text
+/publish-shared-wiki
+```
+
+The publish command confirms scope before commit/push and uses the project-local runner; it does not replace `update-wiki`, which still owns durable knowledge review.
 
 ## Initialize starter wiki knowledge
 
@@ -254,6 +282,7 @@ The self-test covers:
 - `wiki_update_check.py` index and format validation
 - index-driven wiki graph traversal
 - import command path handling
+- shared wiki submodule local runner and publish script smoke
 
 ## Compatibility
 
