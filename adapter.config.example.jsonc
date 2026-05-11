@@ -3,7 +3,8 @@
   // Copy the sections you need into adapter.config.json and remove comments.
   "subagentModels": {
     // Adapter overlay agents installed into Superpowers agents/.
-    // Model names may include bracketed Claude Code suffixes such as deepseek-v4-pro[1m].
+    // These are native agent frontmatter model values, so custom model names may include bracketed Claude Code suffixes such as deepseek-v4-pro[1m].
+    // Install warns for non-standard values so you can verify your Claude Code runtime supports them.
     "agents": {
       "wiki-researcher": "sonnet",
       "graphify-researcher": "sonnet",
@@ -12,6 +13,7 @@
     },
 
     // Upstream Superpowers prompt templates that dispatch Task/general-purpose subagents.
+    // These become Claude Code Task/Agent model parameters; Claude Code currently restricts that field to sonnet, opus, or haiku, so install rejects other values to avoid configs that appear installed but are ignored or fail at runtime.
     "upstreamPromptTemplates": {
       "spec-document-reviewer": "sonnet",
       "plan-document-reviewer": "sonnet",

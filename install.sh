@@ -89,6 +89,19 @@ for item in json.loads(sys.argv[1])['targets']:
 PY
 )
 
+python3 - <<'PY' "$SCRIPT_DIR"
+from pathlib import Path
+import sys
+
+script_dir = Path(sys.argv[1])
+sys.path.insert(0, str(script_dir / 'lib'))
+from subagent_models import load_subagent_model_config, non_standard_agent_model_warnings
+
+config = load_subagent_model_config(script_dir)
+for warning in non_standard_agent_model_warnings(config):
+    print(warning, file=sys.stderr)
+PY
+
 python3 "$SCRIPT_DIR/lib/sync_role_prd.py" sync "$SCRIPT_DIR"
 
 install_target() {

@@ -54,7 +54,7 @@ adapter 分为四层：
 
 当前兼容性边界：adapter 以 Superpowers 5.1.0 为适配基线；`./manage.sh install` 发现目标 Superpowers 版本更高时只警告、不拦截，并优先读取目标安装目录里的 `package.json` 版本。自动发现安装目标目前依赖 `superpowers@claude-plugins-official` 的安装记录；native skill patch 依赖上游 skill 标题和锚点文本稳定，所以升级 Superpowers 后要重点复核这些 patch 位置。
 
-Subagent 模型配置由 `adapter.config.json` 控制，默认 `{}` 表示不改变模型路由；完整可配置 id 维护在 `adapter.config.example.jsonc`。配置会在安装阶段投射到 adapter agent frontmatter 和 Superpowers 上游 prompt template。修改 `lib/subagent_models.py`、`lib/subagent_model_patch.py`、安装脚本或相关 prompt template 匹配逻辑时，必须验证空配置 no-op、配置后可应用、清空配置可移除、Superpowers 上游模板变化时 install 能列出所有已配置但失败的 subagent。
+Subagent 模型配置由 `adapter.config.json` 控制，默认 `{}` 表示不改变模型路由；完整可配置 id 维护在 `adapter.config.example.jsonc`。配置会在安装阶段投射到 adapter agent frontmatter 和 Superpowers 上游 prompt template。adapter agent frontmatter 允许非标准模型名但 install 必须 warning；Superpowers 上游 prompt template 会变成 Claude Code Task / Agent 的 `model` 参数；由于 Claude Code 当前只允许该字段使用 `sonnet` / `opus` / `haiku`，其它值会让安装后的 markdown 看似配置成功但在 Claude Code 运行时被忽略、回退或延后失败，所以 install 必须硬失败。修改 `lib/subagent_models.py`、`lib/subagent_model_patch.py`、安装脚本或相关 prompt template 匹配逻辑时，必须验证空配置 no-op、配置后可应用、清空配置可移除、adapter agent 非标准模型 warning、upstream 非标准模型 hard fail、Superpowers 上游模板变化时 install 能列出所有已配置但失败的 subagent。
 
 ---
 

@@ -16,13 +16,17 @@ if [[ -f "$CONFIG_FILE" ]]; then
 fi
 
 cleanup() {
+  local status=$?
   if [[ "$HAD_CONFIG" == "1" ]]; then
     cp "$BACKUP_FILE" "$CONFIG_FILE"
     rm -f "$BACKUP_FILE"
   else
     rm -f "$CONFIG_FILE"
   fi
-  "$ROOT/install.sh" "$TARGET_INPUT" >/dev/null
+  if ! "$ROOT/install.sh" "$TARGET_INPUT" >/dev/null 2>/tmp/subagent-model-restore.out; then
+    printf 'Warning: restored adapter.config.json is not installable; leaving target at last test-installed state. See /tmp/subagent-model-restore.out\n' >&2
+  fi
+  exit "$status"
 }
 trap cleanup EXIT
 
@@ -98,8 +102,10 @@ write_config <<'JSON'
   }
 }
 JSON
-"$ROOT/install.sh" "$TARGET_INPUT" >/dev/null
+"$ROOT/install.sh" "$TARGET_INPUT" >/tmp/subagent-model-agent-warning.out 2>&1
 "$ROOT/verify.sh" "$TARGET_INPUT" >/dev/null
+require_in_file /tmp/subagent-model-agent-warning.out 'Warning: adapter.config.json: subagentModels.agents.wiki-researcher uses non-standard model'
+require_in_file /tmp/subagent-model-agent-warning.out 'deepseek-v4-pro[1m]'
 assert_agent_model wiki-researcher 'deepseek-v4-pro[1m]'
 assert_agent_model graphify-researcher haiku
 assert_agent_model lanhu-frontend-requirements-analyst opus
@@ -174,6 +180,23 @@ if "$ROOT/install.sh" "$TARGET_INPUT" >/tmp/subagent-model-invalid-model.out 2>&
 fi
 require_in_file /tmp/subagent-model-invalid-model.out 'contains unsupported characters'
 
+write_config <<'JSON'
+{
+  "subagentModels": {
+    "upstreamPromptTemplates": {
+      "implementer": "deepseek-v4-pro[1m]"
+    }
+  }
+}
+JSON
+if "$ROOT/install.sh" "$TARGET_INPUT" >/tmp/subagent-model-invalid-upstream.out 2>&1; then
+  printf 'Expected non-standard upstream prompt template model to fail install\n' >&2
+  exit 1
+fi
+require_in_file /tmp/subagent-model-invalid-upstream.out 'subagentModels.upstreamPromptTemplates.implementer'
+require_in_file /tmp/subagent-model-invalid-upstream.out 'haiku, opus, sonnet'
+require_in_file /tmp/subagent-model-invalid-upstream.out 'deepseek-v4-pro[1m]'
+
 TEMP_TARGET="$(mktemp -d)"
 cp -R "$TARGET_INPUT"/. "$TEMP_TARGET"/
 write_config <<'JSON'
@@ -217,6 +240,12 @@ write_config <<'JSON'
 JSON
 "$ROOT/install.sh" "$TEMP_TARGET" >/dev/null
 rm -rf "$TEMP_TARGET"
-rm -f /tmp/subagent-model-invalid.out /tmp/subagent-model-invalid-model.out /tmp/subagent-model-compat.out
+rm -f \
+  /tmp/subagent-model-agent-warning.out \
+  /tmp/subagent-model-invalid.out \
+  /tmp/subagent-model-invalid-model.out \
+  /tmp/subagent-model-invalid-upstream.out \
+  /tmp/subagent-model-compat.out \
+  /tmp/subagent-model-restore.out
 
 printf 'subagent model config smoke OK\n'

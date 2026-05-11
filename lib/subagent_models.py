@@ -11,7 +11,9 @@ from typing import Any
 
 CONFIG_FILE = 'adapter.config.json'
 MODEL_PATTERN = re.compile(r'^[A-Za-z0-9._@/+:\-\[\]]+$')
-SHORT_MODEL_NAMES = {'inherit', 'opus', 'sonnet', 'haiku'}
+TASK_AGENT_MODEL_NAMES = frozenset({'opus', 'sonnet', 'haiku'})
+AGENT_STANDARD_MODEL_NAMES = TASK_AGENT_MODEL_NAMES | {'inherit'}
+SHORT_MODEL_NAMES = AGENT_STANDARD_MODEL_NAMES
 
 ADAPTER_AGENT_IDS = frozenset(
     {
@@ -57,7 +59,13 @@ def _load_json(path: Path) -> dict[str, Any]:
     return data
 
 
-def _normalize_section(raw: Any, known_ids: frozenset[str], section_name: str, allow_inherit: bool) -> dict[str, str]:
+def _normalize_section(
+    raw: Any,
+    known_ids: frozenset[str],
+    section_name: str,
+    allow_inherit: bool,
+    allowed_models: frozenset[str] | None = None,
+) -> dict[str, str]:
     if raw is None:
         return {}
     if not isinstance(raw, dict):
@@ -76,23 +84,35 @@ def _normalize_section(raw: Any, known_ids: frozenset[str], section_name: str, a
         model = _normalize_model(value, section_name, key)
         if model is None:
             continue
+        if allowed_models is not None and model not in allowed_models:
+            valid = ', '.join(sorted(allowed_models))
+            raise SystemExit(
+                f'Invalid {CONFIG_FILE}: model for {_config_model_key(section_name, key)} must be one of: '
+                f'{valid}. Upstream prompt templates become Claude Code Task/Agent model parameters, '
+                f'so arbitrary model strings are not supported there: {model!r}'
+            )
         if model == 'inherit' and not allow_inherit:
-            continue
+            raise SystemExit(f'Invalid {CONFIG_FILE}: model for {_config_model_key(section_name, key)} cannot be inherit')
         normalized[key] = model
     return normalized
+
+
+def _config_model_key(section_name: str, key: str) -> str:
+    return f'subagentModels.{section_name}.{key}'
 
 
 def _normalize_model(value: Any, section_name: str, key: str) -> str | None:
     if value is None:
         return None
+    config_key = _config_model_key(section_name, key)
     if not isinstance(value, str):
-        raise SystemExit(f'Invalid {CONFIG_FILE}: model for {section_name}.{key} must be a string or null')
+        raise SystemExit(f'Invalid {CONFIG_FILE}: model for {config_key} must be a string or null')
     model = value.strip()
     if not model:
         return None
     if not MODEL_PATTERN.fullmatch(model):
         raise SystemExit(
-            f'Invalid {CONFIG_FILE}: model for {section_name}.{key} contains unsupported characters: {value!r}'
+            f'Invalid {CONFIG_FILE}: model for {config_key} contains unsupported characters: {value!r}'
         )
     if model in SHORT_MODEL_NAMES:
         return model
@@ -121,8 +141,20 @@ def load_subagent_model_config(root: Path) -> SubagentModelConfig:
         UPSTREAM_TEMPLATE_IDS,
         'upstreamPromptTemplates',
         allow_inherit=False,
+        allowed_models=TASK_AGENT_MODEL_NAMES,
     )
     return SubagentModelConfig(agents=agents, upstream_prompt_templates=upstream)
+
+
+def non_standard_agent_model_warnings(config: SubagentModelConfig) -> list[str]:
+    warnings = []
+    for agent_name, model in sorted(config.agents.items()):
+        if model not in AGENT_STANDARD_MODEL_NAMES:
+            warnings.append(
+                f'Warning: {CONFIG_FILE}: subagentModels.agents.{agent_name} uses non-standard model {model!r}. '
+                'Adapter-native agent frontmatter may accept custom model strings, but verify your Claude Code runtime supports this model.'
+            )
+    return warnings
 
 
 def model_for_agent(root: Path, agent_name: str) -> str | None:
