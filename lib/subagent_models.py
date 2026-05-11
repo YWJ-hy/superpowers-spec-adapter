@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 CONFIG_FILE = 'adapter.config.json'
-MODEL_PATTERN = re.compile(r'^[A-Za-z0-9._@/+:-]+$')
+MODEL_PATTERN = re.compile(r'^[A-Za-z0-9._@/+:\-\[\]]+$')
 SHORT_MODEL_NAMES = {'inherit', 'opus', 'sonnet', 'haiku'}
 
 ADAPTER_AGENT_IDS = frozenset(

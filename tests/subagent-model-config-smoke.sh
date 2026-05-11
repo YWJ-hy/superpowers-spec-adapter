@@ -81,7 +81,7 @@ write_config <<'JSON'
 {
   "subagentModels": {
     "agents": {
-      "wiki-researcher": "sonnet",
+      "wiki-researcher": "deepseek-v4-pro[1m]",
       "graphify-researcher": "haiku",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "sonnet"
@@ -100,7 +100,7 @@ write_config <<'JSON'
 JSON
 "$ROOT/install.sh" "$TARGET_INPUT" >/dev/null
 "$ROOT/verify.sh" "$TARGET_INPUT" >/dev/null
-assert_agent_model wiki-researcher sonnet
+assert_agent_model wiki-researcher 'deepseek-v4-pro[1m]'
 assert_agent_model graphify-researcher haiku
 assert_agent_model lanhu-frontend-requirements-analyst opus
 assert_agent_model lanhu-backend-requirements-analyst sonnet
