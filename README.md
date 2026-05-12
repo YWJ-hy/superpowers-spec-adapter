@@ -88,7 +88,7 @@ Template structure is index-driven:
 - Leaf wiki pages are discoverable only when linked from `index.md` or a child index.
 - `index.md` may link to same-level or deep files/directories; scripts do not assume fixed wiki directories.
 
-For shared wiki bootstrap, the adapter also copies `.shared-superpowers/scripts/` and `.shared-superpowers/settings.json.example` into the target project, so the project can use a local runner to sync or publish the shared wiki submodule.
+For shared wiki bootstrap, the adapter also copies `.shared-superpowers/scripts/`, `.shared-superpowers/settings.json`, and `.shared-superpowers/settings.json.example` into the target project, so the project can use a local runner to sync or publish the shared wiki submodule and configure shared wiki update authorization.
 
 Existing files are never overwritten. If a target file exists with different content, bootstrap exits with a conflict list before copying anything.
 
@@ -138,7 +138,7 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 /import-wiki path/to/original-wiki-dir --target imported
 ```
 
-The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
+The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Because imports create wiki documents, `/import-wiki` honors the selected root's `wiki.updateAuthorization.createNewDocument` setting and asks by default before creating new files. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
 
 ## Optional Lanhu requirements intake
 
@@ -239,6 +239,21 @@ During `systematic-debugging`, do not write `.wiki-context.md`, update `.superpo
 
 For normal use in Claude Code or similar tools, rely on the installed `update-wiki` skill. The skill is auto-triggered when implementation, debugging, review, or discussion may have produced durable knowledge, but it defaults to skipping wiki edits unless the knowledge is reusable outside the immediate code context. The agent filters out local business logic and code-obvious implementation details, reads indexed wiki pages, checks semantic duplicates, chooses target ownership, checks whether the target leaf page is oversized or overloaded, edits only durable wiki knowledge, refreshes indexes, and reports an explicit skip reason when nothing durable should be recorded. `update-wiki` is adapter maintenance and durable-knowledge review; its local wiki validation does not replace Superpowers implementation verification.
 
+Wiki writes are controlled per root by settings. `.superpowers/settings.json` controls `.superpowers/wiki/`, and `.shared-superpowers/settings.json` controls `.shared-superpowers/wiki/`:
+
+```json
+{
+  "wiki": {
+    "updateAuthorization": {
+      "updateExistingPage": "skip",
+      "createNewDocument": "ask"
+    }
+  }
+}
+```
+
+Allowed values are `skip`, `ask`, and `refuse`. Missing settings use the defaults above, so existing wiki page updates remain automatic by default while creating a new wiki document asks the user by default. Mechanical scripts enforce `ask` with `--authorized-update` or `--authorized-create`; `refuse` blocks the write even if a flag is passed. See `wiki-settings.example.jsonc` for a copyable commented example.
+
 Oversized page reports are mechanical signals only. When a leaf wiki page is too large, the agent should split by ownership, usually into sibling leaf pages in the same directory; use a topic directory with its own `index.md` only when the original page has become a collection of stable subtopics.
 
 Execution-layer helpers are mainly useful for adapter development or debugging. They are mechanical helpers only:
@@ -247,8 +262,8 @@ Execution-layer helpers are mainly useful for adapter development or debugging. 
 TARGET_DIR="$(python3 ./superpower-adapter/lib/resolve_target.py | python3 -c 'import json,sys; print(json.load(sys.stdin)["target"])')"
 python3 "$TARGET_DIR/scripts/wiki_select_target.py" --wiki-root all --json
 python3 "$TARGET_DIR/scripts/wiki_update_check.py" --wiki-root all --json
-python3 "$TARGET_DIR/scripts/update-wiki.py" --wiki-root project
-python3 "$TARGET_DIR/scripts/update-wiki.py" --wiki-root shared
+python3 "$TARGET_DIR/scripts/update-wiki.py" --wiki-root project --authorized-update
+python3 "$TARGET_DIR/scripts/update-wiki.py" --wiki-root shared --authorized-update
 ```
 
 ## Export manifest
@@ -276,6 +291,7 @@ This runs:
 - `export-manifest`
 
 The self-test covers:
+- wiki update authorization policy for existing page updates and new document creation
 - mechanical `wiki_apply_update.py` write and merge behavior with an agent-decided target
 - `wiki-researcher` installation and native skill patch smoke
 - worktree origin metadata native skill patch smoke

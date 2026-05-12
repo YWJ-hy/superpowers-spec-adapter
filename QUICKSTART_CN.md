@@ -162,7 +162,7 @@ python3 "$TARGET_DIR/scripts/wiki-context.py" --file quality/error-rules.md
 ```bash
 python3 "$TARGET_DIR/scripts/wiki_select_target.py" --json
 python3 "$TARGET_DIR/scripts/wiki_update_check.py" --json
-python3 "$TARGET_DIR/scripts/update-wiki.py"
+python3 "$TARGET_DIR/scripts/update-wiki.py" --authorized-update
 ```
 
 ---

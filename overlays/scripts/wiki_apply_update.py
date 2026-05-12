@@ -7,12 +7,15 @@ import argparse
 from pathlib import Path
 
 from wiki_common import (
+    WIKI_OPERATION_CREATE,
     append_index_reference,
+    enforce_wiki_update_authorization,
     is_indexed_wiki_path,
     is_path_within,
     parse_root_prefixed_wiki_path,
     repo_root,
     select_wiki_root,
+    wiki_update_operation_for_target,
 )
 
 
@@ -130,6 +133,8 @@ def parse_args() -> argparse.Namespace:
         description='Mechanical wiki update writer; decide target ownership and duplicate coverage before running it.'
     )
     parser.add_argument('--wiki-root', choices=['project', 'shared'], default=None, help='Wiki root to update')
+    parser.add_argument('--authorized-update', action='store_true', help='The user authorized updating an existing wiki page')
+    parser.add_argument('--authorized-create', action='store_true', help='The user authorized creating a new wiki document')
     parser.add_argument('target', help='Agent-decided target path, root-relative or root-prefixed')
     parser.add_argument('title')
     parser.add_argument('why')
@@ -164,10 +169,36 @@ def main() -> int:
     if target.name == 'index.md':
         raise SystemExit('Use leaf wiki page files for durable update bodies; index.md is reserved for navigation')
 
+    target_exists = target.exists()
+    try:
+        enforce_wiki_update_authorization(
+            root,
+            root_desc,
+            wiki_update_operation_for_target(target_exists),
+            authorized_update=args.authorized_update,
+            authorized_create=args.authorized_create,
+        )
+    except PermissionError as exc:
+        raise SystemExit(str(exc)) from exc
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
     target.parent.mkdir(parents=True, exist_ok=True)
-    if not target.exists():
+    if not target_exists:
         target.write_text(f'# {title}\n\n', encoding='utf-8')
     if not is_indexed_wiki_path(wiki_root, target, include_indexes=False):
+        if not (wiki_root / 'index.md').exists():
+            try:
+                enforce_wiki_update_authorization(
+                    root,
+                    root_desc,
+                    WIKI_OPERATION_CREATE,
+                    authorized_create=args.authorized_create,
+                )
+            except PermissionError as exc:
+                raise SystemExit(str(exc)) from exc
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
         append_index_reference(wiki_root, target)
 
     existing = target.read_text(encoding='utf-8')

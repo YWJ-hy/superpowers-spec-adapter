@@ -110,7 +110,7 @@ Lanhu 集成必须保持可选：不能要求用户安装 lanhu-mcp 才能使用
 Graphify 集成也必须保持可选：不能要求用户安装 graphify 才能使用 adapter，不能让用户承担“是否启用 graphify”的判断。graphify 只能由 agent 在需求已确认、源码已初步探索但关系边界仍不确定时作为 candidate hints 查询；最终影响文件必须由 Superpowers 直接读当前源码验证。用户手动触发 graphify 应视为独立图谱查询或维护，不能绕过 Superpowers `brainstorming` / `writing-plans` / execution。
 
 
-新增或修改 wiki 能力时，必须同时覆盖 `.superpowers/wiki/` 与 `.shared-superpowers/wiki/` 的行为边界：读取/候选可以同时查看两个 root，写入/导入/刷新必须明确目标 root，且两个 root 的 index graph 不得交叉污染。shared wiki submodule 的同步由目标项目里的 `.shared-superpowers/settings.json` 和 `.shared-superpowers/scripts/run-hook.py` 触发，不通过 adapter 安装 SessionStart hook；发布入口使用 `/publish-shared-wiki`，执行前必须确认 commit/push 范围。
+新增或修改 wiki 能力时，必须同时覆盖 `.superpowers/wiki/` 与 `.shared-superpowers/wiki/` 的行为边界：读取/候选可以同时查看两个 root，写入/导入/刷新必须明确目标 root，且两个 root 的 index graph 不得交叉污染。写入类能力还必须遵守 root-specific settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；`wiki.updateAuthorization.updateExistingPage` 默认 `skip`，`wiki.updateAuthorization.createNewDocument` 默认 `ask`，允许值为 `skip` / `ask` / `refuse`。`ask` 必须在 command / skill 入口先取得用户授权，再由执行层脚本通过 `--authorized-update` 或 `--authorized-create` 表示授权；`refuse` 必须阻止写入。shared wiki submodule 的同步由目标项目里的 `.shared-superpowers/settings.json` 和 `.shared-superpowers/scripts/run-hook.py` 触发，不通过 adapter 安装 SessionStart hook；发布入口使用 `/publish-shared-wiki`，执行前必须确认 commit/push 范围。
 
 新增 bug 调试辅助能力时，bug 修复过程仍由 Superpowers `systematic-debugging` 负责，wiki 或 graphify 查询只能在 Phase 1 证据收窄后条件式触发，不能成为默认前置步骤，不能写 `.wiki-context.md`，不能更新 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/`；复盘由 `break-loop` 负责，wiki 写入仍由 `update-wiki` 负责。
 

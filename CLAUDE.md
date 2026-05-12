@@ -76,3 +76,4 @@ Superpowers 是主工作流，adapter 只增强 Superpowers：
 - 脚本级测试只能证明执行层正确，不能替代安装后 command / skill 集成路径验证。
 - 修改 agent、hook 配置或安装逻辑后，至少运行 `./manage.sh install`、`./manage.sh verify`，并对目标项目运行 `./manage.sh release-check /path/to/project`。
 - 修改 command / skill 后，应安装 adapter 并在 Claude Code 中从对应 command 或 skill 入口验证用户路径。
+- wiki 写入策略由 root-specific settings 控制：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；`wiki.updateAuthorization.updateExistingPage` 默认 `skip`，`createNewDocument` 默认 `ask`，允许 `skip` / `ask` / `refuse`。执行层脚本的 `--authorized-update` / `--authorized-create` 只表示 command / skill 已取得用户授权，不能绕过 `refuse`。

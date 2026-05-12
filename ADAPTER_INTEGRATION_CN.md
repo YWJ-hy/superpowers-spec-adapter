@@ -196,7 +196,7 @@ python3 "$TARGET_DIR/scripts/init-wiki.py" . "optional focus" --json
 底层脚本：
 
 ```bash
-python3 "$TARGET_DIR/scripts/wiki_import.py" path/to/original-wiki-dir --target imported
+python3 "$TARGET_DIR/scripts/wiki_import.py" path/to/original-wiki-dir --target imported --authorized-create
 ```
 
 ### `break-loop` skill
@@ -220,7 +220,7 @@ systematic-debugging → break-loop → update-wiki
 ```bash
 python3 "$TARGET_DIR/scripts/wiki_select_target.py" --json
 python3 "$TARGET_DIR/scripts/wiki_update_check.py" --json
-python3 "$TARGET_DIR/scripts/update-wiki.py"
+python3 "$TARGET_DIR/scripts/update-wiki.py" --authorized-update
 ```
 
 `/init-wiki`、`/import-wiki` 和 `/lanhu-requirements` 是独立 adapter command，完成后不触发 Superpowers completion / review / verification；`/lanhu-requirements` 完成本地写入也不等于 Superpowers-ready，如果 analyst 返回 `status: need_confirmation`，必须先把紧凑阻塞问题交给用户确认并回传同一角色 analyst 修复需求包；只有命令明确 handoff、`confirmationGate.status: clear` 且用户确认 `index.md` 后，才进入下一步 Superpowers workflow。`update-wiki` 是自动触发 skill，不保留 slash command 入口；它是 adapter 维护和 durable-knowledge review，本地 wiki 校验不等于 Superpowers 实现验证。

@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET_DIR="${1:-}"
+TARGET_INPUT="${1:-}"
 PROJECT_ROOT="${2:-}"
-if [[ -z "$TARGET_DIR" || -z "$PROJECT_ROOT" ]]; then
+if [[ -z "$TARGET_INPUT" || -z "$PROJECT_ROOT" ]]; then
   printf 'Usage: %s <installed-superpowers-target> <project-root>\n' "$0" >&2
   exit 1
 fi
+TARGET_DIR="$(cd "$TARGET_INPUT" && pwd)"
+PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
 
 mkdir -p "$PROJECT_ROOT/wiki/source"
 printf '# Imported Command Path Smoke\n\nOriginal detail must be preserved.\n' > "$PROJECT_ROOT/wiki/source/path-smoke.md"
 
-(cd "$PROJECT_ROOT" && python3 "$TARGET_DIR/scripts/wiki_import.py" wiki/source --hint "command path smoke" --target imported-command-path-smoke --merge-existing)
+(cd "$PROJECT_ROOT" && python3 "$TARGET_DIR/scripts/wiki_import.py" wiki/source --hint "command path smoke" --target imported-command-path-smoke --merge-existing --authorized-create)
 
 TARGET_FILE="$PROJECT_ROOT/.superpowers/wiki/imported-command-path-smoke/path-smoke.md"
 if [[ ! -f "$TARGET_FILE" ]]; then
@@ -29,7 +31,7 @@ fi
 
 mkdir -p "$PROJECT_ROOT/wiki/shared-source"
 printf '# Shared Imported Command Path Smoke\n\nShared detail must be preserved.\n' > "$PROJECT_ROOT/wiki/shared-source/shared-path-smoke.md"
-(cd "$PROJECT_ROOT" && python3 "$TARGET_DIR/scripts/wiki_import.py" wiki/shared-source --wiki-root shared --target imported-command-path-smoke --merge-existing)
+(cd "$PROJECT_ROOT" && python3 "$TARGET_DIR/scripts/wiki_import.py" wiki/shared-source --wiki-root shared --target imported-command-path-smoke --merge-existing --authorized-create)
 SHARED_TARGET_FILE="$PROJECT_ROOT/.shared-superpowers/wiki/imported-command-path-smoke/shared-path-smoke.md"
 if [[ ! -f "$SHARED_TARGET_FILE" ]]; then
   printf 'Expected shared imported target file: %s\n' "$SHARED_TARGET_FILE" >&2

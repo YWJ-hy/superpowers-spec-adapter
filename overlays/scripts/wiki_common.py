@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import json
 import re
 
 DEFAULT_IGNORED_DIR_NAMES = {"draft", "archive", "examples"}
@@ -12,6 +13,18 @@ AUTO_START = "<!-- superpower-adapter:auto:start -->"
 AUTO_END = "<!-- superpower-adapter:auto:end -->"
 PROJECT_WIKI_REL = Path(".superpowers") / "wiki"
 SHARED_WIKI_REL = Path(".shared-superpowers") / "wiki"
+PROJECT_SETTINGS_REL = Path(".superpowers") / "settings.json"
+SHARED_SETTINGS_REL = Path(".shared-superpowers") / "settings.json"
+WIKI_POLICY_SKIP = "skip"
+WIKI_POLICY_ASK = "ask"
+WIKI_POLICY_REFUSE = "refuse"
+WIKI_POLICY_VALUES = {WIKI_POLICY_SKIP, WIKI_POLICY_ASK, WIKI_POLICY_REFUSE}
+WIKI_OPERATION_UPDATE = "updateExistingPage"
+WIKI_OPERATION_CREATE = "createNewDocument"
+DEFAULT_WIKI_UPDATE_AUTHORIZATION = {
+    WIKI_OPERATION_UPDATE: WIKI_POLICY_SKIP,
+    WIKI_OPERATION_CREATE: WIKI_POLICY_ASK,
+}
 ENTRY_STUB = "# Project Wiki\n\nUse this file as the entry point for project-specific wiki pages.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
 
 
@@ -105,6 +118,73 @@ def selected_wiki_roots(project_root: Path, selector: str = "all", require_index
 
 def display_wiki_path(root: WikiRoot, file_path: Path) -> str:
     return f"{root.display_path}/{rel_posix(root.path.resolve(), file_path.resolve())}"
+
+
+def wiki_settings_path(project_root: Path, root: WikiRoot) -> Path:
+    if root.name == "project":
+        return project_root / PROJECT_SETTINGS_REL
+    if root.name == "shared":
+        return project_root / SHARED_SETTINGS_REL
+    raise ValueError(f"Unknown wiki root: {root.name}")
+
+
+def load_wiki_update_authorization_policy(project_root: Path, root: WikiRoot) -> dict[str, str]:
+    settings_path = wiki_settings_path(project_root, root)
+    policy = dict(DEFAULT_WIKI_UPDATE_AUTHORIZATION)
+    if not settings_path.is_file():
+        return policy
+
+    try:
+        payload = json.loads(settings_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in {settings_path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"Settings must be a JSON object: {settings_path}")
+
+    wiki_settings = payload.get("wiki", {})
+    if wiki_settings is None:
+        wiki_settings = {}
+    if not isinstance(wiki_settings, dict):
+        raise ValueError(f"wiki settings must be an object in {settings_path}")
+
+    update_auth = wiki_settings.get("updateAuthorization", {})
+    if update_auth is None:
+        update_auth = {}
+    if not isinstance(update_auth, dict):
+        raise ValueError(f"wiki.updateAuthorization must be an object in {settings_path}")
+
+    for operation in DEFAULT_WIKI_UPDATE_AUTHORIZATION:
+        value = update_auth.get(operation, policy[operation])
+        if value not in WIKI_POLICY_VALUES:
+            allowed = ", ".join(sorted(WIKI_POLICY_VALUES))
+            raise ValueError(f"Invalid wiki.updateAuthorization.{operation} in {settings_path}: {value!r}; expected one of {allowed}")
+        policy[operation] = value
+    return policy
+
+
+def wiki_update_operation_for_target(target_exists: bool) -> str:
+    return WIKI_OPERATION_UPDATE if target_exists else WIKI_OPERATION_CREATE
+
+
+def enforce_wiki_update_authorization(
+    project_root: Path,
+    root: WikiRoot,
+    operation: str,
+    *,
+    authorized_update: bool = False,
+    authorized_create: bool = False,
+) -> None:
+    policy = load_wiki_update_authorization_policy(project_root, root)
+    action = policy[operation]
+    if action == WIKI_POLICY_SKIP:
+        return
+    if action == WIKI_POLICY_REFUSE:
+        raise PermissionError(f"{root.display_path} policy refuses wiki operation {operation}")
+
+    authorized = authorized_update if operation == WIKI_OPERATION_UPDATE else authorized_create
+    if not authorized:
+        flag = "--authorized-update" if operation == WIKI_OPERATION_UPDATE else "--authorized-create"
+        raise PermissionError(f"{root.display_path} policy requires user authorization for {operation}; rerun after approval with {flag}")
 
 
 def parse_root_prefixed_wiki_path(project_root: Path, value: str) -> tuple[WikiRoot, Path] | None:

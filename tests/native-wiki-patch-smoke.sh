@@ -322,9 +322,14 @@ for required in \
   'masked secret' \
   'type-safety.md' \
   'API/form payload' \
-  'security-sensitive field'
+  'security-sensitive field' \
+  'Check update authorization policy' \
+  'wiki.updateAuthorization.updateExistingPage' \
+  'wiki.updateAuthorization.createNewDocument' \
+  '--authorized-update' \
+  '--authorized-create'
 do
-  if ! grep -Fq "$required" "${UPDATE_WIKI_SKILL}"; then
+  if ! grep -Fq -- "$required" "${UPDATE_WIKI_SKILL}"; then
     printf 'Expected update-wiki skill to contain ownership guardrail: %s\n' "$required" >&2
     exit 1
   fi

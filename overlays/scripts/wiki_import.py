@@ -7,7 +7,17 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
-from wiki_common import AUTO_END, AUTO_START, ENTRY_STUB, is_path_within, repo_root, select_wiki_root, summary_from_markdown
+from wiki_common import (
+    AUTO_END,
+    AUTO_START,
+    ENTRY_STUB,
+    WIKI_OPERATION_CREATE,
+    enforce_wiki_update_authorization,
+    is_path_within,
+    repo_root,
+    select_wiki_root,
+    summary_from_markdown,
+)
 
 SUPPORTED_SUFFIXES = {".md", ".markdown", ".mdx", ".txt"}
 CHILD_STUB = "# Wiki Index\n\nUse this index to navigate the wiki pages in this section.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
@@ -59,8 +69,12 @@ def plan_import_items(source: Path, target_prefix: Path) -> list[ImportItem]:
     return items
 
 
+def target_for_item(wiki_root: Path, item: ImportItem) -> Path:
+    return (wiki_root / item.target_rel).resolve()
+
+
 def copy_item(wiki_root: Path, item: ImportItem, merge_existing: bool) -> bool:
-    target = (wiki_root / item.target_rel).resolve()
+    target = target_for_item(wiki_root, item)
     if not is_path_within(wiki_root.resolve(), target):
         raise SystemExit(f"Invalid target path: {item.target_rel.as_posix()}")
     if target.exists():
@@ -103,7 +117,7 @@ def index_entry(base_dir: Path, target: Path) -> str:
     return f"- `{rel}`" + (f" — {summary}" if summary else "")
 
 
-def rebuild_indexes(wiki_root: Path) -> None:
+def index_directories_for_markdown(wiki_root: Path) -> set[Path]:
     directories = {wiki_root}
     for path in wiki_root.rglob("*.md"):
         directories.add(path.parent)
@@ -112,6 +126,11 @@ def rebuild_indexes(wiki_root: Path) -> None:
                 break
             if is_path_within(wiki_root.resolve(), parent.resolve()):
                 directories.add(parent)
+    return directories
+
+
+def rebuild_indexes(wiki_root: Path) -> None:
+    directories = index_directories_for_markdown(wiki_root)
 
     for directory in sorted(directories, key=lambda item: len(item.relative_to(wiki_root).parts) if item != wiki_root else 0):
         title = "Project Wiki" if directory == wiki_root else title_from_path(directory)
@@ -138,6 +157,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--target", default="", help="Optional target subdirectory or file under the selected wiki root")
     parser.add_argument("--merge-existing", action="store_true", help="Allow identical existing files; never overwrites different content")
     parser.add_argument("--wiki-root", choices=["project", "shared"], default="project", help="Wiki root to import into")
+    parser.add_argument("--authorized-create", action="store_true", help="The user authorized creating new wiki documents")
     return parser.parse_args(argv)
 
 
@@ -149,6 +169,32 @@ def main(argv: list[str] | None = None) -> int:
 
     target_prefix = Path(args.target) if args.target else Path()
     items = plan_import_items(Path(args.source), target_prefix)
+    planned_directories = index_directories_for_markdown(wiki_root)
+    for item in items:
+        planned_target = target_for_item(wiki_root, item)
+        if not is_path_within(wiki_root.resolve(), planned_target):
+            raise SystemExit(f"Invalid target path: {item.target_rel.as_posix()}")
+        planned_directories.add(planned_target.parent)
+        for parent in planned_target.parent.parents:
+            if parent == wiki_root.parent:
+                break
+            if is_path_within(wiki_root.resolve(), parent.resolve()):
+                planned_directories.add(parent)
+    will_create = any(not target_for_item(wiki_root, item).exists() for item in items)
+    will_create_index = any(not (directory / "index.md").exists() for directory in planned_directories)
+    if will_create or will_create_index:
+        try:
+            enforce_wiki_update_authorization(
+                root,
+                root_desc,
+                WIKI_OPERATION_CREATE,
+                authorized_create=args.authorized_create,
+            )
+        except PermissionError as exc:
+            raise SystemExit(str(exc)) from exc
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+
     imported: list[str] = []
     skipped: list[str] = []
 
@@ -160,7 +206,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             skipped.append(row)
 
-    rebuild_indexes(wiki_root)
+    if imported or will_create_index:
+        rebuild_indexes(wiki_root)
 
     for item in imported:
         print(f"Imported {item}")

@@ -27,6 +27,11 @@ path = Path(sys.argv[1])
 payload = json.loads(path.read_text(encoding='utf-8'))
 if 'hooks' not in payload:
     raise SystemExit('missing hooks')
+policy = payload.get('wiki', {}).get('updateAuthorization', {})
+if policy.get('updateExistingPage') != 'skip':
+    raise SystemExit('missing default updateExistingPage policy')
+if policy.get('createNewDocument') != 'ask':
+    raise SystemExit('missing default createNewDocument policy')
 PY
 
 git init -q "${SOURCE_REPO}"

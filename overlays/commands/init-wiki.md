@@ -49,16 +49,17 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/init-wiki.py . "$ARGUMENTS" -
 
 4. Read relevant indexed wiki pages from the inventory, using root-prefixed paths.
 5. Decide whether starter wiki notes are useful and which root owns them.
-6. If writing, edit existing indexed leaf wiki pages directly with lightweight, clearly caveated starter content.
-7. Do not write hard contracts, validation matrices, or project conventions unless they are verified from code or user confirmation.
-8. Refresh indexed references for changed roots, for example:
+6. Before writing, honor the selected root's `wiki.updateAuthorization` policy from `.superpowers/settings.json` or `.shared-superpowers/settings.json`. Missing settings default to `skip` for existing page updates and `ask` for new document creation.
+7. If writing, edit existing indexed leaf wiki pages directly with lightweight, clearly caveated starter content. If policy is `ask`, get explicit user authorization first; if it is `refuse`, do not write.
+8. Do not write hard contracts, validation matrices, or project conventions unless they are verified from code or user confirmation.
+9. Refresh indexed references for changed roots, for example:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root project
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root shared
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root project --authorized-update
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root shared --authorized-update
 ```
 
-9. Tell the user which files were initialized, which signals were only candidates, and remind them that later knowledge changes belong in the `update-wiki` skill.
+10. Tell the user which files were initialized, which signals were only candidates, and remind them that later knowledge changes belong in the `update-wiki` skill.
 
 ## Inventory script output
 
@@ -94,6 +95,7 @@ Expected fields include:
 
 - [ ] The inventory script was run.
 - [ ] Relevant indexed wiki pages were read before writing.
+- [ ] Any written content complied with the selected root's `wiki.updateAuthorization` policy.
 - [ ] Any written content was agent-selected and grounded in observable project signals.
 - [ ] No unverified hard contract was created.
 - [ ] Ambiguous ownership was clarified with the user.

@@ -21,6 +21,7 @@ The goal is structural migration: preserve source content, place it under the se
 - Do not overwrite existing wiki files with different content.
 - Prefer explicit `--target` when the user wants a specific destination.
 - Use `--wiki-root shared` only when the user asks to import into shared wiki or the imported content is clearly cross-project shared knowledge.
+- Before importing, honor the selected root's `wiki.updateAuthorization.createNewDocument` policy from `.superpowers/settings.json` or `.shared-superpowers/settings.json`.
 - After importing, refresh the selected wiki root's index chain.
 
 ## User Input
@@ -31,18 +32,28 @@ $ARGUMENTS
 
 The user input should identify the source wiki page or directory path. It may also include an explicit target path, target directory, or destination root.
 
+## Authorization policy
+
+Structural import creates wiki documents, so it is governed by the selected root's `wiki.updateAuthorization.createNewDocument` setting:
+
+- `.superpowers/settings.json` controls `.superpowers/wiki/`.
+- `.shared-superpowers/settings.json` controls `.shared-superpowers/wiki/`.
+- Missing settings or keys default to `ask` for new document creation.
+
+If the policy is `skip`, run the import normally. If it is `ask`, get explicit user authorization before importing and pass `--authorized-create`. If it is `refuse`, stop and tell the user the selected root refuses new wiki document creation.
+
 ## Recommended import paths
 
-When the user provides a source wiki directory and does not specify shared wiki, default to project wiki:
+When the user provides a source wiki directory and does not specify shared wiki, default to project wiki. Under the default policy, ask first and then run:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir --authorized-create
 ```
 
 To import into shared wiki:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir --wiki-root shared
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir --wiki-root shared --authorized-create
 ```
 
 The script will:
@@ -56,15 +67,15 @@ The script will:
 If all source wiki pages should be placed under a target adapter directory:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir --target imported
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir --wiki-root shared --target imported
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir --target imported --authorized-create
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/original-wiki-dir --wiki-root shared --target imported --authorized-create
 ```
 
 If a single source file should go to a specific adapter leaf:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/source-wiki-page.md --target imported/source-wiki-page.md
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/source-wiki-page.md --wiki-root shared --target imported/source-wiki-page.md
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/source-wiki-page.md --target imported/source-wiki-page.md --authorized-create
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_import.py path/to/source-wiki-page.md --wiki-root shared --target imported/source-wiki-page.md --authorized-create
 ```
 
 Use `--merge-existing` only to allow identical existing files to be skipped. It never overwrites different content.
@@ -89,6 +100,7 @@ The script does this by:
 
 Before finishing:
 
+- [ ] The selected root's `createNewDocument` policy was checked and, when required, the user authorized import.
 - [ ] The source file or directory was scanned.
 - [ ] Intended source files were imported or explicitly skipped as identical existing files.
 - [ ] Existing content in the selected wiki root was preserved.

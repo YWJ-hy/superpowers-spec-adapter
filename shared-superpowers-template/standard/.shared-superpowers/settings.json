@@ -1,4 +1,10 @@
 {
+  "wiki": {
+    "updateAuthorization": {
+      "updateExistingPage": "skip",
+      "createNewDocument": "ask"
+    }
+  },
   "hooks": {
     "sharedWikiSubmodule:sync": [
       {

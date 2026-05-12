@@ -11,7 +11,10 @@ from wiki_common import (
     AUTO_END,
     AUTO_START,
     ENTRY_STUB,
+    WIKI_OPERATION_CREATE,
+    WIKI_OPERATION_UPDATE,
     build_wiki_index_graph,
+    enforce_wiki_update_authorization,
     existing_wiki_roots,
     repo_root,
     select_wiki_root,
@@ -19,9 +22,15 @@ from wiki_common import (
 )
 
 
-def ensure_root_index(wiki_root: Path) -> Path:
+def ensure_root_index(wiki_root: Path, project_root: Path, root_desc, authorized_create: bool) -> Path:
     index_path = wiki_root / "index.md"
     if not index_path.exists():
+        enforce_wiki_update_authorization(
+            project_root,
+            root_desc,
+            WIKI_OPERATION_CREATE,
+            authorized_create=authorized_create,
+        )
         index_path.parent.mkdir(parents=True, exist_ok=True)
         index_path.write_text(ENTRY_STUB, encoding="utf-8")
     return index_path
@@ -49,7 +58,7 @@ def update_backtick_summary(line: str, index_path: Path, wiki_root: Path) -> str
     return prefix + (f" — {summary}" if summary else "")
 
 
-def refresh_auto_section(index_path: Path, wiki_root: Path) -> None:
+def refresh_auto_section(index_path: Path, wiki_root: Path, project_root: Path, root_desc, authorized_update: bool) -> None:
     text = index_path.read_text(encoding="utf-8")
     if AUTO_START not in text or AUTO_END not in text:
         return
@@ -57,22 +66,33 @@ def refresh_auto_section(index_path: Path, wiki_root: Path) -> None:
     end = text.index(AUTO_END)
     lines = [update_backtick_summary(line, index_path, wiki_root) for line in text[start:end].splitlines()]
     body = "\n" + "\n".join(lines).strip() + "\n" if any(line.strip() for line in lines) else "\n"
-    index_path.write_text(text[:start] + body + text[end:], encoding="utf-8")
+    updated = text[:start] + body + text[end:]
+    if updated == text:
+        return
+    enforce_wiki_update_authorization(
+        project_root,
+        root_desc,
+        WIKI_OPERATION_UPDATE,
+        authorized_update=authorized_update,
+    )
+    index_path.write_text(updated, encoding="utf-8")
 
 
-def refresh_root(root_desc) -> list[str]:
+def refresh_root(root_desc, project_root: Path, authorized_update: bool, authorized_create: bool) -> list[str]:
     wiki_root = root_desc.path
     wiki_root.mkdir(parents=True, exist_ok=True)
-    ensure_root_index(wiki_root)
+    ensure_root_index(wiki_root, project_root, root_desc, authorized_create)
     graph = build_wiki_index_graph(wiki_root)
     for index_path in graph.indexes:
-        refresh_auto_section(index_path, wiki_root)
+        refresh_auto_section(index_path, wiki_root, project_root, root_desc, authorized_update)
     return graph.warnings
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Refresh indexed wiki page references.")
     parser.add_argument("--wiki-root", choices=["project", "shared", "all-existing"], default="project", help="Wiki root to refresh")
+    parser.add_argument("--authorized-update", action="store_true", help="The user authorized updating existing wiki index pages")
+    parser.add_argument("--authorized-create", action="store_true", help="The user authorized creating new wiki index documents")
     args = parser.parse_args()
 
     root = repo_root(Path.cwd())
@@ -86,7 +106,12 @@ def main() -> int:
         return 0
 
     for root_desc in roots:
-        warnings = refresh_root(root_desc)
+        try:
+            warnings = refresh_root(root_desc, root, args.authorized_update, args.authorized_create)
+        except PermissionError as exc:
+            raise SystemExit(str(exc)) from exc
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
         for warning in warnings:
             print(f"Warning: {root_desc.display_path}: {warning}")
         print(f"Updated indexed wiki page references under {root_desc.path}")

@@ -29,6 +29,7 @@ adapter 增强这些阶段：
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
 - 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。
 - 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki；只有证据已收窄且需要调用方、依赖或邻近模块线索时，才可条件式调用 `graphify-researcher`。wiki 和 graphify 都只作为待验证线索，不替代 root cause evidence。
+- `update-wiki` 写入前读取目标 root 的 settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；默认更新已有页面跳过授权，创建新 wiki 文档询问用户授权。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
 
 `/import-wiki`、`/init-wiki`、`/lanhu-requirements` 在自身产物完成前都是独立 adapter command，不应自动触发 Superpowers 的 completion、review、verification 等收尾技能；只有命令明确交接且用户确认后才进入下一步 Superpowers workflow。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter maintenance skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新合适的 wiki root（`.superpowers/wiki/` 或 `.shared-superpowers/wiki/`）；它的本地 wiki 校验不替代 Superpowers 实现验证。
@@ -150,7 +151,7 @@ Superpowers 插件目录
 ./manage.sh bootstrap-wiki /path/to/project --template standard --wiki-root shared
 ```
 
-第一条会在目标项目创建 `.superpowers/wiki/`；第二条会创建同级共享 wiki root `.shared-superpowers/wiki/`，并同时落地 `.shared-superpowers/scripts/` 和 `.shared-superpowers/settings.json.example`，方便用户把 shared wiki 作为项目本地 submodule 管理。入口分别为：
+第一条会在目标项目创建 `.superpowers/wiki/`；第二条会创建同级共享 wiki root `.shared-superpowers/wiki/`，并同时落地 `.shared-superpowers/scripts/`、`.shared-superpowers/settings.json` 和 `.shared-superpowers/settings.json.example`，方便用户把 shared wiki 作为项目本地 submodule 管理，并配置 shared wiki 更新授权。入口分别为：
 
 ```text
 .superpowers/wiki/index.md
@@ -158,7 +159,29 @@ Superpowers 插件目录
 .shared-superpowers/scripts/run-hook.py
 ```
 
-### 4.3 可选：同步 / 发布 shared wiki submodule
+### 4.3 配置 wiki 更新授权策略
+
+Project wiki 与 shared wiki 分别读取自己的 settings：
+
+- `.superpowers/settings.json` 控制 `.superpowers/wiki/`
+- `.shared-superpowers/settings.json` 控制 `.shared-superpowers/wiki/`
+
+可配置 schema：
+
+```json
+{
+  "wiki": {
+    "updateAuthorization": {
+      "updateExistingPage": "skip",
+      "createNewDocument": "ask"
+    }
+  }
+}
+```
+
+允许值：`skip` 表示跳过授权，`ask` 表示写入前询问用户，`refuse` 表示拒绝该操作。settings 文件或字段缺失时使用默认值：更新已有 wiki page 为 `skip`，创建新 wiki 文档为 `ask`。`ask` 由 command / skill 在用户入口询问；执行层脚本用 `--authorized-update` 或 `--authorized-create` 表示已获得用户授权。`refuse` 会阻止写入。仓库根目录的 `wiki-settings.example.jsonc` 提供可复制的带注释示例。
+
+### 4.4 可选：同步 / 发布 shared wiki submodule
 
 如果团队把 `.shared-superpowers/wiki/` 配成 git submodule，bootstrap 生成的 `.shared-superpowers/settings.json` 可以直接使用，也可参考 `.shared-superpowers/settings.json.example` 调整；进入 Superpowers 主流程前可运行：
 
@@ -176,7 +199,7 @@ python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
 
 该 command 会先确认 commit/push 范围，再通过 `.shared-superpowers/settings.json` 调用项目本地 runner 执行发布。
 
-### 4.4 可选：导入已有 wiki
+### 4.5 可选：导入已有 wiki
 
 ```text
 /import-wiki path/to/original-wiki-dir
@@ -184,9 +207,9 @@ python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
 /import-wiki path/to/original-wiki-dir --wiki-root shared --target imported
 ```
 
-`/import-wiki` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；如果导入内容需要语义整理，后续由 `update-wiki` skill 判断写入 `.superpowers/wiki/` 还是 `.shared-superpowers/wiki/` 并审查更新。
+`/import-wiki` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；因为导入会创建 wiki 文档，它会遵守目标 root 的 `createNewDocument` 策略，默认先询问用户授权。如果导入内容需要语义整理，后续由 `update-wiki` skill 判断写入 `.superpowers/wiki/` 还是 `.shared-superpowers/wiki/` 并审查更新。
 
-### 4.5 可选：从蓝湖生成角色 PRD
+### 4.6 可选：从蓝湖生成角色 PRD
 
 如果用户已配置 lanhu-mcp，可以用：
 
@@ -218,14 +241,14 @@ python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
 
 lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求并按已确认角色生成 `.lanhu/` PRD，或直接走普通 Superpowers 流程。
 
-### 4.6 初始化项目 wiki 知识
+### 4.7 初始化项目 wiki 知识
 
 ```text
 /init-wiki
 /init-wiki payments and order workflow
 ```
 
-这一步用于第一次从当前项目 inventory 中辅助 agent 生成轻量 starter wiki。脚本只提供语言、依赖、目录、样例文件和 indexed wiki page 候选；是否写入、写到哪里由 agent 判断。后续开发中不要把它当作日常维护入口，日常沉淀知识应由 `update-wiki` skill 判断写入 `.superpowers/wiki/` 还是 `.shared-superpowers/wiki/` 并审查。
+这一步用于第一次从当前项目 inventory 中辅助 agent 生成轻量 starter wiki。脚本只提供语言、依赖、目录、样例文件和 indexed wiki page 候选；是否写入、写到哪里由 agent 判断，并遵守目标 root 的 `wiki.updateAuthorization`。后续开发中不要把它当作日常维护入口，日常沉淀知识应由 `update-wiki` skill 判断写入 `.superpowers/wiki/` 还是 `.shared-superpowers/wiki/` 并审查。
 
 ---
 

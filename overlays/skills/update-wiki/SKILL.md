@@ -203,22 +203,39 @@ Prefer sibling leaf pages in the current directory when splitting a small number
 
 If the existing page may already be referenced elsewhere, prefer keeping the original path as an overview or navigation page unless you have verified and updated the references. If sibling pages vs. a topic directory would affect long-term wiki organization, ask the user which structure should own it.
 
-### 7. Edit the wiki page directly
+### 7. Check update authorization policy
+
+Before editing or creating wiki content, read the selected root's settings file:
+- `.superpowers/settings.json` controls `.superpowers/wiki/`.
+- `.shared-superpowers/settings.json` controls `.shared-superpowers/wiki/`.
+
+Use these defaults when the settings file or keys are missing:
+- `wiki.updateAuthorization.updateExistingPage`: `skip`
+- `wiki.updateAuthorization.createNewDocument`: `ask`
+
+Allowed values are:
+- `skip`: proceed after the normal durable-knowledge, duplicate, ownership, and size checks.
+- `ask`: ask the user for explicit authorization before editing or creating. If using a mechanical script after approval, pass `--authorized-update` for existing pages or `--authorized-create` for new documents.
+- `refuse`: do not write; report that the selected root's settings refuse the operation.
+
+New leaf creation, topic-directory creation, and missing index creation are governed by `createNewDocument`. Editing an existing leaf or refreshing an existing index is governed by `updateExistingPage`.
+
+### 8. Edit the wiki page directly
 
 Update the chosen leaf wiki page with `Read` and `Edit` whenever possible.
 Keep the existing style of the target file.
 Do not force every update into a generic template.
 
-If you create a new leaf wiki page, ensure it is referenced by an appropriate `index.md`.
+If you create a new leaf wiki page, ensure it is referenced by an appropriate `index.md`, subject to `createNewDocument` authorization.
 Detailed rules belong in leaf wiki pages; indexes should contain navigation and short summaries only.
 
-### 8. Refresh and validate the mechanical state
+### 9. Refresh and validate the mechanical state
 
 After editing body content, refresh indexed summaries:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root project
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root shared
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root project --authorized-update
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root shared --authorized-update
 ```
 
 Run only the command for the root you changed. Optionally run the mechanical validator across both roots:
@@ -318,7 +335,7 @@ These scripts are helpers only. They do not replace agent judgment.
 | Script | Allowed role |
 |---|---|
 | `wiki_select_target.py --wiki-root all` | List indexed leaf candidates across project/shared roots. It must not make the final target decision. |
-| `wiki_apply_update.py --wiki-root project|shared` | Safely write a simple update after the agent already decided target root, target page, and content. Complex updates should be edited directly. |
+| `wiki_apply_update.py --wiki-root project|shared` | Safely write a simple update after the agent already decided target root, target page, content, and satisfied update authorization. Complex updates should be edited directly. |
 | `wiki_update_check.py --wiki-root all` | Validate index/format mechanics across roots. It must not decide whether durable knowledge exists. |
 | `update-wiki.py --wiki-root project|shared` | Refresh indexed wiki page summaries for the changed root. |
 

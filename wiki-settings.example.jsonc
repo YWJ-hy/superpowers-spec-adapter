@@ -1,0 +1,24 @@
+{
+  // Copy this block into one or both project settings files:
+  // - .superpowers/settings.json controls .superpowers/wiki/
+  // - .shared-superpowers/settings.json controls .shared-superpowers/wiki/
+  //
+  // Actual settings files must be standard JSON. Remove comments after copying.
+  "wiki": {
+    "updateAuthorization": {
+      // Controls edits to existing wiki pages and existing index files.
+      // Default when omitted: "skip".
+      "updateExistingPage": "skip",
+
+      // Controls creation of new leaf pages, topic indexes, and missing root index files.
+      // Default when omitted: "ask".
+      "createNewDocument": "ask"
+    }
+  }
+
+  // Allowed policy values:
+  // - "skip": allow the write without asking the user.
+  // - "ask": require command / skill user authorization before the script runs with
+  //          --authorized-update or --authorized-create.
+  // - "refuse": block the write even if an authorization flag is passed.
+}
