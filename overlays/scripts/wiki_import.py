@@ -12,6 +12,8 @@ from wiki_common import (
     AUTO_START,
     ENTRY_STUB,
     WIKI_OPERATION_CREATE,
+    display_wiki_path,
+    enforce_shared_wiki_neutrality,
     enforce_wiki_update_authorization,
     is_path_within,
     repo_root,
@@ -129,7 +131,7 @@ def index_directories_for_markdown(wiki_root: Path) -> set[Path]:
     return directories
 
 
-def rebuild_indexes(wiki_root: Path) -> None:
+def rebuild_indexes(wiki_root: Path, project_root: Path, root_desc) -> None:
     directories = index_directories_for_markdown(wiki_root)
 
     for directory in sorted(directories, key=lambda item: len(item.relative_to(wiki_root).parts) if item != wiki_root else 0):
@@ -147,7 +149,9 @@ def rebuild_indexes(wiki_root: Path) -> None:
             elif child.is_file() and child.suffix == ".md" and child.name != "index.md":
                 children.append(child)
         content = "\n".join(index_entry(directory, child) for child in children)
-        index_path.write_text(replace_auto_section(index_path.read_text(encoding="utf-8"), content), encoding="utf-8")
+        updated = replace_auto_section(index_path.read_text(encoding="utf-8"), content)
+        enforce_shared_wiki_neutrality(project_root, root_desc, updated, display_wiki_path(root_desc, index_path))
+        index_path.write_text(updated, encoding="utf-8")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -170,6 +174,13 @@ def main(argv: list[str] | None = None) -> int:
     target_prefix = Path(args.target) if args.target else Path()
     items = plan_import_items(Path(args.source), target_prefix)
     planned_directories = index_directories_for_markdown(wiki_root)
+    try:
+        for item in items:
+            enforce_shared_wiki_neutrality(root, root_desc, item.target_rel.as_posix(), f"{root_desc.display_path} target path")
+            enforce_shared_wiki_neutrality(root, root_desc, item.source_path.read_text(encoding="utf-8"), f"source {item.source_path}")
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
     for item in items:
         planned_target = target_for_item(wiki_root, item)
         if not is_path_within(wiki_root.resolve(), planned_target):
@@ -207,7 +218,10 @@ def main(argv: list[str] | None = None) -> int:
             skipped.append(row)
 
     if imported or will_create_index:
-        rebuild_indexes(wiki_root)
+        try:
+            rebuild_indexes(wiki_root, root, root_desc)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
 
     for item in imported:
         print(f"Imported {item}")

@@ -9,7 +9,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 ## Purpose
 
-- Store project wiki pages in `.superpowers/wiki/` and optional shared wiki pages in `.shared-superpowers/wiki/`
+- Store project wiki pages in `.superpowers/wiki/` and optional neutral/portable shared wiki pages in `.shared-superpowers/wiki/`
 - Use `index.md` as the entry point
 - Optionally turn Lanhu links into confirmed frontend/backend role-specific PRD packages under `.lanhu/MM-DD-<requirement-name>/` before Superpowers brainstorming, with `index.md` as the entrypoint and relationship map
 - Optionally use graphify as agent-judged candidate relationship hints during planning or narrowed debugging, without making it a dependency or gate
@@ -88,7 +88,7 @@ Template structure is index-driven:
 - Leaf wiki pages are discoverable only when linked from `index.md` or a child index.
 - `index.md` may link to same-level or deep files/directories; scripts do not assume fixed wiki directories.
 
-For shared wiki bootstrap, the adapter also copies `.shared-superpowers/scripts/`, `.shared-superpowers/settings.json`, and `.shared-superpowers/settings.json.example` into the target project, so the project can use a local runner to sync or publish the shared wiki submodule and configure shared wiki update authorization.
+For shared wiki bootstrap, the adapter also copies `.shared-superpowers/scripts/`, `.shared-superpowers/settings.json`, and `.shared-superpowers/settings.json.example` into the target project, so the project can use a local runner to sync or publish the shared wiki submodule and configure shared wiki update authorization and neutrality guards.
 
 Existing files are never overwritten. If a target file exists with different content, bootstrap exits with a conflict list before copying anything.
 
@@ -138,7 +138,7 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 /import-wiki path/to/original-wiki-dir --target imported
 ```
 
-The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Because imports create wiki documents, `/import-wiki` honors the selected root's `wiki.updateAuthorization.createNewDocument` setting and asks by default before creating new files. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
+The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Shared imports must already be neutral/portable and are rejected when configured shared neutrality guards match system-specific identifiers. Because imports create wiki documents, `/import-wiki` honors the selected root's `wiki.updateAuthorization.createNewDocument` setting and asks by default before creating new files. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
 
 ## Optional Lanhu requirements intake
 
@@ -239,6 +239,8 @@ During `systematic-debugging`, do not write `.wiki-context.md`, update `.superpo
 
 For normal use in Claude Code or similar tools, rely on the installed `update-wiki` skill. The skill is auto-triggered when implementation, debugging, review, or discussion may have produced durable knowledge, but it defaults to skipping wiki edits unless the knowledge is reusable outside the immediate code context. The agent filters out local business logic and code-obvious implementation details, reads indexed wiki pages, checks semantic duplicates, chooses target ownership, checks whether the target leaf page is oversized or overloaded, edits only durable wiki knowledge, refreshes indexes, and reports an explicit skip reason when nothing durable should be recorded. `update-wiki` is adapter maintenance and durable-knowledge review; its local wiki validation does not replace Superpowers implementation verification.
 
+Shared wiki content must stay neutral and portable across sibling projects. Put system-specific identifiers, internal URLs, environment names, local paths, deployment instance details, and current-system-only business rules in `.superpowers/wiki/` instead, or rewrite them with neutral terms before writing shared wiki.
+
 Wiki writes are controlled per root by settings. `.superpowers/settings.json` controls `.superpowers/wiki/`, and `.shared-superpowers/settings.json` controls `.shared-superpowers/wiki/`:
 
 ```json
@@ -247,12 +249,16 @@ Wiki writes are controlled per root by settings. `.superpowers/settings.json` co
     "updateAuthorization": {
       "updateExistingPage": "skip",
       "createNewDocument": "ask"
+    },
+    "sharedNeutrality": {
+      "blockedTerms": [],
+      "blockedPatterns": []
     }
   }
 }
 ```
 
-Allowed values are `skip`, `ask`, and `refuse`. Missing settings use the defaults above, so existing wiki page updates remain automatic by default while creating a new wiki document asks the user by default. Mechanical scripts enforce `ask` with `--authorized-update` or `--authorized-create`; `refuse` blocks the write even if a flag is passed. See `wiki-settings.example.jsonc` for a copyable commented example.
+Allowed authorization values are `skip`, `ask`, and `refuse`. Missing settings use the defaults above, so existing wiki page updates remain automatic by default while creating a new wiki document asks the user by default. Mechanical scripts enforce `ask` with `--authorized-update` or `--authorized-create`; `refuse` blocks the write even if a flag is passed. `sharedNeutrality` is mainly for `.shared-superpowers/settings.json`: configured terms and regex patterns reject known system identifiers in shared-wiki paths, bodies, imports, and refreshed indexes. See `wiki-settings.example.jsonc` for a copyable commented example.
 
 Oversized page reports are mechanical signals only. When a leaf wiki page is too large, the agent should split by ownership, usually into sibling leaf pages in the same directory; use a topic directory with its own `index.md` only when the original page has become a collection of stable subtopics.
 
@@ -291,7 +297,7 @@ This runs:
 - `export-manifest`
 
 The self-test covers:
-- wiki update authorization policy for existing page updates and new document creation
+- wiki update authorization policy and shared wiki neutrality guards
 - mechanical `wiki_apply_update.py` write and merge behavior with an agent-decided target
 - `wiki-researcher` installation and native skill patch smoke
 - worktree origin metadata native skill patch smoke

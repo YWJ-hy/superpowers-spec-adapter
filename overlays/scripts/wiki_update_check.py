@@ -7,7 +7,15 @@ import argparse
 import json
 from pathlib import Path
 
-from wiki_common import build_wiki_index_graph, display_wiki_path, rel_posix, repo_root, selected_wiki_roots, wiki_root_by_name
+from wiki_common import (
+    build_wiki_index_graph,
+    display_wiki_path,
+    rel_posix,
+    repo_root,
+    selected_wiki_roots,
+    shared_wiki_neutrality_violations,
+    wiki_root_by_name,
+)
 
 VALID = "valid"
 WARNING = "warning"
@@ -54,7 +62,7 @@ def oversized_level(lines_count: int, chars_count: int) -> str | None:
     return None
 
 
-def check_leaf(root_desc, path: Path) -> tuple[list[str], list[str], dict | None]:
+def check_file(project_root: Path, root_desc, path: Path, *, leaf: bool) -> tuple[list[str], list[str], dict | None]:
     wiki_root = root_desc.path
     warnings: list[str] = []
     errors: list[str] = []
@@ -71,12 +79,13 @@ def check_leaf(root_desc, path: Path) -> tuple[list[str], list[str], dict | None
         warnings.append(f"Placeholder remains in {rel}: <fill-me>")
     if has_unclosed_fence(text):
         errors.append(f"Unclosed markdown fence in {rel}")
+    errors.extend(shared_wiki_neutrality_violations(project_root, root_desc, text, rel))
 
     lines = text.splitlines()
     lines_count = len(lines)
     chars_count = len(text)
     level = oversized_level(lines_count, chars_count)
-    if level:
+    if leaf and level:
         oversized = {
             "path": rel,
             "relativePath": rel_posix(wiki_root.resolve(), path),
@@ -87,25 +96,31 @@ def check_leaf(root_desc, path: Path) -> tuple[list[str], list[str], dict | None
         }
         warnings.append(f"Oversized indexed wiki page: {rel} ({lines_count} lines, {chars_count} chars, {level})")
 
-    for start, end in update_block_ranges(lines):
-        block = {line.strip() for line in lines[start:end]}
-        missing = [header for header in REQUIRED_UPDATE_HEADERS if header not in block]
-        if missing:
-            title = lines[start].strip()
-            warnings.append(f"Incomplete update block in {rel} ({title}): missing {', '.join(missing)}")
+    if leaf:
+        for start, end in update_block_ranges(lines):
+            block = {line.strip() for line in lines[start:end]}
+            missing = [header for header in REQUIRED_UPDATE_HEADERS if header not in block]
+            if missing:
+                title = lines[start].strip()
+                warnings.append(f"Incomplete update block in {rel} ({title}): missing {', '.join(missing)}")
 
     return warnings, errors, oversized
 
 
-def check_root(root_desc) -> dict:
+def check_root(project_root: Path, root_desc) -> dict:
     wiki_root = root_desc.path
     graph = build_wiki_index_graph(wiki_root)
     warnings = [f"{root_desc.display_path}: {warning}" for warning in graph.warnings]
     errors: list[str] = []
     oversized_pages: list[dict] = []
 
+    for index in graph.indexes:
+        index_warnings, index_errors, _ = check_file(project_root, root_desc, index, leaf=False)
+        warnings.extend(index_warnings)
+        errors.extend(index_errors)
+
     for leaf in graph.leaves:
-        leaf_warnings, leaf_errors, oversized = check_leaf(root_desc, leaf)
+        leaf_warnings, leaf_errors, oversized = check_file(project_root, root_desc, leaf, leaf=True)
         warnings.extend(leaf_warnings)
         errors.extend(leaf_errors)
         if oversized:
@@ -147,7 +162,7 @@ def check_wiki_tree(selector: str) -> dict:
     elif selector == "all" and not root_descs:
         missing_warnings.append("No wiki indexes found under .superpowers/wiki or .shared-superpowers/wiki")
 
-    root_results = [check_root(root_desc) for root_desc in root_descs]
+    root_results = [check_root(root, root_desc) for root_desc in root_descs]
     warnings = [*missing_warnings, *(warning for item in root_results for warning in item["warnings"])]
     errors = [error for item in root_results for error in item["errors"]]
     oversized_pages = [page for item in root_results for page in item["oversizedPages"]]

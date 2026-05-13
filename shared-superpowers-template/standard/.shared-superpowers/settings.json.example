@@ -3,6 +3,10 @@
     "updateAuthorization": {
       "updateExistingPage": "skip",
       "createNewDocument": "ask"
+    },
+    "sharedNeutrality": {
+      "blockedTerms": [],
+      "blockedPatterns": []
     }
   },
   "hooks": {

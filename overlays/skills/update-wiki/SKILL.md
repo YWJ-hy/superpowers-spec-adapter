@@ -182,7 +182,15 @@ If no indexed leaf page clearly owns the candidate, do not append to the closest
 
 If two or more candidate files or roots are equally plausible and the difference affects long-term wiki organization, ask the user which target should own it instead of guessing.
 
-### 6. Check whether the target page is too large
+### 6. Shared Wiki Neutrality
+
+Before writing to `.shared-superpowers/wiki/`, rewrite the candidate into neutral/portable language. Shared wiki pages must not contain system-specific identifiers such as product codenames, tenant/customer names, project-private service or repository names, environment names, internal domains or URLs, absolute local paths, deployment instance identifiers, or business branch rules that only make sense for the current system.
+
+If the knowledge depends on those identifiers, write it to `.superpowers/wiki/` instead. If the rule is genuinely reusable but the source wording names the current system, replace the identifier with neutral terms such as `<system>`, `<service>`, `<tenant>`, or `<provider>`. If neutralizing would remove essential meaning, ask the user instead of guessing.
+
+The shared root may also configure `wiki.sharedNeutrality.blockedTerms` and `wiki.sharedNeutrality.blockedPatterns` in `.shared-superpowers/settings.json`. Mechanical scripts reject matching shared-wiki paths, page bodies, imports, and refreshed indexes; this guard catches known identifiers but does not replace your semantic neutrality check.
+
+### 7. Check whether the target page is too large
 
 Before editing the chosen leaf page, check whether it is already mechanically large or semantically overloaded.
 
@@ -203,7 +211,7 @@ Prefer sibling leaf pages in the current directory when splitting a small number
 
 If the existing page may already be referenced elsewhere, prefer keeping the original path as an overview or navigation page unless you have verified and updated the references. If sibling pages vs. a topic directory would affect long-term wiki organization, ask the user which structure should own it.
 
-### 7. Check update authorization policy
+### 8. Check update authorization policy
 
 Before editing or creating wiki content, read the selected root's settings file:
 - `.superpowers/settings.json` controls `.superpowers/wiki/`.
@@ -220,7 +228,7 @@ Allowed values are:
 
 New leaf creation, topic-directory creation, and missing index creation are governed by `createNewDocument`. Editing an existing leaf or refreshing an existing index is governed by `updateExistingPage`.
 
-### 8. Edit the wiki page directly
+### 9. Edit the wiki page directly
 
 Update the chosen leaf wiki page with `Read` and `Edit` whenever possible.
 Keep the existing style of the target file.
@@ -229,7 +237,7 @@ Do not force every update into a generic template.
 If you create a new leaf wiki page, ensure it is referenced by an appropriate `index.md`, subject to `createNewDocument` authorization.
 Detailed rules belong in leaf wiki pages; indexes should contain navigation and short summaries only.
 
-### 9. Refresh and validate the mechanical state
+### 10. Refresh and validate the mechanical state
 
 After editing body content, refresh indexed summaries:
 
@@ -335,9 +343,9 @@ These scripts are helpers only. They do not replace agent judgment.
 | Script | Allowed role |
 |---|---|
 | `wiki_select_target.py --wiki-root all` | List indexed leaf candidates across project/shared roots. It must not make the final target decision. |
-| `wiki_apply_update.py --wiki-root project|shared` | Safely write a simple update after the agent already decided target root, target page, content, and satisfied update authorization. Complex updates should be edited directly. |
-| `wiki_update_check.py --wiki-root all` | Validate index/format mechanics across roots. It must not decide whether durable knowledge exists. |
-| `update-wiki.py --wiki-root project|shared` | Refresh indexed wiki page summaries for the changed root. |
+| `wiki_apply_update.py --wiki-root project|shared` | Safely write a simple update after the agent already decided target root, target page, content, neutrality, and satisfied update authorization. Complex updates should be edited directly. |
+| `wiki_update_check.py --wiki-root all` | Validate index/format mechanics across roots and configured shared-wiki neutrality guards. It must not decide whether durable knowledge exists. |
+| `update-wiki.py --wiki-root project|shared` | Refresh indexed wiki page summaries for the changed root; shared root refreshes reject configured neutrality violations. |
 
 ## Forbidden Shortcuts
 
@@ -364,6 +372,7 @@ Before finishing the update:
 - [ ] Did you read relevant indexed wiki pages before writing?
 - [ ] Did you skip candidates that are already covered and tell the user where?
 - [ ] Did you choose target root and page ownership yourself rather than outsourcing it to a script?
+- [ ] If writing to `.shared-superpowers/wiki/`, did you neutralize system-specific identifiers and confirm the content is portable across sibling projects?
 - [ ] Did you verify the target page's ownership boundary with bounded signals instead of weak keyword overlap?
 - [ ] Did you avoid nearest-match fallback when no clear owner existed?
 - [ ] If the candidate concerns API/form payload or security-sensitive fields, did you avoid filing it under type-safety unless it is specifically about TypeScript modeling?

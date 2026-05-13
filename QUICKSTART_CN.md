@@ -17,7 +17,7 @@
 `superpower-adapter` 的作用是：
 
 - 让 **Superpowers 继续作为主插件**。
-- 给项目增加一套 `.superpowers/wiki/` 规范系统。
+- 给项目增加一套 `.superpowers/wiki/` 规范系统，并可选维护中性化的 `.shared-superpowers/wiki/` 共享规范。
 - 支持 **渐进式披露**：Superpowers 写 spec / plan 时由 `wiki-researcher` 按需读取具体 wiki 页面。
 - 安装 `wiki-researcher` agent，帮助 `brainstorming` 和 `writing-plans` 选择相关项目规范。
 - 要求 implementation plan 用 `Referenced Project Wiki` 固化执行阶段要遵守的项目规范。
@@ -153,7 +153,7 @@ python3 "$TARGET_DIR/scripts/wiki-context.py" --file quality/error-rules.md
 - 非显而易见的 gotcha
 - 跨层 checklist
 
-推荐入口是安装后的 `update-wiki` skill：由 agent 在任务完成后判断是否有 durable implementation knowledge 需要写入 `.superpowers/wiki/`。它默认不更新 wiki，只有知识能脱离当前代码上下文长期复用、比 code/spec/plan/PR 更适合进入知识库时才写入；单页面、单流程、单厂商或单客户的局部业务分支规则，以及代码里已经清楚体现的实现细节，默认应跳过。如果没有值得沉淀的内容，应明确说明跳过理由，不强制编辑。
+推荐入口是安装后的 `update-wiki` skill：由 agent 在任务完成后判断是否有 durable implementation knowledge 需要写入 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/`。它默认不更新 wiki，只有知识能脱离当前代码上下文长期复用、比 code/spec/plan/PR 更适合进入知识库时才写入；单页面、单流程、单厂商或单客户的局部业务分支规则，以及代码里已经清楚体现的实现细节，默认应跳过。如果写入 shared wiki，内容必须先中性化，不能包含具体系统标识、内部 URL、环境名、本地路径或只对当前系统成立的业务规则；这些内容应留在 project wiki，或改写为 `<system>`、`<service>`、`<tenant>` 等中性术语。如果没有值得沉淀的内容，应明确说明跳过理由，不强制编辑。
 
 对于 bug，正常链路是 `systematic-debugging` → `break-loop` → `update-wiki`：先用 Superpowers `systematic-debugging` 完成 root cause investigation、修复和验证；如果是重复 bug、多次失败修复、跨层 contract、隐含假设或测试缺口，再用 `break-loop` 做后置复盘；只有复盘提炼出长期规则、contract、gotcha、checklist 或设计决策时，才交给 `update-wiki` 持久化。
 

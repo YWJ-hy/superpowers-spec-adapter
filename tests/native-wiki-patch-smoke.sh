@@ -323,6 +323,11 @@ for required in \
   'type-safety.md' \
   'API/form payload' \
   'security-sensitive field' \
+  'Shared Wiki Neutrality' \
+  'neutral/portable' \
+  'system-specific identifiers' \
+  '.shared-superpowers/wiki/' \
+  'wiki.sharedNeutrality.blockedTerms' \
   'Check update authorization policy' \
   'wiki.updateAuthorization.updateExistingPage' \
   'wiki.updateAuthorization.createNewDocument' \

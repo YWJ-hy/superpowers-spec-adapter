@@ -14,6 +14,8 @@ from wiki_common import (
     WIKI_OPERATION_CREATE,
     WIKI_OPERATION_UPDATE,
     build_wiki_index_graph,
+    display_wiki_path,
+    enforce_shared_wiki_neutrality,
     enforce_wiki_update_authorization,
     existing_wiki_roots,
     repo_root,
@@ -69,6 +71,7 @@ def refresh_auto_section(index_path: Path, wiki_root: Path, project_root: Path, 
     updated = text[:start] + body + text[end:]
     if updated == text:
         return
+    enforce_shared_wiki_neutrality(project_root, root_desc, updated, display_wiki_path(root_desc, index_path))
     enforce_wiki_update_authorization(
         project_root,
         root_desc,

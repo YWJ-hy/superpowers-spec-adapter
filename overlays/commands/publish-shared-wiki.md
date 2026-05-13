@@ -21,6 +21,7 @@ Confirm the shared wiki submodule is ready, ask the user to confirm the commit/p
 - Do not silently commit or push without explicit user confirmation of scope.
 - Do not overwrite unrelated parent repository changes.
 - Do not initialize the submodule here; this command only publishes an existing shared wiki submodule/repository.
+- Do not publish shared wiki content that contains system-specific identifiers, internal URLs, environment names, local paths, or current-system-only business rules.
 - Do not bypass `update-wiki`; durable implementation knowledge still belongs there.
 
 ## User Input
@@ -53,24 +54,31 @@ If the scripts are missing, tell the user to run the shared wiki bootstrap first
 python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:verify
 ```
 
-4. Tell the user what will be committed and pushed, then ask for confirmation if the scope is not already explicit in the request.
-5. Run the publish hook:
+4. Run the shared wiki mechanical validator, including configured neutrality guards:
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_update_check.py --wiki-root shared
+```
+
+5. Tell the user what will be committed and pushed, then ask for confirmation if the scope is not already explicit in the request.
+6. Run the publish hook:
 
 ```bash
 python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:publish
 ```
 
-6. Run the status hook to confirm the final state:
+7. Run the status hook to confirm the final state:
 
 ```bash
 python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:status
 ```
 
-7. Report the final parent pointer state and any remaining caveats.
+8. Report the final parent pointer state and any remaining caveats.
 
 ## Completion checklist
 
 - [ ] The shared wiki submodule path was verified.
+- [ ] The shared wiki mechanical validator passed, including configured neutrality guards.
 - [ ] The user confirmed the commit and push scope.
 - [ ] The publish hook ran successfully.
 - [ ] The parent repository pointer was updated.

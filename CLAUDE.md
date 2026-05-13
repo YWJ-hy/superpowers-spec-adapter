@@ -77,3 +77,4 @@ Superpowers 是主工作流，adapter 只增强 Superpowers：
 - 修改 agent、hook 配置或安装逻辑后，至少运行 `./manage.sh install`、`./manage.sh verify`，并对目标项目运行 `./manage.sh release-check /path/to/project`。
 - 修改 command / skill 后，应安装 adapter 并在 Claude Code 中从对应 command 或 skill 入口验证用户路径。
 - wiki 写入策略由 root-specific settings 控制：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；`wiki.updateAuthorization.updateExistingPage` 默认 `skip`，`createNewDocument` 默认 `ask`，允许 `skip` / `ask` / `refuse`。执行层脚本的 `--authorized-update` / `--authorized-create` 只表示 command / skill 已取得用户授权，不能绕过 `refuse`。
+- shared wiki 必须保持中性、可迁移，不能包含当前系统特有标识、内部 URL、环境名、本地路径、部署实例标识或当前系统专属业务规则；这些内容应留在 project wiki，或由 agent 改写为中性术语。`.shared-superpowers/settings.json` 可用 `wiki.sharedNeutrality.blockedTerms` / `blockedPatterns` 配置已知系统标识的机械拒绝防线。

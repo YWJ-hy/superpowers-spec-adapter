@@ -21,6 +21,10 @@ if [[ ! -f "${PROJECT_ROOT}/.shared-superpowers/wiki/index.md" ]]; then
   printf 'Expected shared imported index.md\n' >&2
   exit 1
 fi
+if ! grep -Fq '"sharedNeutrality"' "${PROJECT_ROOT}/.shared-superpowers/settings.json"; then
+  printf 'Expected shared settings to include sharedNeutrality guard config\n' >&2
+  exit 1
+fi
 
 printf '# User Index\n\nDo not overwrite.\n' > "${PROJECT_ROOT}/.superpowers/wiki/index.md"
 if "${ROOT}/bootstrap-wiki.sh" "${PROJECT_ROOT}" --template standard > /dev/null 2>&1; then

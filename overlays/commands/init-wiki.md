@@ -25,7 +25,8 @@ Python scripts must not invent durable rules, choose final target ownership, or 
 - Do not overwrite existing wiki pages.
 - Keep generated content lightweight, explicit about uncertainty, and grounded in observable project structure.
 - Prefer appending lightweight starter notes into existing indexed leaf wiki pages over inventing detailed contracts that have not been verified.
-- Choose `.shared-superpowers/wiki/` only for knowledge intended to be shared across sibling projects; use `.superpowers/wiki/` for project-specific knowledge.
+- Choose `.shared-superpowers/wiki/` only for neutral, portable knowledge intended to be shared across sibling projects; use `.superpowers/wiki/` for project-specific knowledge.
+- Do not write system-specific identifiers, internal URLs, environment names, local paths, or current-system-only business rules into shared wiki starter content.
 - Ask the user when target ownership is ambiguous or when no suitable indexed leaf exists.
 - After this command finishes, direct future durable knowledge updates to the `update-wiki` skill.
 
@@ -84,7 +85,8 @@ Expected fields include:
 - Keep initialization summaries concise.
 - Record only observations that can be justified from project structure, package signals, or file samples.
 - Phrase unverified conclusions as likely or candidate areas, not hard facts.
-- Use `.shared-superpowers/wiki/` only for cross-project architecture, conventions, workflows, or shared contracts.
+- Use `.shared-superpowers/wiki/` only for neutral cross-project architecture, conventions, workflows, or shared contracts.
+- If inventory signals include current-system identifiers, write them only to `.superpowers/wiki/` or replace them with neutral terms before writing shared wiki.
 - Use `.superpowers/wiki/` for project-specific business, integration, deployment, or local override knowledge.
 - Do not turn this command into a full architecture analysis.
 - Do not force content into every indexed wiki page.

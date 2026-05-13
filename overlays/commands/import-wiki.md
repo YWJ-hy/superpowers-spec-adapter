@@ -17,10 +17,11 @@ The goal is structural migration: preserve source content, place it under the se
 - Do not invoke Superpowers planning, implementation, review, completion, or verification commands/skills before or after this command.
 - Do not invoke `superpowers:verification-before-completion` or similar completion checks for this command.
 - Do not discard, summarize away, or silently omit user-provided wiki content.
-- Preserve imported source file content as-is.
+- Preserve accepted imported source file content as-is.
 - Do not overwrite existing wiki files with different content.
 - Prefer explicit `--target` when the user wants a specific destination.
 - Use `--wiki-root shared` only when the user asks to import into shared wiki or the imported content is clearly cross-project shared knowledge.
+- When importing into shared wiki, require source content and target paths to be neutral/portable; do not import system-specific identifiers, internal URLs, environment names, local paths, or current-system-only business rules.
 - Before importing, honor the selected root's `wiki.updateAuthorization.createNewDocument` policy from `.superpowers/settings.json` or `.shared-superpowers/settings.json`.
 - After importing, refresh the selected wiki root's index chain.
 
@@ -41,6 +42,8 @@ Structural import creates wiki documents, so it is governed by the selected root
 - Missing settings or keys default to `ask` for new document creation.
 
 If the policy is `skip`, run the import normally. If it is `ask`, get explicit user authorization before importing and pass `--authorized-create`. If it is `refuse`, stop and tell the user the selected root refuses new wiki document creation.
+
+For shared imports, also honor `.shared-superpowers/settings.json` `wiki.sharedNeutrality.blockedTerms` and `wiki.sharedNeutrality.blockedPatterns`. If the source contains configured system identifiers, refuse the shared import and ask the user to neutralize it first or import it into project wiki instead.
 
 ## Recommended import paths
 
@@ -91,7 +94,7 @@ If the selected wiki root already has files, import must preserve them.
 The script does this by:
 
 - using the explicit `--target` when provided, otherwise preserving source-relative paths under the selected wiki root
-- copying source content as-is
+- copying accepted source content as-is
 - skipping identical files when `--merge-existing` is set
 - refusing to overwrite different existing files
 - rebuilding indexes after import

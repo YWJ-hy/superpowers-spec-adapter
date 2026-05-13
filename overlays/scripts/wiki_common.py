@@ -25,6 +25,10 @@ DEFAULT_WIKI_UPDATE_AUTHORIZATION = {
     WIKI_OPERATION_UPDATE: WIKI_POLICY_SKIP,
     WIKI_OPERATION_CREATE: WIKI_POLICY_ASK,
 }
+DEFAULT_SHARED_WIKI_NEUTRALITY = {
+    "blockedTerms": [],
+    "blockedPatterns": [],
+}
 ENTRY_STUB = "# Project Wiki\n\nUse this file as the entry point for project-specific wiki pages.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
 
 
@@ -128,11 +132,10 @@ def wiki_settings_path(project_root: Path, root: WikiRoot) -> Path:
     raise ValueError(f"Unknown wiki root: {root.name}")
 
 
-def load_wiki_update_authorization_policy(project_root: Path, root: WikiRoot) -> dict[str, str]:
+def load_wiki_settings(project_root: Path, root: WikiRoot) -> dict:
     settings_path = wiki_settings_path(project_root, root)
-    policy = dict(DEFAULT_WIKI_UPDATE_AUTHORIZATION)
     if not settings_path.is_file():
-        return policy
+        return {}
 
     try:
         payload = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -143,9 +146,25 @@ def load_wiki_update_authorization_policy(project_root: Path, root: WikiRoot) ->
 
     wiki_settings = payload.get("wiki", {})
     if wiki_settings is None:
-        wiki_settings = {}
+        return {}
     if not isinstance(wiki_settings, dict):
         raise ValueError(f"wiki settings must be an object in {settings_path}")
+    return wiki_settings
+
+
+def _read_string_list(settings_path: Path, payload: dict, key: str) -> list[str]:
+    value = payload.get(key, [])
+    if value is None:
+        return []
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ValueError(f"wiki.sharedNeutrality.{key} must be a string array in {settings_path}")
+    return value
+
+
+def load_wiki_update_authorization_policy(project_root: Path, root: WikiRoot) -> dict[str, str]:
+    settings_path = wiki_settings_path(project_root, root)
+    policy = dict(DEFAULT_WIKI_UPDATE_AUTHORIZATION)
+    wiki_settings = load_wiki_settings(project_root, root)
 
     update_auth = wiki_settings.get("updateAuthorization", {})
     if update_auth is None:
@@ -160,6 +179,52 @@ def load_wiki_update_authorization_policy(project_root: Path, root: WikiRoot) ->
             raise ValueError(f"Invalid wiki.updateAuthorization.{operation} in {settings_path}: {value!r}; expected one of {allowed}")
         policy[operation] = value
     return policy
+
+
+def load_shared_wiki_neutrality_policy(project_root: Path, root: WikiRoot) -> dict[str, list[str]]:
+    if root.name != "shared":
+        return dict(DEFAULT_SHARED_WIKI_NEUTRALITY)
+
+    settings_path = wiki_settings_path(project_root, root)
+    wiki_settings = load_wiki_settings(project_root, root)
+    neutrality = wiki_settings.get("sharedNeutrality", {})
+    if neutrality is None:
+        neutrality = {}
+    if not isinstance(neutrality, dict):
+        raise ValueError(f"wiki.sharedNeutrality must be an object in {settings_path}")
+
+    policy = {
+        "blockedTerms": _read_string_list(settings_path, neutrality, "blockedTerms"),
+        "blockedPatterns": _read_string_list(settings_path, neutrality, "blockedPatterns"),
+    }
+    for pattern in policy["blockedPatterns"]:
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise ValueError(f"Invalid wiki.sharedNeutrality.blockedPatterns entry in {settings_path}: {pattern!r}: {exc}") from exc
+    return policy
+
+
+def shared_wiki_neutrality_violations(project_root: Path, root: WikiRoot, text: str, label: str) -> list[str]:
+    if root.name != "shared":
+        return []
+
+    policy = load_shared_wiki_neutrality_policy(project_root, root)
+    violations: list[str] = []
+    for term in policy["blockedTerms"]:
+        if term and term in text:
+            violations.append(f"{label}: blocked term {term!r}")
+    for pattern in policy["blockedPatterns"]:
+        if pattern and re.search(pattern, text):
+            violations.append(f"{label}: blocked pattern {pattern!r}")
+    return violations
+
+
+def enforce_shared_wiki_neutrality(project_root: Path, root: WikiRoot, text: str, label: str) -> None:
+    violations = shared_wiki_neutrality_violations(project_root, root, text, label)
+    if violations:
+        details = "; ".join(violations)
+        raise ValueError(f"Shared wiki requires neutral/portable content; remove system-specific identifiers before writing. {details}")
 
 
 def wiki_update_operation_for_target(target_exists: bool) -> str:

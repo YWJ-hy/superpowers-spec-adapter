@@ -9,6 +9,8 @@ from pathlib import Path
 from wiki_common import (
     WIKI_OPERATION_CREATE,
     append_index_reference,
+    display_wiki_path,
+    enforce_shared_wiki_neutrality,
     enforce_wiki_update_authorization,
     is_indexed_wiki_path,
     is_path_within,
@@ -171,6 +173,7 @@ def main() -> int:
 
     target_exists = target.exists()
     try:
+        enforce_shared_wiki_neutrality(root, root_desc, relative.as_posix(), f'{root_desc.display_path} target path')
         enforce_wiki_update_authorization(
             root,
             root_desc,
@@ -183,26 +186,30 @@ def main() -> int:
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if not target_exists:
-        target.write_text(f'# {title}\n\n', encoding='utf-8')
-    if not is_indexed_wiki_path(wiki_root, target, include_indexes=False):
-        if not (wiki_root / 'index.md').exists():
-            try:
-                enforce_wiki_update_authorization(
-                    root,
-                    root_desc,
-                    WIKI_OPERATION_CREATE,
-                    authorized_create=args.authorized_create,
-                )
-            except PermissionError as exc:
-                raise SystemExit(str(exc)) from exc
-            except ValueError as exc:
-                raise SystemExit(str(exc)) from exc
-        append_index_reference(wiki_root, target)
-
-    existing = target.read_text(encoding='utf-8')
+    existing = target.read_text(encoding='utf-8') if target_exists else f'# {title}\n\n'
     updated = merge_update_block(existing, title, why, rules)
+    try:
+        enforce_shared_wiki_neutrality(root, root_desc, updated, display_wiki_path(root_desc, target))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    needs_index_reference = not is_indexed_wiki_path(wiki_root, target, include_indexes=False)
+    if needs_index_reference and not (wiki_root / 'index.md').exists():
+        try:
+            enforce_wiki_update_authorization(
+                root,
+                root_desc,
+                WIKI_OPERATION_CREATE,
+                authorized_create=args.authorized_create,
+            )
+        except PermissionError as exc:
+            raise SystemExit(str(exc)) from exc
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if needs_index_reference:
+        append_index_reference(wiki_root, target)
     target.write_text(updated, encoding='utf-8')
     print(f'Updated wiki page body: {target}')
     return 0

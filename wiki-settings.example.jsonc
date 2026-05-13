@@ -13,6 +13,14 @@
       // Controls creation of new leaf pages, topic indexes, and missing root index files.
       // Default when omitted: "ask".
       "createNewDocument": "ask"
+    },
+
+    // Mainly for .shared-superpowers/settings.json: reject known system-specific
+    // identifiers before writing shared wiki content. This mechanical guard does
+    // not replace the agent's semantic neutralization judgment.
+    "sharedNeutrality": {
+      "blockedTerms": [],
+      "blockedPatterns": []
     }
   }
 
