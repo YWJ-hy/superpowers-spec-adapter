@@ -9,7 +9,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 ## Purpose
 
-- Store project wiki pages in `.superpowers/wiki/` and optional neutral/portable shared wiki pages in `.shared-superpowers/wiki/`
+- Store project wiki pages in `.superpowers/wiki/` and optional neutral/portable shared wiki pages in `.shared-superpowers/wiki/` or a GitHub-backed shared-wiki repository accessed through the copyable MCP server
 - Use `index.md` as the entry point
 - Optionally turn Lanhu links into confirmed frontend/backend role-specific PRD packages under `.lanhu/MM-DD-<requirement-name>/` before Superpowers brainstorming, with `index.md` as the entrypoint and relationship map
 - Optionally use graphify as agent-judged candidate relationship hints during planning or narrowed debugging, without making it a dependency or gate
@@ -117,6 +117,24 @@ To publish shared wiki changes and update the parent repository pointer, use the
 ```
 
 The publish command confirms scope before commit/push and uses the project-local runner; it does not replace `update-wiki`, which still owns durable knowledge review.
+
+### Optional GitHub shared-wiki MCP workflow
+
+For teams that keep shared wiki in a standalone GitHub repository, this repo includes a copyable MCP server under:
+
+```text
+mcp/shared-wiki/
+```
+
+Copy that directory locally, run `npm install && npm run build`, configure `repoUrl` such as `https://github.com/YWJ-hy/shared-wiki.git` with the repository's default branch such as `master`, and add the built server to Claude Code MCP config. The MCP server exposes indexed read/search tools plus patch validation and branch+PR creation. It never merges PRs.
+
+Use the installed command when you want to inspect or submit shared wiki PRs through MCP:
+
+```text
+/shared-wiki-mcp
+```
+
+`update-wiki` still owns durable knowledge review, semantic duplicate checks, target ownership, and shared-wiki neutrality. The MCP server only performs mechanical validation and GitHub PR plumbing.
 
 ## Initialize starter wiki knowledge
 

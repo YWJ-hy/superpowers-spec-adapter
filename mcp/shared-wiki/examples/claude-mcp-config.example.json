@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "shared-wiki": {
+      "command": "node",
+      "args": ["/absolute/path/to/shared-wiki-mcp/dist/index.js"],
+      "env": {
+        "SHARED_WIKI_MCP_CONFIG": "/absolute/path/to/shared-wiki-mcp/shared-wiki-mcp.config.json"
+      }
+    }
+  }
+}

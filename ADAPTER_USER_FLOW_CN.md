@@ -29,7 +29,7 @@ adapter 增强这些阶段：
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
 - 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。
 - 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki；只有证据已收窄且需要调用方、依赖或邻近模块线索时，才可条件式调用 `graphify-researcher`。wiki 和 graphify 都只作为待验证线索，不替代 root cause evidence。
-- `update-wiki` 写入前读取目标 root 的 settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；默认更新已有页面跳过授权，创建新 wiki 文档询问用户授权；写入 shared wiki 前必须把内容中性化，不能保留当前系统特有标识。
+- `update-wiki` 写入前读取目标 root 的 settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；默认更新已有页面跳过授权，创建新 wiki 文档询问用户授权；写入 shared wiki 前必须把内容中性化，不能保留当前系统特有标识。如团队使用 GitHub-backed shared-wiki MCP，则 shared wiki 写入通过 MCP validate patch + branch + PR，不直接改本地 shared wiki。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
 
 `/import-wiki`、`/init-wiki`、`/lanhu-requirements` 在自身产物完成前都是独立 adapter command，不应自动触发 Superpowers 的 completion、review、verification 等收尾技能；只有命令明确交接且用户确认后才进入下一步 Superpowers workflow。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter maintenance skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新合适的 wiki root（`.superpowers/wiki/` 或 `.shared-superpowers/wiki/`）；它的本地 wiki 校验不替代 Superpowers 实现验证。
@@ -87,6 +87,7 @@ Superpowers 插件目录
 | 2 | 校验 adapter | `./manage.sh verify` | 安装或升级后 | 确认安装产物和 native skill patch 完整 |
 | 3 | 初始化 wiki 模板 | `./manage.sh bootstrap-wiki /path/to/project --template standard` | 每个目标项目一次 | 创建 `.superpowers/wiki/` wiki 目录；如需要共享知识库，可用 `--wiki-root shared` 创建 `.shared-superpowers/wiki/` |
 | 4 | 导入已有 wiki | `/import-wiki` | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/`，或用 `--wiki-root shared` 导入 `.shared-superpowers/wiki/` |
+| 4.5 | 可选 GitHub shared wiki MCP | `/shared-wiki-mcp` | 使用独立 GitHub shared-wiki 仓库时 | 通过 copyable MCP server 读取 shared wiki，并把更新作为 branch + PR 提交 |
 | 5 | 初始化 starter wiki | `/init-wiki` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
 | 6 | 可选蓝湖角色 PRD | `/lanhu-requirements <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；由角色 analyst 直接生成 `.lanhu/MM-DD-需求名称/` 需求包并只向主会话返回路径摘要和确认门禁；单个交付边界写 `prd.md`，多个交付边界写 `prds/`，`index.md` 作为入口和 PRD 关系权威来源；阻塞确认点清零且用户确认 `index.md` 后作为 Superpowers 需求输入 |
 | 7 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
@@ -203,7 +204,39 @@ python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
 
 该 command 会先运行 shared wiki 机械校验（包括配置化中性化 guard），再确认 commit/push 范围，并通过 `.shared-superpowers/settings.json` 调用项目本地 runner 执行发布。
 
-### 4.5 可选：导入已有 wiki
+### 4.5 可选：GitHub shared wiki MCP
+
+如果团队把 shared wiki 维护在独立 GitHub 仓库，可复制 adapter 仓库中的 MCP server：
+
+```text
+mcp/shared-wiki/
+```
+
+在复制后的目录运行：
+
+```bash
+npm install
+npm run build
+```
+
+然后配置 `repoUrl` 和仓库默认分支，例如：
+
+```text
+repoUrl: https://github.com/YWJ-hy/shared-wiki.git
+baseBranch: master
+```
+
+并把 build 后的 MCP server 加入 Claude Code MCP 配置。之后可在 Claude Code 中使用：
+
+```text
+/shared-wiki-mcp
+```
+
+该 MCP server 负责读取 indexed shared wiki、校验 unified diff、创建 branch、push 并打开 GitHub PR；不会自动 merge。语义判断仍由 Superpowers / adapter agent 完成：是否是 durable knowledge、是否属于 shared wiki、是否已被现有 wiki 覆盖、是否已经中性化，都不能交给 MCP 决定。
+
+这条流程与 `.shared-superpowers/wiki/` submodule 发布流程并存；不要把同一次 shared wiki 更新同时走 `/publish-shared-wiki` 和 MCP PR flow。
+
+### 4.6 可选：导入已有 wiki
 
 ```text
 /import-wiki path/to/original-wiki-dir
@@ -213,7 +246,7 @@ python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
 
 `/import-wiki` 是独立 adapter command，只做已有规范的结构导入、避免覆盖和索引刷新；因为导入会创建 wiki 文档，它会遵守目标 root 的 `createNewDocument` 策略，默认先询问用户授权。导入 shared wiki 的内容必须已经中性化，不能包含系统标识、内部 URL、环境名、本地路径或当前系统专属规则；如命中 `.shared-superpowers/settings.json` 的 `sharedNeutrality` 配置，执行层会拒绝导入。如果导入内容需要语义整理，后续由 `update-wiki` skill 判断写入 `.superpowers/wiki/` 还是 `.shared-superpowers/wiki/` 并审查更新。
 
-### 4.6 可选：从蓝湖生成角色 PRD
+### 4.7 可选：从蓝湖生成角色 PRD
 
 如果用户已配置 lanhu-mcp，可以用：
 

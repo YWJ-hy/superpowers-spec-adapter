@@ -8,6 +8,8 @@ Use this command when the user wants to publish shared wiki updates that live in
 
 This command is for publishing shared wiki submodule changes only. It does not replace `update-wiki` review for durable implementation knowledge.
 
+If the user is using the GitHub-backed shared-wiki MCP flow, do not use this command for that change. Use `/shared-wiki-mcp` or the `update-wiki` MCP path to validate a patch and open a branch + PR instead.
+
 ---
 
 ## Goal

@@ -17,6 +17,7 @@
     "commands/init-wiki.md",
     "commands/lanhu-requirements.md",
     "commands/publish-shared-wiki.md",
+    "commands/shared-wiki-mcp.md",
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
     "scripts/wiki_common.py",

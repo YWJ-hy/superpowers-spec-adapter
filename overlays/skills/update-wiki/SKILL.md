@@ -228,14 +228,21 @@ Allowed values are:
 
 New leaf creation, topic-directory creation, and missing index creation are governed by `createNewDocument`. Editing an existing leaf or refreshing an existing index is governed by `updateExistingPage`.
 
-### 9. Edit the wiki page directly
+### 9. Choose local edit or remote shared-wiki MCP PR
 
-Update the chosen leaf wiki page with `Read` and `Edit` whenever possible.
+For normal project wiki updates, edit the chosen leaf wiki page with `Read` and `Edit` whenever possible.
 Keep the existing style of the target file.
 Do not force every update into a generic template.
 
 If you create a new leaf wiki page, ensure it is referenced by an appropriate `index.md`, subject to `createNewDocument` authorization.
 Detailed rules belong in leaf wiki pages; indexes should contain navigation and short summaries only.
+
+If the selected target is shared wiki and the user/project uses the GitHub-backed shared-wiki MCP flow, do not directly edit local `.shared-superpowers/wiki/`. Instead:
+1. Use shared-wiki MCP read/search tools to check indexed pages and duplicates.
+2. Prepare a neutral unified diff for the shared wiki repo.
+3. Call `shared_wiki_validate_patch` with the required authorization flags.
+4. If validation passes, call `shared_wiki_create_patch_pr` to create a branch and PR.
+5. Report the PR URL, branch, changed files, and validation summary; do not claim the shared wiki has been merged or published.
 
 ### 10. Refresh and validate the mechanical state
 
@@ -246,7 +253,7 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root pr
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root shared --authorized-update
 ```
 
-Run only the command for the root you changed. Optionally run the mechanical validator across both roots:
+Run only the command for the local root you changed. If the shared update went through the GitHub-backed MCP PR flow, use the MCP validation summary instead of refreshing local `.shared-superpowers/wiki/`. Optionally run the mechanical validator across both local roots:
 
 ```bash
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_update_check.py --wiki-root all --json
@@ -345,7 +352,8 @@ These scripts are helpers only. They do not replace agent judgment.
 | `wiki_select_target.py --wiki-root all` | List indexed leaf candidates across project/shared roots. It must not make the final target decision. |
 | `wiki_apply_update.py --wiki-root project|shared` | Safely write a simple update after the agent already decided target root, target page, content, neutrality, and satisfied update authorization. Complex updates should be edited directly. |
 | `wiki_update_check.py --wiki-root all` | Validate index/format mechanics across roots and configured shared-wiki neutrality guards. It must not decide whether durable knowledge exists. |
-| `update-wiki.py --wiki-root project|shared` | Refresh indexed wiki page summaries for the changed root; shared root refreshes reject configured neutrality violations. |
+| `update-wiki.py --wiki-root project|shared` | Refresh indexed wiki page summaries for the changed local root; shared root refreshes reject configured neutrality violations. |
+| shared-wiki MCP tools | Optional GitHub-backed shared wiki read/search/validate/branch+PR path. They submit mechanical PRs only and must not decide durable knowledge, ownership, or neutrality. |
 
 ## Forbidden Shortcuts
 
