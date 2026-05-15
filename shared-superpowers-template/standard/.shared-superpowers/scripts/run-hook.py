@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -44,6 +46,13 @@ def normalize_hook_item(item: object, hook_name: str, index: int) -> list[str]:
     return [command, *args]
 
 
+def shell_command(command: list[str]) -> list[str]:
+    if os.name != 'nt' or not command[0].endswith('.sh'):
+        return command
+    bash = shutil.which('bash.exe') or shutil.which('bash') or 'bash'
+    return [bash, *command]
+
+
 def main() -> int:
     args = parse_args()
     settings_path = Path(args.settings)
@@ -58,7 +67,7 @@ def main() -> int:
         return 0
 
     for index, item in enumerate(hook_items):
-        command = normalize_hook_item(item, args.hook_name, index)
+        command = shell_command(normalize_hook_item(item, args.hook_name, index))
         result = subprocess.run(command, check=False)
         if result.returncode != 0:
             return result.returncode

@@ -10,6 +10,14 @@ WORK="$TMP_DIR/work"
 CACHE="$TMP_DIR/cache"
 CONFIG="$TMP_DIR/config.json"
 
+to_node_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -am "$1"
+  else
+    printf '%s' "$1"
+  fi
+}
+
 git init --bare "$REMOTE" >/dev/null
 git clone "$REMOTE" "$WORK" >/dev/null
 cat > "$WORK/index.md" <<'MD'
@@ -27,15 +35,17 @@ git -C "$WORK" commit -m "Seed shared wiki" >/dev/null
 git -C "$WORK" branch -M main
 git -C "$WORK" push origin main >/dev/null
 
+REMOTE_CONFIG="$(to_node_path "$REMOTE")"
+CACHE_CONFIG="$(to_node_path "$CACHE")"
 cat > "$CONFIG" <<JSON
 {
-  "repoUrl": "$REMOTE",
+  "repoUrl": "$REMOTE_CONFIG",
   "baseBranch": "main",
-  "cacheDir": "$CACHE"
+  "cacheDir": "$CACHE_CONFIG"
 }
 JSON
 
-npm run build --prefix "$ROOT_DIR/mcp/shared-wiki" >/dev/null
+(cd "$ROOT_DIR/mcp/shared-wiki" && npm install >/dev/null && npm run build >/dev/null)
 
 SHARED_WIKI_MCP_CONFIG="$CONFIG" node --input-type=module <<'JS'
 import { loadConfig } from './mcp/shared-wiki/dist/config.js';

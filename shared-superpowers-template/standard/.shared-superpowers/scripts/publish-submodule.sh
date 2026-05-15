@@ -51,22 +51,17 @@ TARGET_PATH="$PATH_ARG"
 if [[ "$TARGET_PATH" != /* ]]; then
   TARGET_PATH="$PROJECT_ROOT/$TARGET_PATH"
 fi
-TARGET_PATH="$(python3 - <<'PY' "$TARGET_PATH"
-from pathlib import Path
-import sys
-print(Path(sys.argv[1]).resolve())
-PY
-)"
+if [[ ! -d "$TARGET_PATH" ]]; then
+  printf 'Submodule path does not exist: %s\n' "$PATH_ARG" >&2
+  exit 1
+fi
+PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
+TARGET_PATH="$(cd "$TARGET_PATH" && pwd)"
 
 case "$TARGET_PATH" in
   "$PROJECT_ROOT"/*) ;;
   *) printf 'Path must stay inside project root: %s\n' "$PATH_ARG" >&2; exit 1 ;;
 esac
-
-if [[ ! -d "$TARGET_PATH" ]]; then
-  printf 'Submodule path does not exist: %s\n' "$PATH_ARG" >&2
-  exit 1
-fi
 if ! git -C "$TARGET_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   printf 'Path is not an initialized git repository or submodule: %s\n' "$PATH_ARG" >&2
   exit 1
