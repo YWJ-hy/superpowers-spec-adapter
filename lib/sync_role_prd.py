@@ -14,6 +14,14 @@ COMMON_SKELETON = Path('overlays/agents/lanhu-requirements-analyst.common.md')
 
 
 @dataclass(frozen=True)
+class AuxiliaryTemplateConfig:
+    key: str
+    label: str
+    template_path: Path
+    applies_when: str
+
+
+@dataclass(frozen=True)
 class RoleConfig:
     role: str
     label: str
@@ -21,6 +29,7 @@ class RoleConfig:
     template_path: Path
     output_h1: str
     allowed_content: str
+    auxiliary_templates: tuple[AuxiliaryTemplateConfig, ...] = ()
 
     @property
     def agent_path(self) -> Path:
@@ -39,6 +48,14 @@ ROLE_CONFIGS = (
         template_path=Path('role-prd/frontend.md'),
         output_h1='# 前端开发角色视角 PRD',
         allowed_content='frontend UI control types and interaction expectations, page display, page state flow, permission visibility, analytics needs, and frontend/backend collaboration information, without component library or code implementation details',
+        auxiliary_templates=(
+            AuxiliaryTemplateConfig(
+                key='frontend_output_html',
+                label='frontend HTML output',
+                template_path=Path('role-prd/frontend_outputHtml.md'),
+                applies_when='frontend role only when outputPreference.format is markdown+html and outputPreference.htmlPrototype.enabled is true',
+            ),
+        ),
     ),
     RoleConfig(
         role='backend',
@@ -79,6 +96,34 @@ def render_template_block(root: Path, config: RoleConfig) -> str:
     )
 
 
+def render_auxiliary_template_blocks(root: Path, config: RoleConfig) -> str:
+    if not config.auxiliary_templates:
+        return 'No auxiliary output templates are embedded for this role. Do not generate auxiliary artifacts for this role.'
+
+    blocks: list[str] = []
+    for template in config.auxiliary_templates:
+        content = (root / template.template_path).read_text(encoding='utf-8').rstrip()
+        fence = fence_for(content)
+        blocks.append('\n'.join([
+            f'### {template.label} auxiliary output template',
+            '',
+            f'Generated verbatim from `{template.template_path.as_posix()}`. Apply this auxiliary output template only when {template.applies_when}.',
+            '',
+            f'{fence}markdown',
+            content,
+            fence,
+        ]))
+    return '\n\n'.join(blocks)
+
+
+def role_source_paths(config: RoleConfig) -> str:
+    paths = [config.template_path, *(template.template_path for template in config.auxiliary_templates)]
+    formatted = [f'`{path.as_posix()}`' for path in paths]
+    if len(formatted) == 1:
+        return formatted[0]
+    return ', '.join(formatted[:-1]) + f' and {formatted[-1]}'
+
+
 def render_agent(root: Path, config: RoleConfig) -> str:
     skeleton = (root / COMMON_SKELETON).read_text(encoding='utf-8')
     replacements = {
@@ -87,9 +132,11 @@ def render_agent(root: Path, config: RoleConfig) -> str:
         '{{ROLE_LABEL}}': config.label,
         '{{PRD_TEMPLATE}}': config.prd_template,
         '{{ROLE_PRD_TEMPLATE_PATH}}': config.template_path.as_posix(),
+        '{{ROLE_PRD_SOURCE_PATHS}}': role_source_paths(config),
         '{{ROLE_OUTPUT_H1}}': config.output_h1,
         '{{ROLE_ALLOWED_CONTENT}}': config.allowed_content,
         '{{ROLE_PRD_TEMPLATE_BLOCK}}': render_template_block(root, config),
+        '{{ROLE_AUXILIARY_TEMPLATE_BLOCKS}}': render_auxiliary_template_blocks(root, config),
     }
     rendered = skeleton
     for key, value in replacements.items():

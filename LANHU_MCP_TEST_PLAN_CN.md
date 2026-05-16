@@ -350,6 +350,40 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 ## 7. PRD 输出结构与包目录测试
 
+### TC-O00：默认 Markdown-only 与前端 HTML opt-in
+
+准备：目标项目不配置 `.superpowers/settings.json`。
+
+预期：
+
+- 前端和后端 Lanhu 输出都只写 `index.md` + `prd.md` / `prds/*.md`。
+- `writtenFiles` 不包含 `.html`。
+
+准备：目标项目 `.superpowers/settings.json` 配置：
+
+```json
+{
+  "lanhu": {
+    "frontend": {
+      "output": {
+        "format": "markdown+html"
+      }
+    }
+  }
+}
+```
+
+预期：
+
+- 前端输出仍必须写 Markdown PRD 包，并额外写包根目录 `index.html`。
+- 前端 analyst 嵌入 `role-prd/frontend.md` Markdown 主模板和 `role-prd/frontend_outputHtml.md` HTML 辅助模板；后端 analyst 不嵌入 `role-prd/frontend_outputHtml.md`。
+- `role-prd/frontend.md` 保持 Markdown-only，不包含 `markdown+html` 或 `index.html` 输出职责。
+- `index.html` 是 self-contained low-fidelity interactive requirements prototype，不包含外部资源、真实接口、框架代码或实现架构。
+- `index.html` 不渲染完整 PRD，不复制完整规则表、验收标准、前后端协作、风险依赖或待确认表，只用短摘要和来源引用回溯 Markdown PRD。
+- `htmlPrototypeCompliance` 干净，且 `checkedAgainstAuxiliaryOutputTemplate: true`、`duplicatedFullPrdSectionsDetected: []`、`untraceableHtmlItemsDetected: []`。
+- 后端输出保持 Markdown-only，`writtenFiles` 不包含 `.html`。
+- `index.md` 仍是 Superpowers 入口和 PRD 关系权威来源。
+
 ### TC-O01：单交付边界输出 `prd.md`
 
 入口：

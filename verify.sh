@@ -59,9 +59,10 @@ check_optional_integration_overlays() {
   local lanhu_frontend_agent="$TARGET_DIR/agents/lanhu-frontend-requirements-analyst.md"
   local lanhu_backend_agent="$TARGET_DIR/agents/lanhu-backend-requirements-analyst.md"
   local lanhu_command="$TARGET_DIR/commands/lanhu-requirements.md"
+  local lanhu_settings_script="$TARGET_DIR/scripts/lanhu_settings.py"
   local graphify_agent="$TARGET_DIR/agents/graphify-researcher.md"
 
-  for required_file in "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_command"; do
+  for required_file in "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_command" "$lanhu_settings_script"; do
     if [[ ! -f "$required_file" ]]; then
       printf 'Missing Lanhu integration file: %s\n' "$required_file" >&2
       exit 1
@@ -162,7 +163,18 @@ check_optional_integration_overlays() {
     'resolutionMode' \
     'confirmationAnswers' \
     '是否阻塞后续 Superpowers 流程' \
-    '阻塞原因'
+    '阻塞原因' \
+    '.superpowers/settings.json' \
+    'lanhu.frontend.output.format' \
+    'markdown+html' \
+    'index.html' \
+    'low-fidelity interactive requirements prototype' \
+    'frontend-only' \
+    'Backend Markdown-only' \
+    'htmlPrototypeCompliance' \
+    'checkedAgainstAuxiliaryOutputTemplate' \
+    'duplicatedFullPrdSectionsDetected' \
+    'untraceableHtmlItemsDetected'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_command"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
@@ -210,7 +222,7 @@ check_optional_integration_overlays() {
   fi
 
   for required in \
-    'main template compliance self-check' \
+    'main Markdown template compliance self-check' \
     'templateCompliance' \
     'selectedTemplate' \
     'checkedAgainstFullSourceTemplate' \
@@ -240,7 +252,12 @@ check_optional_integration_overlays() {
     '真实 Tab 标签' \
     '源证据没有 Tab 时，不输出 `tab-area`' \
     '复杂状态页面' \
-    '简单页面可只保留表格'
+    '简单页面可只保留表格' \
+    'role-prd/frontend_outputHtml.md' \
+    'auxiliary output template' \
+    '不得复制完整 PRD' \
+    '低保真交互验证' \
+    '必须能回溯到 Markdown PRD'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent"; then
       printf 'Missing frontend Lanhu analyst guardrail: %s\n' "$required" >&2
@@ -277,6 +294,20 @@ check_optional_integration_overlays() {
     printf 'Backend Lanhu analyst contains frontend role template\n' >&2
     exit 1
   fi
+  if grep -Fq 'role-prd/frontend_outputHtml.md' "$lanhu_backend_agent" || grep -Fq '# 前端 HTML 低保真交互原型辅助模板' "$lanhu_backend_agent"; then
+    printf 'Backend Lanhu analyst contains frontend HTML auxiliary template\n' >&2
+    exit 1
+  fi
+  if grep -Fq 'lanhu.frontend.output.format' "$SCRIPT_DIR/role-prd/frontend.md" || grep -Fq 'markdown+html' "$SCRIPT_DIR/role-prd/frontend.md" || grep -Fq 'index.html' "$SCRIPT_DIR/role-prd/frontend.md"; then
+    printf 'Frontend Markdown PRD template still owns HTML output settings\n' >&2
+    exit 1
+  fi
+  for required in 'markdown+html' 'index.html' 'Markdown PRD' '不得复制完整 PRD' '必须能回溯到 Markdown PRD'; do
+    if ! grep -Fq "$required" "$SCRIPT_DIR/role-prd/frontend_outputHtml.md"; then
+      printf 'Missing frontend HTML auxiliary template guardrail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
 
   for required in \
     'Graphify is optional' \
@@ -387,7 +418,18 @@ check_native_skill_residuals() {
     'forbiddenContentDetected' \
     'indexPath' \
     'writtenFiles' \
-    'compact metadata'
+    'compact metadata' \
+    '.superpowers/settings.json' \
+    'lanhu.frontend.output.format' \
+    'markdown+html' \
+    'index.html' \
+    'low-fidelity interactive requirements prototype' \
+    'frontend-only' \
+    'backend Markdown-only' \
+    'htmlPrototypeCompliance' \
+    'checkedAgainstAuxiliaryOutputTemplate' \
+    'duplicatedFullPrdSectionsDetected' \
+    'untraceableHtmlItemsDetected'
   do
     if ! grep -Fq "$required" "$brainstorming_skill"; then
       printf 'Missing optional Lanhu brainstorming requirement: %s\n' "$required" >&2

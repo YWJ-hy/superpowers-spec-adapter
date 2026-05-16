@@ -23,7 +23,7 @@
 adapter 增强这些阶段：
 
 - 安装 `wiki-researcher` agent，用于从 `.superpowers/wiki/index.md` 和 `.shared-superpowers/wiki/index.md` 开始渐进选择少量相关项目/共享 wiki 页面。
-- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` 先确认前端/后端角色，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst`，由专用 analyst 直接写入 `.lanhu/MM-DD-需求名称/` 需求包、判断待确认点是否阻塞 Superpowers，并只向主会话返回路径 / 状态 / 范围判断摘要；单个交付边界写 `prd.md`，多个交付边界写入 `prds/`，并用 `index.md` 作为入口和 PRD 关系权威来源。PRD 会显式标记 `新增`、`差量调整`、`现有上下文`、`待确认`、`全量重构`、`全量替换`，先由 analyst 自行判断，再把 `scopeConfirmationSummary` 交给用户二次确认。前端角色 PRD 会在 `## 二、本次变更范围判定` 和 `## 四、页面展示规则` 下加入低保真 XML-like 页面布局结构草图，并把 `用户操作与交互规则` 作为一个主题集中展开；当 `## 七、页面状态流转` 是复杂状态页面时，会补一张 Mermaid flowchart，简单页面可只保留表格。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst 修复 PRD；`confirmationGate.status: clear` 且用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 Superpowers `brainstorming`。
+- 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` 先确认前端/后端角色，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst`，由专用 analyst 直接写入 `.lanhu/MM-DD-需求名称/` 需求包、判断待确认点是否阻塞 Superpowers，并只向主会话返回路径 / 状态 / 范围判断摘要；默认只输出 Markdown，单个交付边界写 `prd.md`，多个交付边界写入 `prds/`，并用 `index.md` 作为入口和 PRD 关系权威来源；如果目标项目 `.superpowers/settings.json` 配置 `lanhu.frontend.output.format: markdown+html`，前端角色可额外写入包根目录 `index.html` 低保真可交互需求原型，后端角色仍只输出 Markdown。PRD 会显式标记 `新增`、`差量调整`、`现有上下文`、`待确认`、`全量重构`、`全量替换`，先由 analyst 自行判断，再把 `scopeConfirmationSummary` 交给用户二次确认。前端角色 PRD 会在 `## 二、本次变更范围判定` 和 `## 四、页面展示规则` 下加入低保真 XML-like 页面布局结构草图，并把 `用户操作与交互规则` 作为一个主题集中展开；当 `## 七、页面状态流转` 是复杂状态页面时，会补一张 Mermaid flowchart，简单页面可只保留表格。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst 修复 PRD；`confirmationGate.status: clear` 且用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 Superpowers `brainstorming`。
 - 可选图谱辅助：如果项目已有 graphify 能力或 `graphify-out/` 产物，`graphify-researcher` 只在 agent 判断需要关系线索时提供 candidate hints，不作为必经步骤。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
@@ -89,7 +89,7 @@ Superpowers 插件目录
 | 4 | 导入已有 wiki | `/import-wiki` | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/`，或用 `--wiki-root shared` 导入 `.shared-superpowers/wiki/` |
 | 4.5 | 可选 GitHub shared wiki MCP | `/shared-wiki-mcp` | 使用独立 GitHub shared-wiki 仓库时 | 通过 copyable MCP server 读取 shared wiki，并把更新作为 branch + PR 提交 |
 | 5 | 初始化 starter wiki | `/init-wiki` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
-| 6 | 可选蓝湖角色 PRD | `/lanhu-requirements <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；由角色 analyst 直接生成 `.lanhu/MM-DD-需求名称/` 需求包并只向主会话返回路径摘要和确认门禁；单个交付边界写 `prd.md`，多个交付边界写 `prds/`，`index.md` 作为入口和 PRD 关系权威来源；阻塞确认点清零且用户确认 `index.md` 后作为 Superpowers 需求输入 |
+| 6 | 可选蓝湖角色 PRD | `/lanhu-requirements <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；由角色 analyst 直接生成 `.lanhu/MM-DD-需求名称/` 需求包并只向主会话返回路径摘要和确认门禁；默认 Markdown-only，单个交付边界写 `prd.md`，多个交付边界写 `prds/`，`index.md` 作为入口和 PRD 关系权威来源；如 `.superpowers/settings.json` 配置前端 `markdown+html`，额外生成 `index.html` 低保真交互原型；阻塞确认点清零且用户确认 `index.md` 后作为 Superpowers 需求输入 |
 | 7 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
 | 8 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目/共享 wiki 页面，生成 `.wiki-context.md`，必要时用 graphify 候选线索辅助关系判断，并在 plan 中写入轻量 `Referenced Project Wiki` |
 | 9 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.md` |
@@ -102,7 +102,7 @@ Superpowers 插件目录
 
 ```text
 描述需求 / 可选蓝湖链接
-→ 如果使用蓝湖，先确认前端/后端角色；/lanhu-requirements 路由角色 analyst 直接生成 .lanhu/MM-DD-需求名称/ 需求包，主会话只接收路径摘要和紧凑确认门禁，index.md 是入口和 PRD 关系权威来源
+→ 如果使用蓝湖，先确认前端/后端角色；/lanhu-requirements 路由角色 analyst 直接生成 .lanhu/MM-DD-需求名称/ 需求包，默认 Markdown-only；如目标项目配置前端 markdown+html，可额外生成 index.html 低保真交互原型；主会话只接收路径摘要和紧凑确认门禁，index.md 是入口和 PRD 关系权威来源
 → 如存在阻塞确认点，用户回答后由同一角色 analyst 修复 PRD 包，直到 confirmationGate.status: clear
 → 用户确认 .lanhu 需求包的 index.md
 → Superpowers brainstorming

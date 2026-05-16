@@ -44,7 +44,12 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     'raw Lanhu tool-result text' \
     'full PRD markdown' \
     '是否阻塞后续 Superpowers 流程' \
-    '阻塞原因'
+    '阻塞原因' \
+    'outputPreference' \
+    'htmlPrototypeCompliance' \
+    'checkedAgainstAuxiliaryOutputTemplate' \
+    'duplicatedFullPrdSectionsDetected' \
+    'untraceableHtmlItemsDetected'
   do
     require_in_file "$agent" "$required"
   done
@@ -60,7 +65,12 @@ for required in \
   'compact confirmation gate' \
   'Superpowers brainstorming will not start until these are resolved' \
   'confirmationGate.status: clear' \
-  'main session must not override `confirmationGate` directly'
+  'main session must not override `confirmationGate` directly' \
+  'outputPreference' \
+  'htmlPrototypeCompliance' \
+  'checkedAgainstAuxiliaryOutputTemplate' \
+  'duplicatedFullPrdSectionsDetected' \
+  'untraceableHtmlItemsDetected'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
@@ -74,7 +84,12 @@ for required in \
   'confirmationAnswers' \
   'Do not let the main session reclassify or bypass `confirmationGate`' \
   'status: ok' \
-  'confirmationGate.status: clear'
+  'confirmationGate.status: clear' \
+  'outputPreference' \
+  'htmlPrototypeCompliance' \
+  'checkedAgainstAuxiliaryOutputTemplate' \
+  'duplicatedFullPrdSectionsDetected' \
+  'untraceableHtmlItemsDetected'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

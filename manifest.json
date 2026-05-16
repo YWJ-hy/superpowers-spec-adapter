@@ -21,6 +21,7 @@
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
     "scripts/wiki_common.py",
+    "scripts/lanhu_settings.py",
     "scripts/wiki_import.py",
     "scripts/init-wiki.py",
     "scripts/wiki_update_check.py",

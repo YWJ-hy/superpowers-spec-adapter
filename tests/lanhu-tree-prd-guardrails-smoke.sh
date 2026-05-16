@@ -108,7 +108,18 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     '全量重构' \
     '全量替换' \
     'explicitFullScopeEvidence' \
-    'copiedOldPageRisk'
+    'copiedOldPageRisk' \
+    '.superpowers/settings.json' \
+    'lanhu.frontend.output.format' \
+    'markdown+html' \
+    'index.html' \
+    'low-fidelity interactive requirements prototype' \
+    'frontend-only' \
+    'Backend Markdown-only' \
+    'htmlPrototypeCompliance' \
+    'checkedAgainstAuxiliaryOutputTemplate' \
+    'duplicatedFullPrdSectionsDetected' \
+    'untraceableHtmlItemsDetected'
   do
     require_in_file "$agent" "$required"
   done
@@ -134,7 +145,12 @@ for required in \
   '单个节点建议 4–12 个中文字符' \
   '推荐最大层级 3 层' \
   '如果内容过多，请拆成多个小图' \
-  '将细节放入后续表格和章节'
+  '将细节放入后续表格和章节' \
+  'role-prd/frontend_outputHtml.md' \
+  'auxiliary output template' \
+  '不得复制完整 PRD' \
+  '低保真交互验证' \
+  '必须能回溯到 Markdown PRD'
 do
   require_in_file "$LANHU_FRONTEND_AGENT" "$required"
 done
@@ -164,6 +180,11 @@ fi
 
 if grep -Fq '# 前端开发角色视角 PRD 提示词模板' "$LANHU_BACKEND_AGENT"; then
   printf 'Backend Lanhu analyst unexpectedly contains frontend template\n' >&2
+  exit 1
+fi
+
+if grep -Fq 'role-prd/frontend_outputHtml.md' "$LANHU_BACKEND_AGENT" || grep -Fq '# 前端 HTML 低保真交互原型辅助模板' "$LANHU_BACKEND_AGENT"; then
+  printf 'Backend Lanhu analyst unexpectedly contains frontend HTML auxiliary template\n' >&2
   exit 1
 fi
 
@@ -203,7 +224,18 @@ for required in \
   'mindmap only for small/simple structures' \
   'short node labels' \
   'limited depth' \
-  'dense details to tables'
+  'dense details to tables' \
+  '.superpowers/settings.json' \
+  'lanhu.frontend.output.format' \
+  'markdown+html' \
+  'index.html' \
+  'low-fidelity interactive requirements prototype' \
+  'frontend-only' \
+  'backend Markdown-only' \
+  'htmlPrototypeCompliance' \
+  'checkedAgainstAuxiliaryOutputTemplate' \
+  'duplicatedFullPrdSectionsDetected' \
+  'untraceableHtmlItemsDetected'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
@@ -243,7 +275,18 @@ for required in \
   'checkedAgainstFullSourceTemplate' \
   'missingTemplateRequirements' \
   'genericHeadingsDetected' \
-  'forbiddenContentDetected'
+  'forbiddenContentDetected' \
+  '.superpowers/settings.json' \
+  'lanhu.frontend.output.format' \
+  'markdown+html' \
+  'index.html' \
+  'low-fidelity interactive requirements prototype' \
+  'frontend-only' \
+  'backend Markdown-only' \
+  'htmlPrototypeCompliance' \
+  'checkedAgainstAuxiliaryOutputTemplate' \
+  'duplicatedFullPrdSectionsDetected' \
+  'untraceableHtmlItemsDetected'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

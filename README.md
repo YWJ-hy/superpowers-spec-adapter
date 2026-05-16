@@ -160,7 +160,7 @@ The import recursively scans source wiki pages, copies each file into `.superpow
 
 ## Optional Lanhu requirements intake
 
-If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command confirms the PRD role and routes to `lanhu-frontend-requirements-analyst` or `lanhu-backend-requirements-analyst`. The specialized analyst writes the sanitized role-specific PRD package directly under `.lanhu/`, classifies unresolved confirmation points, performs adapter-owned delta-first `requirementScopeJudgment`, and returns only compact path/status/scope metadata before Superpowers brainstorming. Role selection is required before Lanhu analysis. If blocking confirmation points remain, the analyst returns `status: need_confirmation`; the main session shows only compact blocking questions plus package metadata, routes answers back to the same analyst, and does not enter Superpowers brainstorming until `confirmationGate.status: clear`. Even when the gate is clear, the user must confirm the `scopeConfirmationSummary` for `新增`, `差量调整`, `现有上下文`, and `待确认` before continuing.
+If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command confirms the PRD role and routes to `lanhu-frontend-requirements-analyst` or `lanhu-backend-requirements-analyst`. The specialized analyst writes the sanitized role-specific PRD package directly under `.lanhu/`, classifies unresolved confirmation points, performs adapter-owned delta-first `requirementScopeJudgment`, and returns only compact path/status/scope metadata before Superpowers brainstorming. Role selection is required before Lanhu analysis. Default Lanhu output is Markdown-only. To also generate a frontend-only `index.html` low-fidelity interactive requirements prototype, set `lanhu.frontend.output.format` to `markdown+html` in the target project's `.superpowers/settings.json`; backend remains Markdown-only. If blocking confirmation points remain, the analyst returns `status: need_confirmation`; the main session shows only compact blocking questions plus package metadata, routes answers back to the same analyst, and does not enter Superpowers brainstorming until `confirmationGate.status: clear`. Even when the gate is clear, the user must confirm the `scopeConfirmationSummary` for `新增`, `差量调整`, `现有上下文`, and `待确认` before continuing.
 
 ```text
 /lanhu-requirements <Lanhu link> 前端 <optional requirement name>
@@ -169,7 +169,7 @@ If the user provides a Lanhu link and Lanhu MCP tools are available, the install
 /lanhu-requirements --role backend <Lanhu link> <optional requirement name>
 ```
 
-If the role is missing or ambiguous, the command asks whether to generate a 前端开发角色视角 PRD or 后端开发角色视角 PRD before reading or analyzing Lanhu. If both roles are needed, generate two separate PRD packages by running the command twice. The maintained prompt sources for these role templates live in `role-prd/frontend.md` and `role-prd/backend.md`; `./manage.sh install` generates self-contained frontend/backend Lanhu analyst agents from the shared skeleton and the selected role template before installing, and installed agents do not read the source files at runtime. Role PRD diagrams default to Mermaid flowchart for readability, with mindmap reserved for small/simple structures. Role PRDs now include `## 二、本次变更范围判定`, marking items as `新增`, `差量调整`, `现有上下文`, `待确认`, `全量重构`, or `全量替换`; copied old pages and unannotated full-page content default to context, while full rebuild/replacement requires explicit evidence. Frontend role PRDs also include a low-fidelity XML-like 页面布局结构草图 under `## 四、页面展示规则`, and later sections should be organized by those pages/layout areas where possible; `用户操作与交互规则` is grouped under one top-level section with flow and interaction subsections. When `## 七、页面状态流转` is a complex state page, add a Mermaid flowchart; simple pages can keep the table.
+If the role is missing or ambiguous, the command asks whether to generate a 前端开发角色视角 PRD or 后端开发角色视角 PRD before reading or analyzing Lanhu. If both roles are needed, generate two separate PRD packages by running the command twice. The maintained Markdown PRD prompt sources for these role templates live in `role-prd/frontend.md` and `role-prd/backend.md`; optional frontend HTML output behavior lives in `role-prd/frontend_outputHtml.md`. `./manage.sh install` generates self-contained frontend/backend Lanhu analyst agents from the shared skeleton, the selected Markdown role template, and any role-specific auxiliary output templates before installing, and installed agents do not read the source files at runtime. Role PRD diagrams default to Mermaid flowchart for readability, with mindmap reserved for small/simple structures. Role PRDs now include `## 二、本次变更范围判定`, marking items as `新增`, `差量调整`, `现有上下文`, `待确认`, `全量重构`, or `全量替换`; copied old pages and unannotated full-page content default to context, while full rebuild/replacement requires explicit evidence. Frontend role PRDs also include a low-fidelity XML-like 页面布局结构草图 under `## 四、页面展示规则`, and later sections should be organized by those pages/layout areas where possible; `用户操作与交互规则` is grouped under one top-level section with flow and interaction subsections. When `## 七、页面状态流转` is a complex state page, add a Mermaid flowchart; simple pages can keep the table.
 
 The Lanhu analyst writes the output to the current project root as a requirement package, while the main session only receives the package directory, `index.md` path, generated file list, `requirementScopeJudgment`, `scopeConfirmationSummary`, open questions, and caveats:
 
@@ -181,6 +181,22 @@ The Lanhu analyst writes the output to the current project root as a requirement
     ├── <delivery-boundary-1>.md
     └── <delivery-boundary-2>.md
 ```
+
+Frontend HTML output is opt-in per target project:
+
+```json
+{
+  "lanhu": {
+    "frontend": {
+      "output": {
+        "format": "markdown+html"
+      }
+    }
+  }
+}
+```
+
+When enabled for a frontend PRD, the same package may also contain `index.html`. The HTML file is a compact, self-contained low-fidelity interactive review artifact governed by `role-prd/frontend_outputHtml.md`; it references and summarizes Markdown PRD sections, but must not render the entire PRD as HTML or duplicate full rule tables, acceptance criteria, frontend/backend collaboration details, risks, or open-question tables. It must not contain production frontend code, framework choices, real API calls, external assets, or implementation architecture. `index.md` remains the Superpowers entry point and PRD relationship authority.
 
 For Lanhu URLs with an explicit `pageId`, the analyst first reads the Lanhu page tree, then analyzes only the target page or the user-confirmed child-page whitelist. If the target page has child pages, the user is asked whether to include them and inclusion is recommended; if it has no child pages, only that page is used. In tree mode, full analysis is performed page by page after whitelist resolution instead of as one parent-plus-children request. Sibling pages, adjacent modules, parent flow pages, trash or legacy pages, and other pages in the same document are not included unless the user explicitly asks for broader scope.
 
