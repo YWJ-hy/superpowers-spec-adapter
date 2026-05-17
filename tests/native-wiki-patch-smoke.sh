@@ -161,7 +161,12 @@ for required in \
   'compact metadata' \
   'compact metadata' \
   'packageDir' \
-  'writtenFiles'
+  'writtenFiles' \
+  'existing confirmed `.lanhu/.../index.md` package' \
+  'read that package as requirements input' \
+  'read `index.md` first' \
+  'follow only the package files it lists' \
+  'parse the current HTML structure dynamically'
 do
   if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
     printf 'Expected brainstorming patch to contain optional Lanhu requirement: %s\n' "$required" >&2
