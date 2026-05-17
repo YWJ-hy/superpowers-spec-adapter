@@ -79,6 +79,7 @@ for required in \
   'Superpowers brainstorming will not start until these are resolved' \
   'confirmationGate.status: clear' \
   'main session must not override `confirmationGate` directly' \
+  'lanhu.role' \
   'outputPreference' \
   'htmlPrdCompliance' \
   'checkedAgainstFullHtmlSourceTemplate' \
@@ -101,6 +102,7 @@ for required in \
   'Do not let the main session reclassify or bypass `confirmationGate`' \
   'status: ok' \
   'confirmationGate.status: clear' \
+  'lanhu.role' \
   'outputPreference' \
   'htmlPrdCompliance' \
   'checkedAgainstFullHtmlSourceTemplate' \

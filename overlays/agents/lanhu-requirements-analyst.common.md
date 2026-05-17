@@ -135,8 +135,9 @@ Write the selected-role PRD package directly to `.lanhu/MM-DD-需求名称/` aft
 - Follow this agent's selected output format contract exactly.
 - Markdown PRD output writes either `prd.md` or `prds/*.md` depending on `deliveryBoundaryCount`.
 - HTML PRD output writes package-root `index.html` as the complete PRD main document for page/UI/interaction requirements.
-- HTML PRD output also writes `prototype/index.html` as the directoryized interaction prototype for page structure, control checks, state probes, dialogs, drawers, and multi-step interaction visualization.
+- HTML PRD output also writes `prototype/index.html` as the 1:1 Lanhu interaction prototype for page structure, control checks, state probes, dialogs, drawers, and multi-step interaction visualization; simple CSS/JS is allowed for layout and basic interaction display, but not complex implementation.
 - HTML PRD output may fall back to `prd.md` only when the requirement is text-only and has no page, field UI, operation, page state, or interaction surface.
+- `prototype/index.html` may use a small amount of CSS and native JavaScript for layout, page switching, and basic UI visibility, but it must still match the original Lanhu interaction requirement in structure and behavior.
 - Backend output must never write `index.html` or any `.html` file.
 - Keep every generated file inside the package directory.
 - On initial generation, do not overwrite an existing package path; use a safe suffix or return a caveat.

@@ -172,6 +172,7 @@ check_optional_integration_overlays() {
     '是否阻塞后续 Superpowers 流程' \
     '阻塞原因' \
     '.superpowers/settings.json' \
+    'lanhu.role' \
     'lanhu.frontend.output.format' \
     'format: markdown | html' \
     'index.html' \
@@ -185,7 +186,7 @@ check_optional_integration_overlays() {
     'uiControlsTraceableToLanhuEvidence' \
     'prototype/index.html' \
     'prototypeArtifactPresent' \
-    'prototypeDirectoryized' \
+    '1:1 Lanhu interaction prototype' \
     'prototypeLinkedFromIndexHtml' \
     'indexMdDynamicHtmlParsingGuidance' \
     'mermaidModuleScriptPresent' \
@@ -471,11 +472,12 @@ check_native_skill_residuals() {
     'writtenFiles' \
     'compact metadata' \
     '.superpowers/settings.json' \
+    'lanhu.role' \
     'lanhu.frontend.output.format' \
     'format: markdown | html' \
     'index.html' \
     'complete HTML PRD main document at `index.html`' \
-    'directoryized interaction prototype at `prototype/index.html`' \
+    '1:1 Lanhu interaction prototype at `prototype/index.html`' \
     'frontend-only' \
     'backend Markdown-only' \
     'htmlPrdCompliance' \
@@ -486,7 +488,7 @@ check_native_skill_residuals() {
     'uiControlsTraceableToLanhuEvidence' \
     'prototype/index.html' \
     'prototypeArtifactPresent' \
-    'prototypeDirectoryized' \
+    '1:1 Lanhu interaction prototype' \
     'prototypeLinkedFromIndexHtml' \
     'indexMdDynamicHtmlParsingGuidance' \
     'mermaidModuleScriptPresent' \

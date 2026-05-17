@@ -27,6 +27,9 @@ PY
 }
 
 python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/default-frontend.json"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['role'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['configuredRole'] is None"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['roleSource'] == 'argument'"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['format'] == 'markdown'"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['settingsPath'] is None"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['primaryOutput']['kind'] == 'markdown_prd'"
@@ -44,6 +47,7 @@ from pathlib import Path
 path = Path(sys.argv[1])
 path.write_text(json.dumps({
     "lanhu": {
+        "role": "frontend",
         "frontend": {
             "output": {
                 "format": "html"
@@ -54,6 +58,9 @@ path.write_text(json.dumps({
 PY
 
 python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-frontend.json"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['role'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['configuredRole'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['roleSource'] == 'argument'"
 assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['format'] == 'html'"
 assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['settingsPath'] == '.superpowers/settings.json'"
 assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['source'] == '.superpowers/settings.json'"
@@ -64,7 +71,16 @@ assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['prot
 assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['companionFiles'] == ['prototype/index.html']"
 assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['fallbackToMarkdownWhenTextOnly'] is True"
 
+python3 "${TARGET_DIR}/scripts/lanhu_settings.py" "${PROJECT_ROOT}" > "${PROJECT_ROOT}/configured-role.json"
+assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['role'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['configuredRole'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['roleSource'] == '.superpowers/settings.json'"
+assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['format'] == 'html'"
+
 python3 "${TARGET_DIR}/scripts/lanhu_settings.py" backend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-backend.json"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['role'] == 'backend'"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['configuredRole'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['roleSource'] == 'argument'"
 assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['format'] == 'markdown'"
 assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['enabled'] is False"
 assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['prototypeFilename'] is None"
@@ -79,6 +95,7 @@ from pathlib import Path
 path = Path(sys.argv[1])
 path.write_text(json.dumps({
     "lanhu": {
+        "role": "frontend",
         "frontend": {
             "output": {
                 "format": "markdown+html"
@@ -93,6 +110,27 @@ if python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" 
 fi
 if ! grep -Fq 'Invalid lanhu.frontend.output.format' "${PROJECT_ROOT}/invalid.out"; then
   printf 'Expected invalid format error message\n' >&2
+  exit 1
+fi
+
+python3 - "${PROJECT_ROOT}/.superpowers/settings.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.write_text(json.dumps({
+    "lanhu": {
+        "role": "fullstack"
+    }
+}, indent=2) + "\n", encoding="utf-8")
+PY
+if python3 "${TARGET_DIR}/scripts/lanhu_settings.py" "${PROJECT_ROOT}" > "${PROJECT_ROOT}/invalid-role.out" 2>&1; then
+  printf 'Expected invalid lanhu.role to fail\n' >&2
+  exit 1
+fi
+if ! grep -Fq 'Invalid lanhu.role' "${PROJECT_ROOT}/invalid-role.out"; then
+  printf 'Expected invalid role error message\n' >&2
   exit 1
 fi
 

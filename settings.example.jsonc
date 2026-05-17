@@ -43,6 +43,11 @@
   // 项目本地 Lanhu 配置。仅从 .superpowers/settings.json 读取。
   // Lanhu MCP 仍然是可选能力；配置缺失时默认只输出 Markdown。
   "lanhu": {
+    // 可选默认角色。配置后 /lanhu-requirements 在用户未显式给出角色时不再询问。
+    // 字段缺失时仍会从命令参数判断，判断不到时再询问用户。
+    // 允许值："frontend"、"backend"。
+    "role": "frontend",
+
     "frontend": {
       "output": {
         // 字段缺失时默认值："markdown"。

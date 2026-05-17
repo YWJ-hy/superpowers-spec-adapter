@@ -165,9 +165,11 @@ for required in \
   'uiControlsTraceableToLanhuEvidence' \
   '页面交互结构与控件核对' \
   'prototype/index.html' \
-  '目录化交互原型' \
+  '1:1 复刻原型文档' \
   'Mermaid CDN module script' \
   'https://cdn.jsdelivr.net/npm/mermaid@latest/dist/mermaid.esm.min.mjs' \
+  'startOnLoad: false' \
+  'mermaid.run' \
   '<pre class="mermaid">' \
   '浏览器可渲染' \
   '主动解析当前 HTML' \
@@ -322,7 +324,7 @@ for required in \
   'format: markdown | html' \
   'index.html' \
   'complete HTML PRD main document at `index.html`' \
-  'directoryized interaction prototype at `prototype/index.html`' \
+  '1:1 Lanhu interaction prototype at `prototype/index.html`' \
   'frontend-only' \
   'backend Markdown-only' \
   'htmlPrdCompliance' \

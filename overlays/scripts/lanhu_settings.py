@@ -12,6 +12,7 @@ PROJECT_SETTINGS_REL = Path(".superpowers") / "settings.json"
 LANHU_OUTPUT_MARKDOWN = "markdown"
 LANHU_OUTPUT_HTML = "html"
 LANHU_OUTPUT_VALUES = {LANHU_OUTPUT_MARKDOWN, LANHU_OUTPUT_HTML}
+LANHU_ROLE_VALUES = {"frontend", "backend"}
 
 
 def repo_root(start: Path) -> Path:
@@ -41,13 +42,19 @@ def _optional_object(parent: dict, key: str, settings_path: Path, dotted_path: s
     return value
 
 
-def load_lanhu_frontend_format(project_root: Path) -> tuple[str, Path | None]:
+def load_lanhu_settings(project_root: Path) -> tuple[str | None, str, Path | None]:
     settings_path = project_root / PROJECT_SETTINGS_REL
     if not settings_path.is_file():
-        return LANHU_OUTPUT_MARKDOWN, None
+        return None, LANHU_OUTPUT_MARKDOWN, None
 
     payload = _read_object(settings_path)
     lanhu = _optional_object(payload, "lanhu", settings_path, "lanhu settings")
+
+    configured_role = lanhu.get("role")
+    if configured_role is not None and configured_role not in LANHU_ROLE_VALUES:
+        allowed_roles = ", ".join(sorted(LANHU_ROLE_VALUES))
+        raise ValueError(f"Invalid lanhu.role in {settings_path}: {configured_role!r}; expected one of {allowed_roles}")
+
     frontend = _optional_object(lanhu, "frontend", settings_path, "lanhu.frontend")
     output = _optional_object(frontend, "output", settings_path, "lanhu.frontend.output")
 
@@ -55,26 +62,30 @@ def load_lanhu_frontend_format(project_root: Path) -> tuple[str, Path | None]:
     if value not in LANHU_OUTPUT_VALUES:
         allowed = ", ".join(sorted(LANHU_OUTPUT_VALUES))
         raise ValueError(f"Invalid lanhu.frontend.output.format in {settings_path}: {value!r}; expected one of {allowed}")
-    return value, settings_path
+    return configured_role, value, settings_path
 
 
-def resolve_output_preference(project_root: Path, role: str) -> dict:
-    if role not in {"frontend", "backend"}:
-        raise ValueError(f"Unsupported role: {role!r}; expected frontend or backend")
-
-    configured_format, settings_path = load_lanhu_frontend_format(project_root)
+def resolve_output_preference(project_root: Path, role: str | None) -> dict:
+    configured_role, configured_format, settings_path = load_lanhu_settings(project_root)
+    effective_role = role or configured_role
+    if effective_role is None:
+        raise ValueError("Lanhu role is required when lanhu.role is not configured; expected frontend or backend")
+    if effective_role not in {"frontend", "backend"}:
+        raise ValueError(f"Unsupported role: {effective_role!r}; expected frontend or backend")
     warnings: list[str] = []
-    effective_format = configured_format if role == "frontend" else LANHU_OUTPUT_MARKDOWN
-    html_enabled = role == "frontend" and configured_format == LANHU_OUTPUT_HTML
+    effective_format = configured_format if effective_role == "frontend" else LANHU_OUTPUT_MARKDOWN
+    html_enabled = effective_role == "frontend" and configured_format == LANHU_OUTPUT_HTML
 
-    if role == "backend" and configured_format == LANHU_OUTPUT_HTML:
+    if effective_role == "backend" and configured_format == LANHU_OUTPUT_HTML:
         warnings.append("lanhu.frontend.output.format is frontend-only; backend output remains markdown")
 
     settings_display = PROJECT_SETTINGS_REL.as_posix() if settings_path else None
     primary_kind = "html_prd" if html_enabled else "markdown_prd"
     primary_filename = "index.html" if html_enabled else "prd.md"
     return {
-        "role": role,
+        "role": effective_role,
+        "configuredRole": configured_role,
+        "roleSource": settings_display if role is None and configured_role else "argument",
         "settingsPath": settings_display,
         "source": settings_display or "default",
         "format": effective_format,
@@ -96,9 +107,24 @@ def resolve_output_preference(project_root: Path, role: str) -> dict:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Resolve Lanhu output settings from project-local .superpowers/settings.json")
-    parser.add_argument("role", choices=("frontend", "backend"))
-    parser.add_argument("project_root", nargs="?", default=".")
-    return parser.parse_args(argv)
+    parser.add_argument("args", nargs="*")
+    parsed = parser.parse_args(argv)
+    if len(parsed.args) > 2:
+        parser.error("expected [role] [project_root] or [project_root]")
+    role = None
+    project_root = "."
+    if len(parsed.args) == 1:
+        if parsed.args[0] in LANHU_ROLE_VALUES:
+            role = parsed.args[0]
+        else:
+            project_root = parsed.args[0]
+    elif len(parsed.args) == 2:
+        role, project_root = parsed.args
+        if role not in LANHU_ROLE_VALUES:
+            parser.error("role must be frontend or backend")
+    parsed.role = role
+    parsed.project_root = project_root
+    return parsed
 
 
 def main(argv: list[str]) -> int:
