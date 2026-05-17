@@ -76,6 +76,7 @@ JSON
 assert_agent_model wiki-researcher inherit
 assert_agent_model graphify-researcher inherit
 assert_agent_model lanhu-frontend-requirements-analyst inherit
+assert_agent_model lanhu-frontend-html-requirements-analyst inherit
 assert_agent_model lanhu-backend-requirements-analyst inherit
 for file in "${UPSTREAM_FILES[@]}"; do
   forbid_in_file "$file" 'superpower-adapter:subagent-model'
@@ -88,6 +89,7 @@ write_config <<'JSON'
       "wiki-researcher": "deepseek-v4-pro[1m]",
       "graphify-researcher": "haiku",
       "lanhu-frontend-requirements-analyst": "opus",
+      "lanhu-frontend-html-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "sonnet"
     },
     "upstreamPromptTemplates": {
@@ -109,6 +111,7 @@ require_in_file /tmp/subagent-model-agent-warning.out 'deepseek-v4-pro[1m]'
 assert_agent_model wiki-researcher 'deepseek-v4-pro[1m]'
 assert_agent_model graphify-researcher haiku
 assert_agent_model lanhu-frontend-requirements-analyst opus
+assert_agent_model lanhu-frontend-html-requirements-analyst opus
 assert_agent_model lanhu-backend-requirements-analyst sonnet
 require_in_file "$TARGET_INPUT/skills/brainstorming/spec-document-reviewer-prompt.md" 'superpower-adapter:subagent-model:spec-document-reviewer'
 require_in_file "$TARGET_INPUT/skills/brainstorming/spec-document-reviewer-prompt.md" 'model: haiku'
@@ -145,6 +148,7 @@ JSON
 assert_agent_model wiki-researcher inherit
 assert_agent_model graphify-researcher inherit
 assert_agent_model lanhu-frontend-requirements-analyst inherit
+assert_agent_model lanhu-frontend-html-requirements-analyst inherit
 assert_agent_model lanhu-backend-requirements-analyst inherit
 for file in "${UPSTREAM_FILES[@]}"; do
   forbid_in_file "$file" 'superpower-adapter:subagent-model'

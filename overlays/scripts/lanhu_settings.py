@@ -10,9 +10,8 @@ import sys
 
 PROJECT_SETTINGS_REL = Path(".superpowers") / "settings.json"
 LANHU_OUTPUT_MARKDOWN = "markdown"
-LANHU_OUTPUT_MARKDOWN_HTML = "markdown+html"
-LANHU_OUTPUT_VALUES = {LANHU_OUTPUT_MARKDOWN, LANHU_OUTPUT_MARKDOWN_HTML}
-HTML_PURPOSE = "low_fidelity_interactive_requirements_prototype"
+LANHU_OUTPUT_HTML = "html"
+LANHU_OUTPUT_VALUES = {LANHU_OUTPUT_MARKDOWN, LANHU_OUTPUT_HTML}
 
 
 def repo_root(start: Path) -> Path:
@@ -66,23 +65,30 @@ def resolve_output_preference(project_root: Path, role: str) -> dict:
     configured_format, settings_path = load_lanhu_frontend_format(project_root)
     warnings: list[str] = []
     effective_format = configured_format if role == "frontend" else LANHU_OUTPUT_MARKDOWN
-    html_enabled = role == "frontend" and configured_format == LANHU_OUTPUT_MARKDOWN_HTML
+    html_enabled = role == "frontend" and configured_format == LANHU_OUTPUT_HTML
 
-    if role == "backend" and configured_format == LANHU_OUTPUT_MARKDOWN_HTML:
+    if role == "backend" and configured_format == LANHU_OUTPUT_HTML:
         warnings.append("lanhu.frontend.output.format is frontend-only; backend output remains markdown")
 
     settings_display = PROJECT_SETTINGS_REL.as_posix() if settings_path else None
+    primary_kind = "html_prd" if html_enabled else "markdown_prd"
+    primary_filename = "index.html" if html_enabled else "prd.md"
     return {
         "role": role,
         "settingsPath": settings_display,
         "source": settings_display or "default",
         "format": effective_format,
-        "markdownRequired": True,
-        "htmlPrototype": {
+        "primaryOutput": {
+            "kind": primary_kind,
+            "filename": primary_filename,
+        },
+        "htmlPrd": {
             "enabled": html_enabled,
             "filename": "index.html",
+            "prototypeFilename": "prototype/index.html" if html_enabled else None,
+            "companionFiles": ["prototype/index.html"] if html_enabled else [],
             "appliesToRole": "frontend",
-            "purpose": HTML_PURPOSE,
+            "fallbackToMarkdownWhenTextOnly": True,
         },
         "warnings": warnings,
     }

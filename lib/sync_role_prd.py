@@ -14,14 +14,6 @@ COMMON_SKELETON = Path('overlays/agents/lanhu-requirements-analyst.common.md')
 
 
 @dataclass(frozen=True)
-class AuxiliaryTemplateConfig:
-    key: str
-    label: str
-    template_path: Path
-    applies_when: str
-
-
-@dataclass(frozen=True)
 class RoleConfig:
     role: str
     label: str
@@ -29,7 +21,10 @@ class RoleConfig:
     template_path: Path
     output_h1: str
     allowed_content: str
-    auxiliary_templates: tuple[AuxiliaryTemplateConfig, ...] = ()
+    output_format: str
+    prd_template_name: str
+    primary_artifact: str
+    fallback_artifact: str
 
     @property
     def agent_path(self) -> Path:
@@ -37,33 +32,45 @@ class RoleConfig:
 
     @property
     def prd_template(self) -> str:
-        return f'{self.role}_role_prd'
+        return self.prd_template_name
 
 
 ROLE_CONFIGS = (
     RoleConfig(
         role='frontend',
-        label='frontend',
+        label='frontend markdown',
         agent_name='lanhu-frontend-requirements-analyst',
         template_path=Path('role-prd/frontend.md'),
         output_h1='# 前端开发角色视角 PRD',
         allowed_content='frontend UI control types and interaction expectations, page display, page state flow, permission visibility, analytics needs, and frontend/backend collaboration information, without component library or code implementation details',
-        auxiliary_templates=(
-            AuxiliaryTemplateConfig(
-                key='frontend_output_html',
-                label='frontend HTML output',
-                template_path=Path('role-prd/frontend_outputHtml.md'),
-                applies_when='frontend role only when outputPreference.format is markdown+html and outputPreference.htmlPrototype.enabled is true',
-            ),
-        ),
+        output_format='markdown',
+        prd_template_name='frontend_role_prd',
+        primary_artifact='index.md plus prd.md or prds/*.md',
+        fallback_artifact='not applicable',
+    ),
+    RoleConfig(
+        role='frontend',
+        label='frontend html',
+        agent_name='lanhu-frontend-html-requirements-analyst',
+        template_path=Path('role-prd/frontend_outputHtml.md'),
+        output_h1='# 前端开发角色视角 PRD',
+        allowed_content='complete frontend PRD content split between a visual HTML PRD main document and a directoryized interaction prototype, including page display, field UI, interaction rules, page state flow, permission visibility, exceptions, analytics needs, and frontend/backend collaboration information, without production frontend implementation details',
+        output_format='html',
+        prd_template_name='frontend_html_role_prd',
+        primary_artifact='index.md plus index.html plus prototype/index.html',
+        fallback_artifact='index.md plus prd.md when the requirement is text-only and has no page, UI, or interaction surface',
     ),
     RoleConfig(
         role='backend',
-        label='backend',
+        label='backend markdown',
         agent_name='lanhu-backend-requirements-analyst',
         template_path=Path('role-prd/backend.md'),
         output_h1='# 后端开发角色视角 PRD',
         allowed_content='backend business objects, business flows, business rules, data needs, permissions, audit/logging requirements, statistics/query needs, and security/compliance requirements, without database/API/architecture implementation details',
+        output_format='markdown',
+        prd_template_name='backend_role_prd',
+        primary_artifact='index.md plus prd.md or prds/*.md',
+        fallback_artifact='not applicable',
     ),
 )
 
@@ -87,7 +94,7 @@ def render_template_block(root: Path, config: RoleConfig) -> str:
         [
             f'### {config.label.title()} role PRD source template',
             '',
-            f'Generated verbatim from `{config.template_path.as_posix()}`. Treat the template content below as the selected role PRD contract and the complete {config.role} role PRD source template.',
+            f'Generated verbatim from `{config.template_path.as_posix()}`. Treat the template content below as the selected role PRD contract and the complete {config.label} role PRD source template.',
             '',
             f'{fence}markdown',
             content,
@@ -96,32 +103,61 @@ def render_template_block(root: Path, config: RoleConfig) -> str:
     )
 
 
-def render_auxiliary_template_blocks(root: Path, config: RoleConfig) -> str:
-    if not config.auxiliary_templates:
-        return 'No auxiliary output templates are embedded for this role. Do not generate auxiliary artifacts for this role.'
-
-    blocks: list[str] = []
-    for template in config.auxiliary_templates:
-        content = (root / template.template_path).read_text(encoding='utf-8').rstrip()
-        fence = fence_for(content)
-        blocks.append('\n'.join([
-            f'### {template.label} auxiliary output template',
+def render_format_contract(config: RoleConfig) -> str:
+    if config.output_format == 'html':
+        return '\n'.join(
+            [
+                'This agent is the frontend HTML PRD analyst. It is separate from `lanhu-frontend-requirements-analyst` and must not generate the Markdown-mode frontend PRD package unless the text-only fallback applies.',
+                '',
+                'Required output contract for `outputPreference.format: html`:',
+                '- Create `index.md` as the package entrypoint, role marker, reading guide, and relationship authority.',
+                '- For page/UI/interaction requirements, write package-root `index.html` as the complete frontend PRD main document.',
+                '- For page/UI/interaction requirements, also write `prototype/index.html` as the directoryized interaction prototype for page structure, control checks, state probes, dialogs, drawers, and multi-step interaction visualization.',
+                '- Do not write a full `prd.md` in normal HTML mode; `index.html` and `prototype/index.html` together are the detailed PRD artifacts.',
+                '- If the requirement is text-only and has no page, field UI, operation, page state, or interaction surface, set `htmlPrdCompliance.fallbackToMarkdown: true`, explain `fallbackReason`, and write `index.md` plus `prd.md` instead of forcing HTML.',
+                '- `index.md` must explain file roles and instruct Superpowers / AI to parse current HTML sections dynamically; it must not hard-code or rely on a fixed list of internal HTML chapters.',
+                '- `index.html` and `prototype/index.html` must link to each other and must be interpreted together. Any conflict between them must be raised as a confirmation question instead of being resolved by assumption.',
+                '- `index.html` and `prototype/index.html` must avoid external assets except the required Mermaid CDN module script, framework code, production component structure, real API calls, or implementation architecture.',
+                '- Backend output must never use this agent or write `.html` files.',
+            ]
+        )
+    return '\n'.join(
+        [
+            f'This agent handles `{config.output_format}` output only.',
             '',
-            f'Generated verbatim from `{template.template_path.as_posix()}`. Apply this auxiliary output template only when {template.applies_when}.',
-            '',
-            f'{fence}markdown',
-            content,
-            fence,
-        ]))
-    return '\n\n'.join(blocks)
+            f'Required output contract for `outputPreference.format: {config.output_format}`:',
+            '- Create `index.md` as the package entrypoint, role marker, reading guide, and relationship authority.',
+            '- Write either `prd.md` or `prds/*.md` depending on `deliveryBoundaryCount`.',
+            '- Do not write `index.html` or any `.html` file.',
+            '- If the main session passes `outputPreference.format: html` to this Markdown agent, return `status: need_role` or `status: partial` with a caveat asking the main session to route to the HTML frontend analyst instead.',
+        ]
+    )
 
 
-def role_source_paths(config: RoleConfig) -> str:
-    paths = [config.template_path, *(template.template_path for template in config.auxiliary_templates)]
-    formatted = [f'`{path.as_posix()}`' for path in paths]
-    if len(formatted) == 1:
-        return formatted[0]
-    return ', '.join(formatted[:-1]) + f' and {formatted[-1]}'
+def render_html_compliance_contract(config: RoleConfig) -> str:
+    if config.output_format != 'html':
+        return 'HTML PRD compliance is not applicable for this agent. Return `htmlPrdCompliance.applicable: false` and do not write `.html` files.'
+    return '\n'.join(
+        [
+            'HTML PRD compliance is mandatory for successful non-fallback HTML output:',
+            '- `htmlPrdCompliance.applicable: true`',
+            '- `checkedAgainstFullHtmlSourceTemplate: true`',
+            '- `selfContained: true` means no external resources except the required Mermaid CDN module script',
+            '- `prototypeArtifactPresent: true`',
+            '- `prototypeDirectoryized: true`',
+            '- `prototypeLinkedFromIndexHtml: true`',
+            '- `indexMdDynamicHtmlParsingGuidance: true`',
+            '- `mermaidModuleScriptPresent: true`',
+            '- `mermaidBlocksBrowserRenderable: true`',
+            '- `onlyAllowedExternalAssetIsMermaidCdn: true`',
+            '- `prdPrototypeConflictQuestionsRaised: true` when conflicts exist, otherwise `false` with no unresolved conflict',
+            '- `externalAssetsDetected: []` except the required Mermaid CDN module script must not be reported as a violation',
+            '- `productionImplementationDetected: []`',
+            '- `rawHtmlInjectionDetected: []`',
+            '- `fallbackToMarkdown: false` unless the text-only fallback is used',
+            '- `fallbackReason: null` unless the text-only fallback is used',
+        ]
+    )
 
 
 def render_agent(root: Path, config: RoleConfig) -> str:
@@ -130,13 +166,17 @@ def render_agent(root: Path, config: RoleConfig) -> str:
         '{{AGENT_NAME}}': config.agent_name,
         '{{ROLE}}': config.role,
         '{{ROLE_LABEL}}': config.label,
+        '{{OUTPUT_FORMAT}}': config.output_format,
         '{{PRD_TEMPLATE}}': config.prd_template,
         '{{ROLE_PRD_TEMPLATE_PATH}}': config.template_path.as_posix(),
-        '{{ROLE_PRD_SOURCE_PATHS}}': role_source_paths(config),
+        '{{ROLE_PRD_SOURCE_PATHS}}': f'`{config.template_path.as_posix()}`',
         '{{ROLE_OUTPUT_H1}}': config.output_h1,
         '{{ROLE_ALLOWED_CONTENT}}': config.allowed_content,
+        '{{PRIMARY_ARTIFACT}}': config.primary_artifact,
+        '{{FALLBACK_ARTIFACT}}': config.fallback_artifact,
+        '{{FORMAT_CONTRACT}}': render_format_contract(config),
+        '{{HTML_PRD_COMPLIANCE_CONTRACT}}': render_html_compliance_contract(config),
         '{{ROLE_PRD_TEMPLATE_BLOCK}}': render_template_block(root, config),
-        '{{ROLE_AUXILIARY_TEMPLATE_BLOCKS}}': render_auxiliary_template_blocks(root, config),
     }
     rendered = skeleton
     for key, value in replacements.items():

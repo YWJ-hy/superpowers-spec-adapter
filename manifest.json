@@ -8,6 +8,7 @@
   "installedPaths": [
     "agents/wiki-researcher.md",
     "agents/lanhu-frontend-requirements-analyst.md",
+    "agents/lanhu-frontend-html-requirements-analyst.md",
     "agents/lanhu-backend-requirements-analyst.md",
     "agents/graphify-researcher.md",
     "skills/break-loop/SKILL.md",

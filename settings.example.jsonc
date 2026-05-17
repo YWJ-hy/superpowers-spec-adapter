@@ -1,0 +1,88 @@
+{
+  // Adapter 支持的项目本地 settings 配置示例。
+  //
+  // 按需复制相关配置块到以下文件之一，并删除注释：
+  // - .superpowers/settings.json 控制 .superpowers/wiki/ 和项目本地 Lanhu 输出。
+  // - .shared-superpowers/settings.json 控制 .shared-superpowers/wiki/ 和 shared wiki hooks。
+  //
+  // 实际 settings 文件必须是严格 JSON。本文件使用 JSONC 仅用于说明配置含义。
+
+  "wiki": {
+    "updateAuthorization": {
+      // 控制对已有 wiki 页面和已有 index 文件的编辑。
+      // 字段缺失时默认值："skip"。
+      // 允许值：
+      // - "skip"：不询问用户，直接允许写入。
+      // - "ask"：command / skill 入口必须先取得用户授权，脚本运行时需要携带
+      //          --authorized-update。
+      // - "refuse"：拒绝写入，即使脚本携带授权参数也会阻止。
+      "updateExistingPage": "skip",
+
+      // 控制创建新的 leaf page、topic index 和缺失的 root index 文件。
+      // 字段缺失时默认值："ask"。
+      // 允许值：
+      // - "skip"：不询问用户，直接允许创建。
+      // - "ask"：command / skill 入口必须先取得用户授权，脚本运行时需要携带
+      //          --authorized-create。
+      // - "refuse"：拒绝创建，即使脚本携带授权参数也会阻止。
+      "createNewDocument": "ask"
+    },
+
+    // 主要用于 .shared-superpowers/settings.json。
+    // 写入 shared wiki 前，拒绝已知的当前系统专有标识。
+    // 这是机械防线，不能替代 agent 对内容是否中性、可迁移的语义判断。
+    "sharedNeutrality": {
+      // 禁止出现在 shared wiki 路径、正文、导入文档或刷新后的 index 内容中的精确字符串。
+      "blockedTerms": [],
+
+      // 禁止出现在 shared wiki 路径、正文、导入文档或刷新后的 index 内容中的正则表达式。
+      "blockedPatterns": []
+    }
+  },
+
+  // 项目本地 Lanhu 配置。仅从 .superpowers/settings.json 读取。
+  // Lanhu MCP 仍然是可选能力；配置缺失时默认只输出 Markdown。
+  "lanhu": {
+    "frontend": {
+      "output": {
+        // 字段缺失时默认值："markdown"。
+        // 允许值：
+        // - "markdown"：使用前端 Markdown analyst，写入常规 Markdown PRD 需求包。
+        // - "html"：使用独立前端 HTML analyst，通常写入需求包根目录 index.html 作为完整 HTML PRD 主文档。
+        //   当需求仅为文字、无页面交互时，可退化为 prd.md。
+        // 后端角色始终保持 Markdown-only，即使启用该配置也不会写入 HTML。
+        "format": "markdown"
+      }
+    }
+  },
+
+  // Shared wiki hook 配置。仅 .shared-superpowers/settings.json 需要。
+  // bootstrap shared wiki 时会生成这些本地 submodule 工作流默认配置。
+  // 每个 hook 由 .shared-superpowers/scripts/run-hook.py <hook-name> 执行。
+  "hooks": {
+    "sharedWikiSubmodule:sync": [
+      {
+        "command": "./.shared-superpowers/scripts/sync-submodule.sh",
+        "args": ["--path", ".shared-superpowers/wiki"]
+      }
+    ],
+    "sharedWikiSubmodule:publish": [
+      {
+        "command": "./.shared-superpowers/scripts/publish-submodule.sh",
+        "args": ["--path", ".shared-superpowers/wiki"]
+      }
+    ],
+    "sharedWikiSubmodule:verify": [
+      {
+        "command": "./.shared-superpowers/scripts/verify-submodule.sh",
+        "args": ["--path", ".shared-superpowers/wiki"]
+      }
+    ],
+    "sharedWikiSubmodule:status": [
+      {
+        "command": "./.shared-superpowers/scripts/status-submodule.sh",
+        "args": ["--path", ".shared-superpowers/wiki"]
+      }
+    ]
+  }
+}

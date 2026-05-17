@@ -7,12 +7,13 @@ TARGET_INPUT="${1:-${ROOT}/../superpowers}"
 TARGET_INPUT="$(cd "${TARGET_INPUT}" && pwd)"
 
 LANHU_FRONTEND_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md"
+LANHU_FRONTEND_HTML_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-html-requirements-analyst.md"
 LANHU_BACKEND_AGENT="${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md"
 LANHU_COMMAND="${TARGET_INPUT}/commands/lanhu-requirements.md"
 BRAINSTORMING_SKILL="${TARGET_INPUT}/skills/brainstorming/SKILL.md"
 USING_SUPERPOWERS_SKILL="${TARGET_INPUT}/skills/using-superpowers/SKILL.md"
 
-for file in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_COMMAND" "$BRAINSTORMING_SKILL" "$USING_SUPERPOWERS_SKILL"; do
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_COMMAND" "$BRAINSTORMING_SKILL" "$USING_SUPERPOWERS_SKILL"; do
   if [[ ! -f "$file" ]]; then
     printf 'Expected installed Lanhu confirmation gate target: %s\n' "$file" >&2
     exit 1
@@ -28,7 +29,7 @@ require_in_file() {
   fi
 }
 
-for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
+for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT"; do
   for required in \
     'status: need_confirmation' \
     'confirmationGate' \
@@ -46,10 +47,22 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     '是否阻塞后续 Superpowers 流程' \
     '阻塞原因' \
     'outputPreference' \
-    'htmlPrototypeCompliance' \
-    'checkedAgainstAuxiliaryOutputTemplate' \
-    'duplicatedFullPrdSectionsDetected' \
-    'untraceableHtmlItemsDetected'
+    'htmlPrdCompliance' \
+    'checkedAgainstFullHtmlSourceTemplate' \
+    'leftNavActiveSectionOnly' \
+  'leftRightDocumentLayout' \
+    'realHtmlInteractionControls' \
+    'uiControlsTraceableToLanhuEvidence' \
+    'prototype/index.html' \
+    'prototypeArtifactPresent' \
+    'prototypeDirectoryized' \
+    'prototypeLinkedFromIndexHtml' \
+    'indexMdDynamicHtmlParsingGuidance' \
+    'mermaidModuleScriptPresent' \
+    'mermaidBlocksBrowserRenderable' \
+    'onlyAllowedExternalAssetIsMermaidCdn' \
+    'prdPrototypeConflictQuestionsRaised' \
+    'fallbackToMarkdown'
   do
     require_in_file "$agent" "$required"
   done
@@ -67,10 +80,13 @@ for required in \
   'confirmationGate.status: clear' \
   'main session must not override `confirmationGate` directly' \
   'outputPreference' \
-  'htmlPrototypeCompliance' \
-  'checkedAgainstAuxiliaryOutputTemplate' \
-  'duplicatedFullPrdSectionsDetected' \
-  'untraceableHtmlItemsDetected'
+  'htmlPrdCompliance' \
+  'checkedAgainstFullHtmlSourceTemplate' \
+  'leftNavActiveSectionOnly' \
+  'leftRightDocumentLayout' \
+  'realHtmlInteractionControls' \
+  'uiControlsTraceableToLanhuEvidence' \
+  'fallbackToMarkdown'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
@@ -86,10 +102,13 @@ for required in \
   'status: ok' \
   'confirmationGate.status: clear' \
   'outputPreference' \
-  'htmlPrototypeCompliance' \
-  'checkedAgainstAuxiliaryOutputTemplate' \
-  'duplicatedFullPrdSectionsDetected' \
-  'untraceableHtmlItemsDetected'
+  'htmlPrdCompliance' \
+  'checkedAgainstFullHtmlSourceTemplate' \
+  'leftNavActiveSectionOnly' \
+  'leftRightDocumentLayout' \
+  'realHtmlInteractionControls' \
+  'uiControlsTraceableToLanhuEvidence' \
+  'fallbackToMarkdown'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

@@ -20,6 +20,7 @@ ADAPTER_AGENT_IDS = frozenset(
         'wiki-researcher',
         'graphify-researcher',
         'lanhu-frontend-requirements-analyst',
+        'lanhu-frontend-html-requirements-analyst',
         'lanhu-backend-requirements-analyst',
     }
 )

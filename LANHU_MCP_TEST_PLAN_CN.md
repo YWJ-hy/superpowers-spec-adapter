@@ -350,7 +350,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 ## 7. PRD 输出结构与包目录测试
 
-### TC-O00：默认 Markdown-only 与前端 HTML opt-in
+### TC-O00：默认 Markdown-only 与前端 HTML 输出
 
 准备：目标项目不配置 `.superpowers/settings.json`。
 
@@ -366,7 +366,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
   "lanhu": {
     "frontend": {
       "output": {
-        "format": "markdown+html"
+        "format": "html"
       }
     }
   }
@@ -375,12 +375,15 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 预期：
 
-- 前端输出仍必须写 Markdown PRD 包，并额外写包根目录 `index.html`。
-- 前端 analyst 嵌入 `role-prd/frontend.md` Markdown 主模板和 `role-prd/frontend_outputHtml.md` HTML 辅助模板；后端 analyst 不嵌入 `role-prd/frontend_outputHtml.md`。
-- `role-prd/frontend.md` 保持 Markdown-only，不包含 `markdown+html` 或 `index.html` 输出职责。
-- `index.html` 是 self-contained low-fidelity interactive requirements prototype，不包含外部资源、真实接口、框架代码或实现架构。
-- `index.html` 不渲染完整 PRD，不复制完整规则表、验收标准、前后端协作、风险依赖或待确认表，只用短摘要和来源引用回溯 Markdown PRD。
-- `htmlPrototypeCompliance` 干净，且 `checkedAgainstAuxiliaryOutputTemplate: true`、`duplicatedFullPrdSectionsDetected: []`、`untraceableHtmlItemsDetected: []`。
+- 前端输出路由到 `lanhu-frontend-html-requirements-analyst`，通常写 `index.md` + 包根目录 `index.html` + `prototype/index.html`。
+- 前端 Markdown analyst 只嵌入 `role-prd/frontend.md`；前端 HTML analyst 只嵌入 `role-prd/frontend_outputHtml.md`；后端 analyst 不嵌入 `role-prd/frontend_outputHtml.md`。
+- `role-prd/frontend.md` 保持 Markdown-only，不包含 `index.html` 输出职责。
+- `index.html` 是完整 HTML PRD 主文档，`prototype/index.html` 是目录化交互原型；两者互相链接并结合解读。
+- `index.html` 保留完整 PRD 信息结构；`prototype/index.html` 承载真实 HTML 控件、交互状态和可视化操作关系；不再依赖 Markdown PRD 作为权威正文。
+- `index.md` 说明文件角色和 AI 解读原则，不硬编码 HTML 内部章节清单。
+- HTML Mermaid 通过必需 Mermaid CDN module script 和 `<pre class="mermaid">` 等浏览器可渲染容器展示；该 CDN 脚本是唯一允许的外部资源。
+- `htmlPrdCompliance` 干净，且 `checkedAgainstFullHtmlSourceTemplate: true`、`prototypeArtifactPresent: true`、`prototypeDirectoryized: true`、`mermaidModuleScriptPresent: true`、`mermaidBlocksBrowserRenderable: true`、`onlyAllowedExternalAssetIsMermaidCdn: true`、`rawHtmlInjectionDetected: []`。
+- 纯文字、无页面交互需求可退化为 `prd.md`，并返回 `htmlPrdCompliance.fallbackToMarkdown: true` 与 `fallbackReason`。
 - 后端输出保持 Markdown-only，`writtenFiles` 不包含 `.html`。
 - `index.md` 仍是 Superpowers 入口和 PRD 关系权威来源。
 

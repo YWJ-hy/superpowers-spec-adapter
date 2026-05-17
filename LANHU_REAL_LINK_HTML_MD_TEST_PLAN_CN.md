@@ -2,12 +2,12 @@
 
 ## 1. 测试目标
 
-使用真实蓝湖链接验证 `/lanhu-requirements` 在默认 Markdown-only 和前端 `markdown+html` 配置下的端到端输出质量，重点确认：
+使用真实蓝湖链接验证 `/lanhu-requirements` 在默认 Markdown-only 和前端 `html` 配置下的端到端输出质量，重点确认：
 
 - `.lanhu/MM-DD-需求名称/` PRD 包是否完整、清晰、可交给 Superpowers 后续 brainstorming 使用。
 - `index.md` 是否是稳定入口，并能清楚说明 PRD 文件关系、阅读顺序、范围判断和确认门禁状态。
 - `prd.md` 或 `prds/*.md` 是否满足前端 / 后端角色 PRD 模板，内容是否完整、结构清晰、范围判定明确。
-- 前端开启 `markdown+html` 后，`index.html` 是否作为低保真交互核对原型存在，且不与 Markdown PRD 大量重复。
+- 前端开启 `html` 后，`index.html` 是否作为完整 HTML PRD 主文档存在，`prototype/index.html` 是否作为目录化交互原型存在；HTML 是否使用左侧章节导航 + 右侧激活章节内容布局，并把第四部分页面展示规则转换为真实 HTML 控件和可核对交互结构。
 - 后端角色是否始终 Markdown-only，不输出 HTML。
 - Lanhu MCP 输出中的格式指令、AI 分析标题、测试/实现内容是否被正确剥离。
 
@@ -70,7 +70,7 @@
   "lanhu": {
     "frontend": {
       "output": {
-        "format": "markdown+html"
+        "format": "html"
       }
     }
   }
@@ -79,7 +79,7 @@
 
 预期：
 
-- 前端输出包含 `index.md` + `prd.md` / `prds/*.md` + `index.html`。
+- 前端输出包含 `index.md` + `index.html` + `prototype/index.html`；纯文字/无交互需求 fallback 时可改为 `index.md` + `prd.md`。
 - 后端输出仍只包含 Markdown，不包含 `.html`。
 
 ## 4. 执行方式
@@ -154,7 +154,7 @@
   - `全量替换`
 - `现有上下文` 没有被写成实现任务或验收范围。
 
-### TC-02：前端 `markdown+html` 单 PRD 输出
+### TC-02：前端 `html` 单 PRD 输出
 
 输入：
 
@@ -162,7 +162,7 @@
 /lanhu-requirements <LANHU_SINGLE_PAGE_URL> 前端 single-fe-html
 ```
 
-配置：启用 `lanhu.frontend.output.format: markdown+html`。
+配置：启用 `lanhu.frontend.output.format: html`。
 
 预期文件：
 
@@ -170,32 +170,29 @@
 .lanhu/MM-DD-single-fe-html/
   index.md
   index.html
-  prd.md
+  prototype/
+    index.html
 ```
 
 验收重点：
 
-- Markdown 包完整性与 TC-01 相同。
-- `index.html` 存在，且是单文件自包含 HTML。
-- `index.html` 可直接用浏览器打开。
-- `index.html` 只用于低保真交互核对，不是完整 PRD 的 HTML 版。
-- `index.html` 中应包含：
-  - 需求名称 / 角色 / Markdown 来源提示
-  - 页面结构或流程导航
-  - 核心页面低保真草图
-  - 关键按钮 / 弹窗 / 抽屉 / 状态演示
+- `index.md` 存在，且作为包入口、阅读顺序和范围判断摘要来源；它只说明文件角色和 AI 解读原则，不硬编码 HTML 内部章节清单。
+- `index.html` 存在，且是完整前端 HTML PRD 主文档。
+- `prototype/index.html` 存在，且是目录化交互原型，用于承载真实 HTML 控件、交互状态和可视化操作关系。
+- `index.html` 和 `prototype/index.html` 可直接用浏览器打开。
+- `index.html` 使用左侧章节导航 + 右侧正文内容布局，不是顶部导航 + 单列内容。
+- `prototype/index.html` 应包含：
+  - 真实 HTML 控件和交互结构，而不是 XML-like 文本草图
+  - 与 Lanhu 需求 1:1 对应的关键按钮、输入框、链接、弹窗、抽屉或状态演示
   - `新增` / `差量调整` / `现有上下文` / `待确认` 标记
-  - 指向 `prd.md` 对应章节的简短来源说明
-- `index.html` 不应包含：
-  - 完整范围判定表全文复制
-  - 完整字段 UI 表全文复制
-  - 完整交互规则表全文复制
-  - 完整验收标准全文复制
-  - 完整前后端协作说明全文复制
-  - 完整风险依赖或待确认问题表全文复制
-  - 外部 CDN / 远程资源 / 真实接口请求 / 框架代码 / 生产架构说明
+  - 控件可追溯到源需求对象，不虚构产品控件或业务区域
+- HTML Mermaid 应通过 Mermaid CDN module script 和 `<pre class="mermaid">` 等浏览器可渲染容器展示；该 CDN 脚本是唯一允许的外部资源。
+- HTML 不应包含：
+  - XML-like 页面布局结构草图作为最终展示结构
+  - 除 Mermaid CDN module script 之外的外部 CDN / 远程资源 / 真实接口请求 / 框架代码 / 生产架构说明
+  - 真实表单提交、业务校验实现、持久化、埋点或生产交互脚本
 
-### TC-03：后端在 `markdown+html` 配置下仍 Markdown-only
+### TC-03：后端在 `html` 配置下仍 Markdown-only
 
 输入：
 
@@ -203,7 +200,7 @@
 /lanhu-requirements <LANHU_SINGLE_PAGE_URL> 后端 single-be-md
 ```
 
-配置：启用 `lanhu.frontend.output.format: markdown+html`。
+配置：启用 `lanhu.frontend.output.format: html`。
 
 预期文件：
 
@@ -234,7 +231,7 @@
 /lanhu-requirements <LANHU_PAGE_TREE_URL> 前端 tree-fe-html
 ```
 
-配置：建议启用 `markdown+html`。
+配置：建议启用 `html`。
 
 预期流程：
 
@@ -259,7 +256,7 @@
 /lanhu-requirements <LANHU_MULTI_DELIVERY_URL> 前端 multi-fe-html
 ```
 
-配置：建议启用 `markdown+html`。
+配置：建议启用 `html`。
 
 预期文件：
 
@@ -267,22 +264,22 @@
 .lanhu/MM-DD-multi-fe-html/
   index.md
   index.html
-  prds/
-    <交付边界1>.md
-    <交付边界2>.md
+  prototype/
+    index.html
 ```
 
 验收重点：
 
-- PRD 拆分基于业务交付边界，而不是页面数量。
-- 每个 `prds/*.md` 都是完整前端角色 PRD，不是片段摘要。
+- 业务交付边界分析基于可独立交付、负责或验收的子流程，而不是页面数量。
 - `index.md` 说明：
-  - 每个 PRD 的职责
+  - 输出格式为 frontend HTML
+  - `index.html` 是完整 HTML PRD 主文档
+  - `prototype/index.html` 是目录化交互原型
+  - 多交付边界之间的关系
   - 阅读顺序
-  - PRD 之间的关系
   - 必要时有 Mermaid flowchart
-- `index.html` 是整个 package 的交互核对入口，但不得复制所有 `prds/*.md` 正文。
-- `index.html` 应通过导航或卡片指向各 PRD 文件和章节。
+- `index.html` 是整个 package 的完整 HTML PRD 主文档，需通过左侧导航组织章节和交付边界关系。
+- `prototype/index.html` 应为纳入范围的页面输出真实 HTML 控件和可核对交互结构。
 
 ### TC-06：阻塞确认点 gating
 
@@ -320,15 +317,15 @@
 | 内容可执行性 | 前端/后端能据此理解要做什么、不做什么 | 只有可见文案，没有规则和边界 |
 | 待确认质量 | 阻塞/非阻塞区分准确，问题可回答 | 所有问题都阻塞，或阻塞问题被遗漏 |
 | 去实现化 | 不包含组件拆分、API 猜测、数据库设计、测试计划、代码文件影响 | Lanhu AI 的开发建议被照搬 |
-| HTML/MD 去重 | HTML 只做可视化核对，Markdown 承载完整规则 | HTML 复制完整 PRD，导致包过大 |
-| HTML 可用性 | 可直接打开，核心交互可点击，状态切换清楚 | 只是静态长文档，或依赖外部资源 |
+| HTML 结构核对 | `index.html` 是完整 PRD 主文档，`prototype/index.html` 用真实 HTML 控件 1:1 映射需求交互 | 只有静态表格，没有控件核对区，或虚构控件 |
+| HTML 可用性 | 可直接打开，左侧章节导航 + 右侧激活章节内容清楚，核心交互可点击，状态切换清楚；Mermaid 可在浏览器渲染 | 顶部导航单列长文档，或依赖 Mermaid CDN 以外的外部资源 |
 | 后续交接 | 用户确认后能自然进入 Superpowers brainstorming | 入口不清楚，不知道交给 Superpowers 哪个文件 |
 
 建议通过标准：
 
 - 所有核心维度 ≥ 4 分。
 - “范围判定”“结构完整性”“去实现化”“后续交接”必须为 5 分或接近 5 分。
-- 如开启 HTML，“HTML/MD 去重”和“HTML 可用性”必须 ≥ 4 分。
+- 如开启 HTML，“HTML 结构核对”和“HTML 可用性”必须 ≥ 4 分。
 
 ## 7. 手工检查清单
 
@@ -338,6 +335,7 @@
 - [ ] 包含需求名称和 package 说明。
 - [ ] 包含 PRD 文件列表。
 - [ ] 包含阅读顺序。
+- [ ] frontend HTML 时说明 `index.html` 与 `prototype/index.html` 的文件角色，并要求 AI/Superpowers 动态解析 HTML 结构。
 - [ ] 多 PRD 时包含关系说明。
 - [ ] 多 PRD 或关系不明显时包含 Mermaid flowchart。
 - [ ] 包含范围判断摘要。
@@ -358,18 +356,22 @@
 
 ### 7.3 `index.html`
 
-仅适用于 frontend `markdown+html`：
+仅适用于 frontend `html`：
 
-- [ ] 文件存在于 package 根目录。
-- [ ] 可直接浏览器打开。
-- [ ] 无外部资源依赖。
+- [ ] `index.html` 文件存在于 package 根目录。
+- [ ] `prototype/index.html` 文件存在于 `prototype/` 目录。
+- [ ] 两个 HTML 文件均可直接浏览器打开。
+- [ ] 除 Mermaid CDN module script 外无外部资源依赖。
+- [ ] Mermaid 使用 `<pre class="mermaid">` 或等价容器并可在浏览器渲染。
 - [ ] 无真实接口请求。
 - [ ] 无 Vue / React / 组件库 / 构建工具。
-- [ ] 展示页面结构和关键交互。
+- [ ] `index.html` 使用左侧章节导航 + 右侧激活章节内容布局。
+- [ ] `prototype/index.html` 展示页面结构和关键交互。
+- [ ] `prototype/index.html` 包含真实 HTML 控件核对区。
+- [ ] 控件与 Lanhu 需求 1:1 对应，不虚构。
 - [ ] 能切换或演示核心状态。
 - [ ] 用 badge 或标记区分范围性质。
-- [ ] 每块内容能回溯到 Markdown PRD。
-- [ ] 没有复制完整 PRD 表格或长段落。
+- [ ] 无 XML-like 文本草图作为最终展示结构。
 
 ## 8. 失败判定
 
@@ -380,8 +382,12 @@
 - `index.md` 缺失或无法作为入口。
 - `prd.md` / `prds/*.md` 缺少关键模板章节。
 - 范围判定没有依据，或把明显旧页面误判为本期全量实现。
-- HTML 复制完整 PRD，导致包内容大面积重复。
-- HTML 包含真实接口、框架代码、外部资源或生产实现方案。
+- HTML 缺少左侧章节导航 + 右侧激活章节内容布局。
+- HTML 缺少 `prototype/index.html` 目录化交互原型。
+- `prototype/index.html` 没有把页面展示规则转换为真实 HTML 控件和交互结构。
+- HTML 控件与 Lanhu 需求不一致，或虚构源证据中不存在的产品控件。
+- Mermaid 仍以不可渲染源码块输出，或缺少必需 Mermaid module script。
+- HTML 包含真实接口、框架代码、Mermaid CDN 以外的外部资源或生产实现方案。
 - Lanhu MCP 的输出格式说明、AI 建议、测试视角或开发方案进入最终 PRD schema。
 - `status: need_confirmation` 时主会话粘贴完整 PRD 或绕过 analyst 的 confirmation gate。
 
@@ -390,10 +396,10 @@
 | 测试编号 | Lanhu 链接 | 角色 | 配置 | 输出目录 | 结果 | 主要问题 | 是否通过 |
 |---|---|---|---|---|---|---|---|
 | TC-01 |  | frontend | markdown |  |  |  |  |
-| TC-02 |  | frontend | markdown+html |  |  |  |  |
-| TC-03 |  | backend | markdown+html |  |  |  |  |
-| TC-04 |  | frontend | markdown+html |  |  |  |  |
-| TC-05 |  | frontend | markdown+html |  |  |  |  |
+| TC-02 |  | frontend | html |  |  |  |  |
+| TC-03 |  | backend | html |  |  |  |  |
+| TC-04 |  | frontend | html |  |  |  |  |
+| TC-05 |  | frontend | html |  |  |  |  |
 | TC-06 |  | frontend/backend | 任意 |  |  |  |  |
 
 ## 10. 建议最终验收结论格式

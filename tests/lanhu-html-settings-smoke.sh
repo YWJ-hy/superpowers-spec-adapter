@@ -29,38 +29,12 @@ PY
 python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/default-frontend.json"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['format'] == 'markdown'"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['settingsPath'] is None"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrototype']['enabled'] is False"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrototype']['filename'] == 'index.html'"
-
-python3 - "${PROJECT_ROOT}/.superpowers/settings.json" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-path.write_text(json.dumps({
-    "lanhu": {
-        "frontend": {
-            "output": {
-                "format": "markdown+html"
-            }
-        }
-    }
-}, indent=2) + "\n", encoding="utf-8")
-PY
-
-python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-frontend.json"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['format'] == 'markdown+html'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['settingsPath'] == '.superpowers/settings.json'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['source'] == '.superpowers/settings.json'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['markdownRequired'] is True"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrototype']['enabled'] is True"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrototype']['purpose'] == 'low_fidelity_interactive_requirements_prototype'"
-
-python3 "${TARGET_DIR}/scripts/lanhu_settings.py" backend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-backend.json"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['format'] == 'markdown'"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrototype']['enabled'] is False"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "'frontend-only' in payload['warnings'][0]"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['primaryOutput']['kind'] == 'markdown_prd'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['primaryOutput']['filename'] == 'prd.md'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['enabled'] is False"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['filename'] == 'index.html'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['prototypeFilename'] is None"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['companionFiles'] == []"
 
 python3 - "${PROJECT_ROOT}/.superpowers/settings.json" <<'PY'
 import json
@@ -73,6 +47,41 @@ path.write_text(json.dumps({
         "frontend": {
             "output": {
                 "format": "html"
+            }
+        }
+    }
+}, indent=2) + "\n", encoding="utf-8")
+PY
+
+python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-frontend.json"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['format'] == 'html'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['settingsPath'] == '.superpowers/settings.json'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['source'] == '.superpowers/settings.json'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['primaryOutput']['kind'] == 'html_prd'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['primaryOutput']['filename'] == 'index.html'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['enabled'] is True"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['prototypeFilename'] == 'prototype/index.html'"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['companionFiles'] == ['prototype/index.html']"
+assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['fallbackToMarkdownWhenTextOnly'] is True"
+
+python3 "${TARGET_DIR}/scripts/lanhu_settings.py" backend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-backend.json"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['format'] == 'markdown'"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['enabled'] is False"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['prototypeFilename'] is None"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['companionFiles'] == []"
+assert_json_field "${PROJECT_ROOT}/html-backend.json" "'frontend-only' in payload['warnings'][0]"
+
+python3 - "${PROJECT_ROOT}/.superpowers/settings.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.write_text(json.dumps({
+    "lanhu": {
+        "frontend": {
+            "output": {
+                "format": "markdown+html"
             }
         }
     }

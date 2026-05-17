@@ -22,6 +22,11 @@ if [[ ! -f "${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md" ]]; t
   exit 1
 fi
 
+if [[ ! -f "${TARGET_INPUT}/agents/lanhu-frontend-html-requirements-analyst.md" ]]; then
+  printf 'Expected installed lanhu-frontend-html-requirements-analyst agent\n' >&2
+  exit 1
+fi
+
 if [[ ! -f "${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md" ]]; then
   printf 'Expected installed lanhu-backend-requirements-analyst agent\n' >&2
   exit 1
@@ -88,6 +93,7 @@ done
 
 for required in \
   'lanhu-frontend-requirements-analyst' \
+  'lanhu-frontend-html-requirements-analyst' \
   'lanhu-backend-requirements-analyst' \
   '.lanhu/MM-DD-需求名称/prd.md' \
   '.lanhu/MM-DD-需求名称/' \
@@ -142,7 +148,7 @@ for required in \
   '功能清单表' \
   '字段规则表' \
   'STAGE 4 输出要求' \
-  'Every PRD file must be a complete selected-role PRD' \
+  'Every PRD artifact must be a complete selected-role PRD' \
   'index.md` is never a substitute' \
   'Mermaid flowchart' \
   'complex state page' \
