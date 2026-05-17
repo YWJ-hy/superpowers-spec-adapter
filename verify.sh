@@ -294,11 +294,25 @@ check_optional_integration_overlays() {
     'index.html' \
     'htmlPrdCompliance' \
     'checkedAgainstFullHtmlSourceTemplate' \
+    'canonicalIndexHtmlShell' \
+    'lanhu-frontend-html-prd-index-shell-v1' \
     'selfContained' \
     'leftNavActiveSectionOnly' \
     'leftRightDocumentLayout' \
     'realHtmlInteractionControls' \
     'uiControlsTraceableToLanhuEvidence' \
+    'prototypeVisualLayoutMatchesLanhuEvidence' \
+    'prototypeControlsRemainInSourceRegions' \
+    'prototypeLayoutApproximationCaveats' \
+    '固定 index.html 外壳模板' \
+    'nav[aria-label="章节导航"]' \
+    'section.prd-section' \
+    'const activate = (id)' \
+    'renderMermaid(current)' \
+    "document.querySelector('main section.active')" \
+    '{{overview_section_content}}' \
+    '{{questions_section_content}}' \
+    '必须先复制这份外壳' \
     '页面交互结构与控件核对' \
     '左侧导航' \
     '右侧内容' \
@@ -353,7 +367,7 @@ check_optional_integration_overlays() {
     printf 'Frontend Markdown PRD template still owns HTML output settings\n' >&2
     exit 1
   fi
-  for required in 'html' 'index.html' '完整前端 PRD 主文档' 'fallbackToMarkdown' '不输出 XML-like 页面布局结构草图文本' '页面交互结构与控件核对' '左侧导航' '右侧内容区仅显示当前激活章节内容' '真实 HTML 控件'; do
+  for required in 'html' 'index.html' '完整前端 PRD 主文档' 'fallbackToMarkdown' '不输出 XML-like 页面布局结构草图文本' '页面交互结构与控件核对' '左侧导航' '右侧内容区仅显示当前激活章节内容' '真实 HTML 控件' '固定 index.html 外壳模板' 'lanhu-frontend-html-prd-index-shell-v1' '{{overview_section_content}}' '{{questions_section_content}}' 'prototype 首要目标是“视觉布局 + 交互结构”核对'; do
     if ! grep -Fq "$required" "$SCRIPT_DIR/role-prd/frontend_outputHtml.md"; then
       printf 'Missing frontend HTML template guardrail: %s\n' "$required" >&2
       exit 1

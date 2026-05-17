@@ -69,6 +69,16 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
 done
 
 for required in \
+  'canonicalIndexHtmlShell' \
+  'canonicalIndexHtmlShellVersion' \
+  'prototypeVisualLayoutMatchesLanhuEvidence' \
+  'prototypeControlsRemainInSourceRegions' \
+  'prototypeLayoutApproximationCaveats'
+do
+  require_in_file "$LANHU_FRONTEND_HTML_AGENT" "$required"
+done
+
+for required in \
   'status: need_confirmation' \
   'confirmationGate' \
   'blockingQuestions' \

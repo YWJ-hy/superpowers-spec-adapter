@@ -48,25 +48,160 @@ HTML 文档结构要求：
 - 输出完整 HTML 文档：`<!doctype html>`、`<html lang="zh-CN">`、`<head>`、`<meta charset="utf-8">`、`<title>`、`<body>`。
 - 正文使用语义化文档结构：`<header>`、`<aside>`、`<nav>`、`<main>`、`<section>`、`<h1>`、`<h2>`、`<h3>`、`<form>`、`<fieldset>`、`<legend>`、`<label>`、`<input>`、`<textarea>`、`<select>`、`<button>`、`<table>`、`<ul>`、`<ol>`、`<pre>`。
 - 顶部只提供 PRD 标题、需求名称、角色、生成时间或来源说明、阅读提示和 `prototype/index.html` 入口；章节导航必须放在左侧导航栏，右侧为 PRD 正文内容。
-- 非 Markdown fallback 的 `index.html` 必须是左侧导航 + 右侧内容布局：左侧使用 `<aside>` 或 `<nav aria-label="章节导航">` 承载持久章节导航，右侧使用 `<main>` 承载 PRD 正文；不得只输出顶部导航或单列章节链接。
-- PRD 每一章都必须作为左侧导航项；点击左侧章节导航后，右侧内容区仅显示当前激活章节内容，未激活章节隐藏但仍保留在同一个 HTML 文件中。
+- 非 Markdown fallback 的 `index.html` 必须先复制下方固定外壳模板，再替换占位符和各 section 内容；不得只根据文字说明自行设计另一套 HTML。
 - 章节切换必须是文档阅读交互，不代表产品页面真实 Tab，也不得与源原型中的 Tab 混淆。
 - 如果源原型本身存在真实产品 Tab，需要在对应页面展示规则和 `prototype/index.html` 中明确标注“源原型真实 Tab”，并只使用源证据中的真实 Tab 标签名。
 - `index.html` 和 `prototype/index.html` 都必须包含 Mermaid CDN module script，使 Mermaid 在浏览器中直接渲染。由于 `index.html` 采用左侧导航 + 右侧激活章节布局，不能只依赖隐藏章节中的 `startOnLoad`；必须在 DOM 加载后渲染当前可见 Mermaid 容器，并在章节切换后对新显示章节中的未处理 Mermaid 容器再次执行 `mermaid.run`。
-
-```html
-<script type="module">
-  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@latest/dist/mermaid.esm.min.mjs";
-  mermaid.initialize({ startOnLoad: false });
-  const renderMermaid = (root = document) => {
-    mermaid.run({ nodes: root.querySelectorAll('.mermaid:not([data-processed])') });
-  };
-  window.addEventListener('DOMContentLoaded', () => renderMermaid());
-</script>
-```
-
 - Mermaid 图必须使用浏览器可渲染容器，例如 `<pre class="mermaid">...</pre>` 或等价的 `<div class="mermaid">...</div>`；不得只用 `<pre><code class="language-mermaid">...</code></pre>` 保存源码。
 - Mermaid 仍然通过外部 CDN 加载，但必须确保图在浏览器中实际渲染可见；如果 mindmap 因 CDN 版本、初始化时机、隐藏容器或结构复杂度无法稳定显示，应改用 flowchart 或拆分为多个小图，而不是保留不可见 mindmap。
+
+固定 index.html 外壳模板要求：
+- 固定外壳版本标记：`lanhu-frontend-html-prd-index-shell-v1`；非 fallback HTML 输出必须在 `htmlPrdCompliance` 中标记 `canonicalIndexHtmlShell: true`。
+- 必须先复制这份外壳，再把 `{{...}}` 占位符替换为真实需求内容。
+- 必须保留左侧导航 + 右侧激活章节布局、13 个 section id、CSS selector 和 Mermaid 初始化脚本；点击左侧章节导航后，右侧内容区仅显示当前激活章节内容，未激活章节隐藏但仍保留在同一个 HTML 文件中。
+- 只能替换 `<title>`、`h1`、header 文案和 13 个 section 内的占位内容；可在已有 section 内增加子标题、表格、列表、提示块和 Mermaid 图，但不得移出 section 或改变 section id。
+- 禁止重设计 package-root `index.html` 外壳、改导航模式、改布局模式、改 Mermaid 初始化脚本、改为单列长文档、引入 Mermaid CDN 之外的外部资源，或把 HTML 写成生产前端实现。
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>前端开发角色视角 PRD - {{需求名称}}</title>
+  <style>
+    :root { --blue:#2563f4; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --soft:#f8fafc; --warn:#fff7ed; --danger:#b91c1c; --ok:#047857; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--ink); background:#f3f4f6; }
+    header { background:#fff; border-bottom:1px solid var(--line); padding:18px 28px; position:sticky; top:0; z-index:3; }
+    header h1 { margin:0 0 8px; font-size:22px; }
+    header p { margin:4px 0; color:var(--muted); }
+    .wrap { display:flex; min-height:calc(100vh - 118px); }
+    aside { width:280px; background:#fff; border-right:1px solid var(--line); padding:18px 14px; position:sticky; top:105px; height:calc(100vh - 105px); overflow:auto; }
+    nav[aria-label="章节导航"] button { width:100%; text-align:left; border:0; background:transparent; padding:10px 12px; margin:2px 0; border-radius:8px; color:#374151; cursor:pointer; }
+    nav[aria-label="章节导航"] button.active { background:#eef2ff; color:#1d4ed8; font-weight:700; }
+    main { flex:1; padding:24px; }
+    section.prd-section { display:none; background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px; margin-bottom:24px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    section.prd-section.active { display:block; }
+    h2 { margin-top:0; color:#111827; }
+    h3 { margin-top:24px; color:#374151; }
+    table { width:100%; border-collapse:collapse; margin:14px 0 22px; font-size:14px; }
+    th, td { border:1px solid var(--line); padding:10px; vertical-align:top; }
+    th { background:#f9fafb; text-align:left; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#1d4ed8; }
+    .scope-new { color:#047857; font-weight:700; }
+    .scope-delta { color:#1d4ed8; font-weight:700; }
+    .scope-context { color:#6b7280; font-weight:700; }
+    .scope-unclear { color:#b45309; font-weight:700; }
+    .note { border-left:4px solid var(--blue); background:#eff6ff; padding:12px 14px; margin:12px 0; }
+    .warn { border-left:4px solid #f59e0b; background:var(--warn); padding:12px 14px; margin:12px 0; }
+    .link-card { display:inline-block; padding:10px 14px; border:1px solid var(--blue); border-radius:8px; color:#1d4ed8; text-decoration:none; font-weight:700; }
+    pre.mermaid { background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; overflow:auto; }
+    ul, ol { line-height:1.8; }
+    .gwt { background:#f9fafb; border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin:10px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>前端开发角色视角 PRD：{{需求名称}}</h1>
+    <p>需求名称：{{需求名称}}；角色：frontend；生成时间：{{生成时间或来源说明}}</p>
+    <p>来源：{{Lanhu来源说明}}。请与 <a href="prototype/index.html">交互核对原型</a> 结合阅读。</p>
+  </header>
+  <div class="wrap">
+    <aside>
+      <nav aria-label="章节导航">
+        <button class="active" data-target="overview">一、需求概览</button>
+        <button data-target="scope">二、本次变更范围判定</button>
+        <button data-target="pages">三、页面与入口范围</button>
+        <button data-target="display">四、页面展示规则</button>
+        <button data-target="fields">五、字段 UI 控件说明</button>
+        <button data-target="interactions">六、用户操作与交互规则</button>
+        <button data-target="states">七、页面状态流转</button>
+        <button data-target="permissions">八、权限与可见性</button>
+        <button data-target="collaboration">九、前后端协作信息</button>
+        <button data-target="exceptions">十、异常与边界场景</button>
+        <button data-target="acceptance">十一、前端验收标准</button>
+        <button data-target="risks">十二、风险与依赖</button>
+        <button data-target="questions">十三、待确认问题</button>
+      </nav>
+    </aside>
+    <main>
+      <section id="overview" class="prd-section active">
+        <h2>一、需求概览</h2>
+        {{overview_section_content}}
+      </section>
+      <section id="scope" class="prd-section">
+        <h2>二、本次变更范围判定</h2>
+        {{scope_section_content}}
+      </section>
+      <section id="pages" class="prd-section">
+        <h2>三、页面与入口范围</h2>
+        {{pages_section_content}}
+      </section>
+      <section id="display" class="prd-section">
+        <h2>四、页面展示规则</h2>
+        {{display_section_content}}
+      </section>
+      <section id="fields" class="prd-section">
+        <h2>五、字段 UI 控件说明</h2>
+        {{fields_section_content}}
+      </section>
+      <section id="interactions" class="prd-section">
+        <h2>六、用户操作与交互规则</h2>
+        {{interactions_section_content}}
+      </section>
+      <section id="states" class="prd-section">
+        <h2>七、页面状态流转</h2>
+        {{states_section_content}}
+      </section>
+      <section id="permissions" class="prd-section">
+        <h2>八、权限与可见性</h2>
+        {{permissions_section_content}}
+      </section>
+      <section id="collaboration" class="prd-section">
+        <h2>九、前后端协作信息</h2>
+        {{collaboration_section_content}}
+      </section>
+      <section id="exceptions" class="prd-section">
+        <h2>十、异常与边界场景</h2>
+        {{exceptions_section_content}}
+      </section>
+      <section id="acceptance" class="prd-section">
+        <h2>十一、前端验收标准</h2>
+        {{acceptance_section_content}}
+      </section>
+      <section id="risks" class="prd-section">
+        <h2>十二、风险与依赖</h2>
+        {{risks_section_content}}
+      </section>
+      <section id="questions" class="prd-section">
+        <h2>十三、待确认问题</h2>
+        {{questions_section_content}}
+      </section>
+    </main>
+  </div>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@latest/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: false });
+    const renderMermaid = (root = document) => {
+      mermaid.run({ nodes: root.querySelectorAll('.mermaid:not([data-processed])') });
+    };
+    const activate = (id) => {
+      document.querySelectorAll('main section').forEach(s => s.classList.toggle('active', s.id === id));
+      document.querySelectorAll('nav[aria-label="章节导航"] button').forEach(b => b.classList.toggle('active', b.dataset.target === id));
+      const current = document.getElementById(id);
+      if (current) renderMermaid(current);
+    };
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('nav[aria-label="章节导航"] button').forEach(button => {
+        button.addEventListener('click', () => activate(button.dataset.target));
+      });
+      renderMermaid(document.querySelector('main section.active') || document);
+    });
+  </script>
+</body>
+</html>
+```
 
 请输出以下内容。以下结构和清单是基础检查框架，不代表完整范围；请结合原始需求补充其他相关页面、流程、规则、边界和待确认问题：
 
@@ -196,11 +331,17 @@ HTML 表格列必须包含：
 
 `prototype/index.html` 要求：
 - 该 HTML 是需求核对交互原型，不是生产前端代码、组件结构、样式方案或实现方案。
+- prototype 首要目标是“视觉布局 + 交互结构”核对，不是只覆盖功能、控件和按钮的 demo。
+- 页面主体布局应按 Lanhu 源证据复刻：顶部、侧边栏、导航、筛选区、操作区、内容区、底部/分页、弹窗/抽屉等区域的顺序、空间关系、主次层级、对齐方式和相对位置应保持一致。
 - 页面和区域优先使用语义化元素，例如 `<section>`、`<header>`、`<aside>`、`<nav>`、`<form>`、`<fieldset>`、`<legend>`、`<table>`、`<details>`、`<dialog>`。
 - 字段和操作必须使用与源证据一致的真实 HTML 控件：邮箱输入使用 `input type="email"`，密钥或密码使用 `input type="password"`，文本输入使用 `input type="text"`，长文本使用 `<textarea>`，下拉使用 `<select>`，勾选/单选使用 `input type="checkbox"` / `input type="radio"`，提交或普通操作使用 `<button type="button">`，帮助文档或跳转入口使用 `<a>`。
+- 控件应放在源页面对应区域，不得把分散在不同区域的控件集中到一个通用表单或操作面板。
 - Lanhu 范围内每个可见 UI 控件都要在 HTML 交互结构中出现一次，并能从附近文案、表格或 `data-scope` / `aria-label` 等非实现属性追溯到源需求对象。
+- 弹窗、抽屉、步骤条、Tab、表格列、卡片组、左右分栏等结构如果在源证据中存在，prototype 必须保留其可核对的布局关系。
+- 如果截图或 Lanhu 信息不足以精确还原尺寸、间距或比例，可以采用近似比例，但必须保留区域层级和相对位置，并在 `caveats` 或待确认问题中说明“视觉尺寸为近似”。
 - 如果原型存在真实产品 Tab，必须基于源证据提取真实 Tab 标签名；源证据没有 Tab 时，不输出产品 Tab。
-- `现有上下文` 页面框架或菜单可以用于定位，但必须在 HTML 结构中明确标注为 `现有上下文`，不得写成本期实现范围。
+- `现有上下文` 页面框架或菜单可以用于定位和适度简化，但必须在 HTML 结构中明确标注为 `现有上下文`，不得写成本期实现范围，也不得影响本次范围控件的布局位置判断。
+- 禁止把 prototype 写成纯文档说明、清单式控件列表、通用 wireframe、或与源页面布局无关的可点击 demo。
 - 控件只用于需求交互核对，不得包含真实提交、真实接口、生产路由、框架指令、组件名称、代码文件名、状态管理或数据请求实现。
 - 允许极少量原生 JavaScript 演示密码显示/隐藏、弹窗打开/关闭、抽屉展开/收起、文档导航高亮、局部状态切换或多步骤可视化切换；脚本不得包含业务逻辑、校验实现、网络请求、持久化、事件埋点或生产交互实现。
 - 多页面需求需分别输出每个页面的 HTML 交互结构核对区。

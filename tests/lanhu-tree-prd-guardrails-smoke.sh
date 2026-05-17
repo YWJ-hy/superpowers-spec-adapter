@@ -148,6 +148,8 @@ do
 done
 
 forbid_in_file "$LANHU_FRONTEND_AGENT" 'role-prd/frontend_outputHtml.md'
+forbid_in_file "$LANHU_FRONTEND_AGENT" 'lanhu-frontend-html-prd-index-shell-v1'
+forbid_in_file "$LANHU_BACKEND_AGENT" 'lanhu-frontend-html-prd-index-shell-v1'
 
 for required in \
   'lanhu-frontend-html-requirements-analyst' \
@@ -158,11 +160,26 @@ for required in \
   'index.html' \
   'htmlPrdCompliance' \
   'checkedAgainstFullHtmlSourceTemplate' \
+  'canonicalIndexHtmlShell' \
+  'lanhu-frontend-html-prd-index-shell-v1' \
   'selfContained' \
   'leftNavActiveSectionOnly' \
   'leftRightDocumentLayout' \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
+  'prototypeVisualLayoutMatchesLanhuEvidence' \
+  'prototypeControlsRemainInSourceRegions' \
+  'prototypeLayoutApproximationCaveats' \
+  '固定 index.html 外壳模板' \
+  'nav[aria-label="章节导航"]' \
+  'section.prd-section' \
+  'const activate = (id)' \
+  'renderMermaid(current)' \
+  "document.querySelector('main section.active')" \
+  '{{overview_section_content}}' \
+  '{{questions_section_content}}' \
+  '必须先复制这份外壳' \
+  'prototype 首要目标是“视觉布局 + 交互结构”核对' \
   '页面交互结构与控件核对' \
   'prototype/index.html' \
   '1:1 复刻原型文档' \
