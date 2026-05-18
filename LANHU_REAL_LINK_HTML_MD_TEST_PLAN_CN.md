@@ -248,7 +248,44 @@
 - `prd.md` 或 `prds/*.md` 中每个范围判断都有来源依据。
 - 如输出 HTML，`index.html` 只展示纳入范围内的页面 / 交互，不展示未纳入的兄弟页内容。
 
-### TC-05：多交付边界输出 `prds/*.md`
+### TC-05：多页面 frontend HTML fan-out 输出完整页面包
+
+输入：
+
+```text
+/lanhu-requirements <LANHU_PAGE_TREE_URL> 前端 multi-page-fe-html
+```
+
+配置：启用 `lanhu.frontend.output.format: html`。
+
+预期文件：
+
+```text
+.lanhu/MM-DD-multi-page-fe-html/
+  index.md
+  pages/
+    01-<page-slug>/
+      index.md
+      index.html
+      prototype/
+        index.html
+    02-<page-slug>/
+      index.md
+      index.html
+      prototype/
+        index.html
+```
+
+验收重点：
+
+- 每个页面 package 都由同一个 frontend HTML analyst 基于该页自己的 scoped Lanhu evidence 生成。
+- 每个页面 package 都有自己的完整 `index.md`、`index.html`、`prototype/index.html`。
+- 聚合根 `index.md` 只包含页面包清单、阅读顺序、跨页面关系、必要 Mermaid 关系图、范围摘要聚合和确认状态。
+- 聚合根目录不得生成基于 page summaries / `.yaml` / summary Markdown 的全局最终 `index.html`。
+- Compact metadata 只能用于聚合状态和索引，不能作为 PRD 事实来源。
+- 页面包内如果还需要拆分，仍按业务交付边界决定，而不是按页面数量决定。
+
+### TC-06：多交付边界输出 `prds/*.md`
 
 输入：
 
@@ -281,7 +318,7 @@
 - `index.html` 是整个 package 的完整 HTML PRD 主文档，需通过左侧导航组织章节和交付边界关系。
 - `prototype/index.html` 应为纳入范围的页面输出真实 HTML 控件和可核对交互结构。
 
-### TC-06：阻塞确认点 gating
+### TC-07：阻塞确认点 gating
 
 输入：选择一个范围不明确、字段含义不明确、权限不明确或状态流转不明确的真实蓝湖链接。
 
@@ -386,6 +423,7 @@
 - HTML 缺少 `prototype/index.html` 目录化交互原型。
 - `prototype/index.html` 没有把页面展示规则转换为真实 HTML 控件和交互结构。
 - HTML 控件与 Lanhu 需求不一致，或虚构源证据中不存在的产品控件。
+- 多页面 frontend HTML scope 只产出 page summaries / `.yaml`，或聚合根目录根据 compact metadata 生成全局最终 `index.html`。
 - Mermaid 仍以不可渲染源码块输出，或缺少必需 Mermaid module script。
 - HTML 包含真实接口、框架代码、Mermaid CDN 以外的外部资源或生产实现方案。
 - Lanhu MCP 的输出格式说明、AI 建议、测试视角或开发方案进入最终 PRD schema。

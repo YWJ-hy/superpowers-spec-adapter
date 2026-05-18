@@ -164,7 +164,11 @@ for required in \
   'Split dense diagrams' \
   'move details to tables' \
   'compact metadata' \
-  'compact metadata' \
+  'Compact metadata is not a PRD source' \
+  'pagePackageMode: true' \
+  'aggregationPolicy: full_package_per_page' \
+  'one complete PRD package' \
+  'do not regenerate final HTML from compressed subagent outputs' \
   'packageDir' \
   'writtenFiles' \
   'existing confirmed `.lanhu/.../index.md` package' \

@@ -203,7 +203,13 @@ check_optional_integration_overlays() {
     'mermaidBlocksBrowserRenderable' \
     'onlyAllowedExternalAssetIsMermaidCdn' \
     'prdPrototypeConflictQuestionsRaised' \
-    'fallbackToMarkdown'
+    'fallbackToMarkdown' \
+    'pagePackageMode' \
+    'full_package_per_page' \
+    'pagePackageDirHint' \
+    'complete role-specific PRD package for the current page' \
+    'Compact metadata is not a PRD source' \
+    'do not regenerate final HTML from compressed subagent outputs'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_command"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2

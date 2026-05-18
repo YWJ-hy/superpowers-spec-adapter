@@ -41,6 +41,13 @@ forbid_in_file "$LANHU_FRONTEND_AGENT" '## 十四、输出要求'
 forbid_in_file "$LANHU_FRONTEND_HTML_AGENT" '## 十四、输出要求'
 forbid_in_file "$LANHU_BACKEND_AGENT" '## 十八、输出要求'
 
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; do
+  forbid_in_file "$file" 'final HTML generated from summaries'
+  forbid_in_file "$file" 'compressed YAML as source of final PRD'
+  forbid_in_file "$file" 'page subagent writes only `.yaml`'
+  forbid_in_file "$file" 'page subagent writes only summary Markdown'
+done
+
 for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT"; do
   for required in \
     'Allowed Lanhu MCP tools' \
@@ -127,7 +134,13 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'mermaidBlocksBrowserRenderable' \
     'onlyAllowedExternalAssetIsMermaidCdn' \
     'prdPrototypeConflictQuestionsRaised' \
-    'fallbackToMarkdown'
+    'fallbackToMarkdown' \
+    'pagePackageMode' \
+    'full_package_per_page' \
+    'page fan-out is only an evidence-fidelity strategy' \
+    'complete role-specific PRD package for the current page' \
+    'Compact metadata is not a PRD source' \
+    'do not regenerate final HTML from compressed subagent outputs'
   do
     require_in_file "$agent" "$required"
   done

@@ -48,7 +48,10 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'targetPage' \
     'only mandatory scope' \
     'do not silently fall back to `lanhu_get_pages`' \
-    'Do not call any other Lanhu MCP tool'
+    'Do not call any other Lanhu MCP tool' \
+    'pagePackageMode' \
+    'full_package_per_page' \
+    'complete role-specific PRD package for the current page'
   do
     require_in_file "$agent" "$required"
   done
@@ -68,7 +71,10 @@ for required in \
   'scopedEvidenceContract.arbitraryLanhuToolsUsed == false' \
   'deliveryBoundaryPlan' \
   'confirmationGate.phase: delivery_boundary' \
-  'Do not silently fall back to old broad Lanhu MCP tools'
+  'Do not silently fall back to old broad Lanhu MCP tools' \
+  'pagePackageMode: true' \
+  'aggregationPolicy: full_package_per_page' \
+  'same fixed scoped evidence workflow'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done

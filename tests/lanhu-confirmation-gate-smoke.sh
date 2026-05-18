@@ -62,7 +62,10 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'mermaidBlocksBrowserRenderable' \
     'onlyAllowedExternalAssetIsMermaidCdn' \
     'prdPrototypeConflictQuestionsRaised' \
-    'fallbackToMarkdown'
+    'fallbackToMarkdown' \
+    'pagePackageMode' \
+    'full_package_per_page' \
+    'Compact metadata is not a PRD source'
   do
     require_in_file "$agent" "$required"
   done

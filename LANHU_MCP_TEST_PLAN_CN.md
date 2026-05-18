@@ -6,8 +6,9 @@
 
 - 验证 `/lanhu-requirements` 必须先确认 `role: frontend | backend`，角色缺失或歧义时不读取蓝湖。
 - 验证 Lanhu MCP 可用时，前端 / 后端专用 analyst 能从真实蓝湖 URL 生成 `.lanhu/MM-DD-需求名称/` 需求包。
-- 验证显式 `pageId` 场景必须先读取页面树、确认子页白名单，并逐页 `mode: full` 分析，不能一次性请求父页加多个子页。
+- 验证显式 `pageId` 场景必须先读取页面树、确认子页白名单，并对每个纳入页面使用自己的 scoped evidence `mode: full`，不能一次性请求父页加多个子页。
 - 验证 PRD 拆分由业务交付边界决定，不由页面数量决定，且 `index.md` 是入口和关系权威来源。
+- 验证多页面 Lanhu scope 的 page fan-out 只作为证据保真策略：每页产出完整页面 PRD 包，主会话只写聚合 `index.md`，不得根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
 - 验证输出只包含产品需求事实和角色 PRD，不包含测试点、技术方案、实现方案、接口 / 数据库推测、文件影响或 graphify 线索。
 - 验证 `confirmationGate`、`requirementScopeJudgment`、`scopeConfirmationSummary` 的阻塞与二次确认流程正确。
 - 验证 `.lanhu/` 需求包确认前不会进入 Superpowers `brainstorming`，确认后才作为需求输入交接。
@@ -298,10 +299,12 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 - `allowedPages` 为目标页 + descendant whitelist。
 - `pagesRead` 按树顺序列出父页和子页。
-- 每个页面单独 full 分析。
+- 每个页面单独 full 分析，并在多页面 fan-out 时调用同一个已选角色 / 输出格式 analyst 写入该页完整页面 PRD 包。
 - 每个 `pageNamesArgument` 恰好一个页面名。
+- 前端 HTML 多页面输出时，每个页面包都有自己的 `index.md`、`index.html`、`prototype/index.html`，聚合根只写 `index.md`。
 - 不出现 `page_names: all`。
 - 不出现一次请求父页加多个子页的行为。
+- 不出现根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD 的行为。
 
 ### TC-P04：用户选择不包含子页时只分析父页
 
@@ -858,6 +861,8 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - [ ] 未使用 `page_names: all` 处理显式 pageId。
 - [ ] 未混入兄弟页、父流程页、相邻模块、垃圾站、旧页面或 AI 推荐相关页。
 - [ ] PRD 拆分由业务交付边界决定。
+- [ ] 多页面 fan-out 时，每个页面都有完整页面 PRD 包。
+- [ ] 聚合根目录只写全局 `index.md`，不根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
 - [ ] `index.md` 是入口和关系权威来源。
 - [ ] 每个 PRD 文件是完整角色 PRD。
 - [ ] `requirementScopeJudgment` 使用差量优先判断。
