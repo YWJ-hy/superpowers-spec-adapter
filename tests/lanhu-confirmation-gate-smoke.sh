@@ -41,7 +41,7 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'Blocking confirmation classification' \
     'scopeConfirmationSummary' \
     'requirementScopeJudgment' \
-    'do not continue to Superpowers brainstorming' \
+    'Do not continue to Superpowers brainstorming' \
     'raw Lanhu tool-result text' \
     'full PRD markdown' \
     '是否阻塞后续 Superpowers 流程' \

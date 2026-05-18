@@ -323,8 +323,11 @@ HTML 表格列必须包含：
 
 要求：
 - 必须提供指向 `prototype/index.html` 的相对链接，并说明它是页面结构、控件核对、交互状态和可视化操作关系的需求原型，不是生产前端代码。
+- 必须从已确认的 `deliveryBoundaryPlan` 派生 `index.html` 与 `prototype/index.html`；两者不得使用不同的模块拆分、合并或验收边界假设。
 - 必须摘要列出 `prototype/index.html` 覆盖的核心页面、布局区域、状态类型和主要交互对象，但不得把该摘要当成固定章节清单。
 - 必须说明后续 Superpowers / AI 应结合 `index.html` 与 `prototype/index.html` 解读需求；如两者存在冲突，应进入待确认问题。
+- 如果一个 prototype 会把多个独立交付模块串成一个流程，必须先触发 `deliveryBoundaryPlan.status: needs_confirmation`；如果同一模块分布在多个子页但共享一个用户目标和验收边界，应保持在同一交付边界内。
+- 不得按 prototype screen 数量、截图数量、子页数量或页面数量决定 PRD 拆分；PRD 拆分只能来自已确认的用户目标、交付责任和验收边界。
 - 不得为了组织 PRD 内容新增源页面中不存在的产品控件、产品 Tab、按钮、业务区域、弹窗、抽屉或状态区。
 
 `prototype/index.html` 必须为每个核心页面输出真实 HTML 交互结构核对区，用于 1:1 复刻 Lanhu 需求范围内的页面结构、区域、字段、操作入口和交互容器。
