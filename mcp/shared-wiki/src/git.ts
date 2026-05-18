@@ -2,6 +2,12 @@ import { mkdir } from 'node:fs/promises';
 import { spawnFile } from './process.js';
 import type { SharedWikiConfig } from './config.js';
 
+export type GitRevision = {
+  ref: string;
+  commitSha: string;
+  shortSha: string;
+};
+
 export async function ensureClone(config: SharedWikiConfig): Promise<void> {
   await mkdir(config.cacheDir, { recursive: true });
   const exists = await gitDirExists(config.cloneDir);
@@ -46,6 +52,20 @@ export async function prepareBase(config: SharedWikiConfig): Promise<void> {
   await checkoutBase(config);
   await resetBase(config);
   await ensureClean(config);
+}
+
+export async function remoteBaseRevision(config: SharedWikiConfig): Promise<GitRevision> {
+  const ref = `${config.remote}/${config.baseBranch}`;
+  const output = await spawnFile('git', ['rev-parse', ref], { cwd: config.cloneDir });
+  const commitSha = output.stdout.trim();
+  return { ref, commitSha, shortSha: commitSha.slice(0, 12) };
+}
+
+export async function currentHeadRevision(config: SharedWikiConfig): Promise<GitRevision> {
+  const ref = 'HEAD';
+  const output = await spawnFile('git', ['rev-parse', ref], { cwd: config.cloneDir });
+  const commitSha = output.stdout.trim();
+  return { ref, commitSha, shortSha: commitSha.slice(0, 12) };
 }
 
 export async function createBranch(config: SharedWikiConfig, branchName: string): Promise<void> {

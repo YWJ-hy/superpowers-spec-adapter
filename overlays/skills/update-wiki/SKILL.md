@@ -237,7 +237,7 @@ Do not force every update into a generic template.
 If you create a new leaf wiki page, ensure it is referenced by an appropriate `index.md`, subject to `createNewDocument` authorization.
 Detailed rules belong in leaf wiki pages; indexes should contain navigation and short summaries only.
 
-If the selected target is shared wiki and the user/project uses the GitHub-backed shared-wiki MCP flow, do not directly edit local `.shared-superpowers/wiki/`. Instead:
+If the selected target is shared wiki and the user/project uses the GitHub-backed shared-wiki MCP flow, do not directly edit local `.shared-superpowers/wiki/`. The `wiki-researcher` selection path may already have used read-only MCP tools to gather source-aware context, but write decisions still belong here. Instead:
 1. Use shared-wiki MCP read/search tools to check indexed pages and duplicates.
 2. Prepare a neutral unified diff for the shared wiki repo.
 3. Call `shared_wiki_validate_patch` with the required authorization flags.

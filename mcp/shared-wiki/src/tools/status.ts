@@ -1,5 +1,5 @@
 import type { SharedWikiConfig } from '../config.js';
-import { ensureClone, fetchBase, toolAvailable } from '../git.js';
+import { ensureClone, fetchBase, remoteBaseRevision, toolAvailable } from '../git.js';
 import { findSettingsPath, loadPolicy } from '../wiki/policy.js';
 import { validateWiki } from '../wiki/validate.js';
 
@@ -12,6 +12,7 @@ export async function statusTool(config: SharedWikiConfig) {
   }
   const policy = gitAvailable ? loadPolicy(config) : undefined;
   const validation = gitAvailable ? validateWiki(config) : undefined;
+  const revision = gitAvailable ? await remoteBaseRevision(config) : null;
   return {
     repoUrl: config.repoUrl,
     baseBranch: config.baseBranch,
@@ -21,6 +22,7 @@ export async function statusTool(config: SharedWikiConfig) {
     cloneDir: config.cloneDir,
     gitAvailable,
     ghAvailable,
+    revision,
     settingsPath: gitAvailable ? findSettingsPath(config) ?? null : null,
     policy,
     validation,

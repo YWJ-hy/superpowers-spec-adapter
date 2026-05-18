@@ -10,7 +10,7 @@ if [[ ! -f "${TARGET_INPUT}/agents/wiki-researcher.md" ]]; then
   printf 'Expected installed wiki-researcher agent\n' >&2
   exit 1
 fi
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'root-prefixed wiki paths'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'root-prefixed `path` values' 'sharedWikiSource: auto' 'github_mcp' 'wikiPath' 'revision' 'logical display path' 'shared-wiki MCP'; do
   if ! grep -Fq "$required" "${TARGET_INPUT}/agents/wiki-researcher.md"; then
     printf 'Expected installed wiki-researcher shared-root text: %s\n' "$required" >&2
     exit 1
@@ -84,9 +84,9 @@ if ! grep -Fq 'wiki-researcher' "$BRAINSTORMING_SKILL"; then
   printf 'Expected brainstorming patch to mention wiki-researcher\n' >&2
   exit 1
 fi
-for required in 'wikiRoots:' '.shared-superpowers/wiki'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'logical display path' 'MCP is unavailable' 'Do not write sidecar JSONL or `.wiki-context.md` during brainstorming.'; do
   if ! grep -Fq "$required" "$BRAINSTORMING_SKILL"; then
-    printf 'Expected brainstorming patch to contain shared wiki root: %s\n' "$required" >&2
+    printf 'Expected brainstorming patch to contain shared wiki source text: %s\n' "$required" >&2
     exit 1
   fi
 done
@@ -185,10 +185,17 @@ for required in \
   'Graphify is optional' \
   'candidate hints' \
   'Every useful hint must be verified against current source' \
-  'not graphify alone'
+  'not graphify alone' \
+  'sharedWikiSource: auto' \
+  'schemaVersion: 2' \
+  'source: github_mcp' \
+  'wikiPath' \
+  'revision.commitSha' \
+  'logical display path' \
+  'Do not copy MCP-sourced shared wiki pages into local `.shared-superpowers/wiki/`'
 do
   if ! grep -Fq "$required" "$WRITING_SKILL"; then
-    printf 'Expected writing-plans patch to contain optional graphify requirement: %s\n' "$required" >&2
+    printf 'Expected writing-plans patch to contain source-aware wiki context requirement: %s\n' "$required" >&2
     exit 1
   fi
 done
@@ -206,6 +213,8 @@ for required in \
   'not root-cause evidence' \
   'continue systematic debugging' \
   'do not write `.wiki-context.md`' \
+  'sharedWikiSource: auto' \
+  'GitHub-backed shared-wiki MCP source' \
   'break-loop'
 do
   if ! grep -Fq "$required" "$SYSTEMATIC_SKILL"; then
@@ -229,9 +238,9 @@ if grep -Fq 'Before attempting ANY fix, use wiki-researcher' "$SYSTEMATIC_SKILL"
   exit 1
 fi
 
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'selected project/shared wiki pages'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 2' 'source-aware constraint snapshot'; do
   if ! grep -Fq "$required" "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
-    printf 'Expected writing-plans patch to contain shared wiki root: %s\n' "$required" >&2
+    printf 'Expected writing-plans patch to contain source-aware wiki context: %s\n' "$required" >&2
     exit 1
   fi
 done
@@ -266,10 +275,12 @@ if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/executing-plans/SKILL.m
   exit 1
 fi
 
-if ! grep -Fq 'Do not reselect wiki pages from scratch' "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
-  printf 'Expected executing-plans patch not to reselect wiki pages\n' >&2
-  exit 1
-fi
+for required in 'Do not reselect wiki pages from scratch' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision'; do
+  if ! grep -Fq "$required" "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
+    printf 'Expected executing-plans patch to contain source-aware execution text: %s\n' "$required" >&2
+    exit 1
+  fi
+done
 
 if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
   printf 'Expected subagent-driven-development patch to forward Referenced Project Wiki\n' >&2
@@ -281,10 +292,12 @@ if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/subagent-driven-develop
   exit 1
 fi
 
-if ! grep -Fq 'Do not make subagents reselect wiki pages' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
-  printf 'Expected subagent-driven-development patch not to reselect wiki pages\n' >&2
-  exit 1
-fi
+for required in 'Do not make subagents reselect wiki pages' 'source: github_mcp' 'wikiPath' 'revision metadata'; do
+  if ! grep -Fq "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
+    printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
+    exit 1
+  fi
+done
 
 if grep -Fq 'wiki-progressive-disclosure' "${TARGET_INPUT}/skills/brainstorming/SKILL.md"; then
   printf 'Expected brainstorming patch not to require wiki-progressive-disclosure\n' >&2

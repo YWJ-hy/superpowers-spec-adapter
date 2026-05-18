@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import type { SharedWikiConfig } from '../config.js';
-import { prepareBase } from '../git.js';
+import { currentHeadRevision, prepareBase } from '../git.js';
 import { indexedFiles } from '../wiki/indexGraph.js';
 import { absoluteWikiFilePath, displayPath } from '../wiki/paths.js';
 
 export async function searchTool(config: SharedWikiConfig, input: { query: string; maxResults?: number }) {
   await prepareBase(config);
+  const revision = await currentHeadRevision(config);
   const query = input.query.trim().toLowerCase();
   if (!query) throw new Error('Search query is required.');
   const maxResults = Math.min(Math.max(input.maxResults ?? 10, 1), 50);
@@ -24,5 +25,5 @@ export async function searchTool(config: SharedWikiConfig, input: { query: strin
     });
     if (results.length >= maxResults) break;
   }
-  return { query: input.query, results };
+  return { query: input.query, revision, results };
 }

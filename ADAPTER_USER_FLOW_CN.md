@@ -233,7 +233,7 @@ baseBranch: master
 /shared-wiki-mcp
 ```
 
-该 MCP server 负责读取 indexed shared wiki、校验 unified diff、创建 branch、push 并打开 GitHub PR；不会自动 merge。语义判断仍由 Superpowers / adapter agent 完成：是否是 durable knowledge、是否属于 shared wiki、是否已被现有 wiki 覆盖、是否已经中性化，都不能交给 MCP 决定。
+该 MCP server 负责读取 indexed shared wiki、校验 unified diff、创建 branch、push 并打开 GitHub PR；不会自动 merge。语义判断仍由 Superpowers / adapter agent 完成：是否是 durable knowledge、是否属于 shared wiki、是否已被现有 wiki 覆盖、是否已经中性化，都不能交给 MCP 决定。正常 brainstorming / writing-plans / debugging 的 shared wiki 披露仍统一由 `wiki-researcher` 承担，MCP 只是它可选的 shared source 之一。
 
 这条流程与 `.shared-superpowers/wiki/` submodule 发布流程并存；不要把同一次 shared wiki 更新同时走 `/publish-shared-wiki` 和 MCP PR flow。
 
@@ -306,7 +306,7 @@ focus: <已知模块或关注点>
 maxWikiPages: 3
 ```
 
-`wiki-researcher` 会从存在的 project/shared root index 开始渐进读取，返回少量相关 wiki 页面。没有匹配项或两个 wiki root 都没有 `index.md` 时，不阻塞 brainstorming，只说明 caveat 并继续。
+`wiki-researcher` 会从存在的 project/shared root index 开始渐进读取，返回少量相关 wiki 页面。shared wiki 可以来自本地 `.shared-superpowers/wiki/`，也可以来自配置好的 GitHub-backed shared-wiki MCP。没有匹配项、MCP 不可用，或两个 wiki root 都没有 `index.md` 时，不阻塞 brainstorming，只说明 caveat 并继续。
 
 ### 5.2 writing-plans 阶段
 
@@ -323,7 +323,7 @@ planSummary: <计划目标和任务区域>
 maxWikiPages: 5
 ```
 
-writing-plans 默认把详细约束写入与 plan 同名的 sidecar 文件：
+writing-plans 默认把详细约束写入与 plan 同名的 sidecar 文件；如果 shared wiki 页面来自 GitHub-backed MCP，sidecar 还要记录 source-aware metadata：
 
 ```text
 docs/superpowers/plans/<plan-stem>.wiki-context.md
@@ -339,7 +339,7 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
 - `.superpowers/wiki/domain/user.md` — applies to Tasks 1, 2, and 4; hard constraint: use `account_id` as the stable identity key.
 ```
 
-`.wiki-context.md` 应包含每个选中 wiki 页的路径、适用任务、具体实现 / 测试 / review 约束、硬约束标记、必要原文锚点和 caveats。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
+`.wiki-context.md` 应包含每个选中 wiki 页的路径、source、适用任务、具体实现 / 测试 / review 约束、硬约束标记、必要原文锚点和 caveats；对于 `source: github_mcp`，还要记录 `wikiPath` 和 `revision`，并把 `.shared-superpowers/wiki/<path>.md` 视为逻辑展示路径而不是本地文件路径。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
 
 ### 5.3 writing-plans 中的可选 graphify 线索
 

@@ -127,15 +127,15 @@ For teams that keep shared wiki in a standalone GitHub repository, this repo inc
 mcp/shared-wiki/
 ```
 
-Copy that directory locally, run `npm install && npm run build`, configure `repoUrl` such as `https://github.com/YWJ-hy/shared-wiki.git` with the repository's default branch such as `master`, and add the built server to Claude Code MCP config. The MCP server exposes indexed read/search tools plus patch validation and branch+PR creation. It never merges PRs.
+Copy that directory locally, run `npm install && npm run build`, configure `repoUrl` such as `https://github.com/YWJ-hy/shared-wiki.git` with the repository's default branch such as `master`, and add the built server to Claude Code MCP config. The MCP server exposes indexed read/search tools plus patch validation and branch+PR creation. It never merges PRs. Normal brainstorming, planning, and narrowed debugging still use `wiki-researcher` as the unified progressive disclosure path; when the MCP server is configured, it can serve as `wiki-researcher`'s GitHub-backed shared wiki source.
 
-Use the installed command when you want to inspect or submit shared wiki PRs through MCP:
+Use the installed command when you explicitly want to inspect or submit shared wiki PRs through MCP:
 
 ```text
 /shared-wiki-mcp
 ```
 
-`update-wiki` still owns durable knowledge review, semantic duplicate checks, target ownership, and shared-wiki neutrality. The MCP server only performs mechanical validation and GitHub PR plumbing.
+`update-wiki` still owns durable knowledge review, semantic duplicate checks, target ownership, and shared-wiki neutrality. The MCP server only performs indexed read/search, mechanical validation, and GitHub PR plumbing. Plan `.wiki-context.md` files should record MCP-sourced shared wiki pages with source metadata, `wikiPath`, and revision because `.shared-superpowers/wiki/<path>.md` is only a logical display path in that mode.
 
 ## Initialize starter wiki knowledge
 

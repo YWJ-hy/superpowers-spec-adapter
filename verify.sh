@@ -516,16 +516,28 @@ check_native_skill_residuals() {
       exit 1
     fi
   done
+  for required in 'sharedWikiSource: auto' 'logical display path' 'MCP is unavailable'; do
+    if ! grep -Fq "$required" "$brainstorming_skill"; then
+      printf 'Missing source-aware brainstorming wiki requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
   local writing_skill="$TARGET_DIR/skills/writing-plans/SKILL.md"
   for required in \
     'graphify-researcher' \
     'Graphify is optional' \
     'candidate hints' \
     'Every useful hint must be verified against current source' \
-    'not graphify alone'
+    'not graphify alone' \
+    'sharedWikiSource: auto' \
+    'schemaVersion: 2' \
+    'source: github_mcp' \
+    'wikiPath' \
+    'revision.commitSha' \
+    'source-aware constraint snapshot'
   do
     if ! grep -Fq "$required" "$writing_skill"; then
-      printf 'Missing optional graphify planning requirement: %s\n' "$required" >&2
+      printf 'Missing source-aware planning requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
@@ -542,10 +554,26 @@ check_native_skill_residuals() {
     'not root-cause evidence' \
     'continue systematic debugging' \
     'do not write `.wiki-context.md`' \
+    'sharedWikiSource: auto' \
+    'GitHub-backed shared-wiki MCP source' \
     'break-loop'
   do
     if ! grep -Fq "$required" "$systematic_skill"; then
       printf 'Missing systematic-debugging low-noise wiki requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
+  for required in 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision'; do
+    if ! grep -Fq "$required" "$executing_skill"; then
+      printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
+  for required in 'source: github_mcp' 'wikiPath' 'revision metadata'; do
+    if ! grep -Fq "$required" "$subagent_skill"; then
+      printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1
     fi
   done

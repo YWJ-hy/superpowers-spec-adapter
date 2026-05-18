@@ -46,10 +46,10 @@ cp examples/shared-wiki-mcp.config.example.json shared-wiki-mcp.config.json
 
 ## 工具列表
 
-- `shared_wiki_status`：检查配置、clone 状态、策略、工具可用性和 wiki 校验摘要。
-- `shared_wiki_tree`：返回基于 `index.md` 链接图的 shared wiki 树。
-- `shared_wiki_read`：读取一个已 indexed 的 markdown 页面。
-- `shared_wiki_search`：在已 indexed 的 markdown 页面中做有界搜索并返回片段。
+- `shared_wiki_status`：检查配置、clone 状态、base revision、策略、工具可用性和 wiki 校验摘要。
+- `shared_wiki_tree`：返回基于 `index.md` 链接图的 shared wiki 树和当前 revision。
+- `shared_wiki_read`：读取一个已 indexed 的 markdown 页面，并返回 `displayPath`、`path` 和当前 revision。
+- `shared_wiki_search`：在已 indexed 的 markdown 页面中做有界搜索并返回片段和当前 revision。
 - `shared_wiki_validate_patch`：校验 unified diff，不 push、不创建 PR。
 - `shared_wiki_create_patch_pr`：把已校验 patch 应用到新 branch，push 后创建 GitHub PR。
 

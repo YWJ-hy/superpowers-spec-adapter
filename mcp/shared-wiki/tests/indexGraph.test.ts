@@ -18,9 +18,13 @@ function config(root: string): SharedWikiConfig {
   };
 }
 
+function tempRoot(prefix: string): string {
+  return mkdtempSync(path.join(tmpdir(), prefix));
+}
+
 describe('index graph', () => {
   it('follows markdown links from index', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'shared-wiki-index-'));
+    const root = tempRoot('shared-wiki-index-');
     mkdirSync(path.join(root, 'contracts'));
     writeFileSync(path.join(root, 'index.md'), '# Index\n\n- [API](contracts/api.md)\n');
     writeFileSync(path.join(root, 'contracts/api.md'), '# API\n');
@@ -28,9 +32,52 @@ describe('index graph', () => {
     expect([...indexedFiles(config(root))].sort()).toEqual(['contracts/api.md', 'index.md']);
   });
 
+  it('follows backtick refs, bullet refs, and directory refs', () => {
+    const root = tempRoot('shared-wiki-refs-');
+    mkdirSync(path.join(root, 'contracts'));
+    mkdirSync(path.join(root, 'guides'));
+    writeFileSync(path.join(root, 'index.md'), [
+      '# Index',
+      '',
+      '- `contracts/api.md`',
+      '- guides/',
+      '- contracts/events.md',
+      '',
+    ].join('\n'));
+    writeFileSync(path.join(root, 'contracts/api.md'), '# API\n');
+    writeFileSync(path.join(root, 'contracts/events.md'), '# Events\n');
+    writeFileSync(path.join(root, 'guides/index.md'), '# Guides\n\n- [Review](review.md#checklist)\n');
+    writeFileSync(path.join(root, 'guides/review.md'), '# Review\n');
+
+    expect([...indexedFiles(config(root))].sort()).toEqual([
+      'contracts/api.md',
+      'contracts/events.md',
+      'guides/index.md',
+      'guides/review.md',
+      'index.md',
+    ]);
+  });
+
+  it('ignores refs inside fenced code blocks', () => {
+    const root = tempRoot('shared-wiki-fenced-');
+    writeFileSync(path.join(root, 'index.md'), '# Index\n\n```\n- hidden.md\n```\n');
+    writeFileSync(path.join(root, 'hidden.md'), '# Hidden\n');
+
+    expect([...indexedFiles(config(root))].sort()).toEqual(['index.md']);
+  });
+
   it('reports missing linked files', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'shared-wiki-missing-'));
+    const root = tempRoot('shared-wiki-missing-');
     writeFileSync(path.join(root, 'index.md'), '# Index\n\n- [Missing](missing.md)\n');
     expect(validateIndexGraph(config(root))[0]).toMatch(/missing wiki page/);
+  });
+
+  it('reports unsafe linked files', () => {
+    const root = tempRoot('shared-wiki-unsafe-');
+    writeFileSync(path.join(root, 'index.md'), '# Index\n\n- ../secret.md\n- .hidden.md\n- examples/demo.md\n');
+    const errors = validateIndexGraph(config(root));
+    expect(errors.some((error) => error.includes('inside wiki root'))).toBe(true);
+    expect(errors.some((error) => error.includes('hidden path segments'))).toBe(true);
+    expect(errors.some((error) => error.includes('ignored directory'))).toBe(true);
   });
 });
