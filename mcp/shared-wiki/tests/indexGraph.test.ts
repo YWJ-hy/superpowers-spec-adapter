@@ -58,6 +58,22 @@ describe('index graph', () => {
     ]);
   });
 
+  it('does not follow references from leaf page prose', () => {
+    const root = tempRoot('shared-wiki-leaf-prose-');
+    mkdirSync(path.join(root, 'frontend'));
+    writeFileSync(path.join(root, 'index.md'), '# Index\n\n- frontend/hook-guidelines.md\n');
+    writeFileSync(path.join(root, 'frontend/hook-guidelines.md'), [
+      '# Hook Guidelines',
+      '',
+      'Place related files near `hooks/` or sibling feature directories.',
+      'See [Missing](missing.md) only as prose in this leaf page.',
+      '',
+    ].join('\n'));
+
+    expect([...indexedFiles(config(root))].sort()).toEqual(['frontend/hook-guidelines.md', 'index.md']);
+    expect(validateIndexGraph(config(root))).toEqual([]);
+  });
+
   it('ignores refs inside fenced code blocks', () => {
     const root = tempRoot('shared-wiki-fenced-');
     writeFileSync(path.join(root, 'index.md'), '# Index\n\n```\n- hidden.md\n```\n');

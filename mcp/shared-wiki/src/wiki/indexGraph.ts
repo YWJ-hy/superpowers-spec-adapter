@@ -28,6 +28,7 @@ export function indexedFiles(config: SharedWikiConfig): Set<string> {
     const absolute = absoluteWikiFilePath(config, current);
     if (!existsSync(absolute)) continue;
     visited.add(current);
+    if (!isIndexPage(current)) continue;
     const content = readFileSync(absolute, 'utf8');
     for (const target of extractWikiReferences(content)) {
       const resolved = resolveReference(config, current, target, ignoredDirectories);
@@ -54,6 +55,7 @@ export function validateIndexGraph(config: SharedWikiConfig): string[] {
 
   const ignoredDirectories = loadIgnoredDirectories(config);
   for (const wikiPath of indexedFiles(config)) {
+    if (!isIndexPage(wikiPath)) continue;
     const absolute = absoluteWikiFilePath(config, wikiPath);
     const content = readFileSync(absolute, 'utf8');
     for (const target of extractWikiReferences(content)) {
@@ -90,6 +92,10 @@ function walk(root: string, current: string, results: string[]): void {
       results.push(path.relative(root, absolute).replaceAll('\\', '/'));
     }
   }
+}
+
+function isIndexPage(wikiPath: string): boolean {
+  return path.posix.basename(wikiPath) === 'index.md';
 }
 
 function extractWikiReferences(content: string): string[] {
