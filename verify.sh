@@ -116,9 +116,10 @@ check_optional_integration_overlays() {
     'backend API' \
     'database' \
     'affected file analysis' \
-    'Role PRD acceptance standards' \
-    'Given / When / Then' \
-    'role-specific PRD' \
+    'Lanhu original-requirement evidence package' \
+    'sourceFactCoverage' \
+    'sourceFactsDroppedDetected' \
+    'aiCreatedSourceFactSections' \
     'Mermaid flowchart' \
     'mindmap' \
     '单个节点建议 4–12 个中文字符' \
@@ -201,10 +202,12 @@ check_optional_integration_overlays() {
     'leftNavActiveSectionOnly' \
     'leftRightDocumentLayout' \
     'realHtmlInteractionControls' \
+    'notSuperpowersSpec' \
+    'doesNotConstrainSuperpowersOutput' \
     'uiControlsTraceableToLanhuEvidence' \
     'prototype/index.html' \
     'prototypeArtifactPresent' \
-    '1:1 Lanhu interaction prototype' \
+    '1:1 Lanhu original-requirement UI replica' \
     'prototypeLinkedFromIndexHtml' \
     'indexMdDynamicHtmlParsingGuidance' \
     'mermaidModuleScriptPresent' \
@@ -215,8 +218,8 @@ check_optional_integration_overlays() {
     'pagePackageMode' \
     'full_package_per_page' \
     'pagePackageDirHint' \
-    'complete role-specific PRD package for the current selected page' \
-    'Compact metadata is not a PRD source' \
+    'complete evidence package for the current selected page' \
+    'Compact metadata is not an evidence source' \
     'do not regenerate final HTML from compressed subagent outputs'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_command"; then
@@ -233,7 +236,7 @@ check_optional_integration_overlays() {
     'Do not require Lanhu MCP to be installed' \
     'Always ask the user to review and confirm' \
     'Do not invoke graphify' \
-    'Lightweight Role PRD post-write gate' \
+    'Lightweight evidence post-write gate' \
     'templateCompliance' \
     'selectedTemplate' \
     'checkedAgainstFullSourceTemplate' \
@@ -251,8 +254,8 @@ check_optional_integration_overlays() {
     'status: need_confirmation' \
     'confirmationGate.status: clear' \
     'resolutionMode: resolve_confirmation' \
-    '# 前端开发角色视角 PRD' \
-    '# 后端开发角色视角 PRD'
+    '# 前端 Lanhu 原始需求证据包' \
+    '# 后端相关 Lanhu 原始需求证据包'
   do
     if ! grep -Fq "$required" "$lanhu_command"; then
       printf 'Missing Lanhu command guardrail: %s\n' "$required" >&2
@@ -282,21 +285,21 @@ check_optional_integration_overlays() {
 
   for required in \
     'role-prd/frontend.md' \
-    'complete frontend markdown role PRD source template' \
-    '前端开发角色视角 PRD' \
+    'complete frontend markdown evidence source template' \
+    '前端 Lanhu 原始需求证据包' \
     '页面布局结构草图' \
-    '## 二、本次变更范围判定' \
-    '## 四、页面展示规则' \
+    '## 二、源需求范围证据判定' \
+    '## 四、原始需求 UI 结构 1:1 复现' \
     '### 4.1 页面布局结构草图' \
-    '## 六、用户操作与交互规则' \
-    '### 6.1 用户操作流程' \
-    '### 6.2 交互规则' \
+    '## 六、用户操作与交互源事实' \
+    '### 6.1 用户操作路径源事实' \
+    '### 6.2 交互对象源事实' \
     'XML' \
     '低保真 1:1' \
     '真实 Tab 标签' \
     '源证据没有 Tab 时，不输出 `tab-area`' \
-    '复杂状态页面' \
-    '简单页面可只保留表格'
+    '页面状态与提示源事实' \
+    'AI 自定源事实主题'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent"; then
       printf 'Missing frontend Markdown Lanhu analyst guardrail: %s\n' "$required" >&2
@@ -311,33 +314,39 @@ check_optional_integration_overlays() {
 
   for required in \
     'role-prd/frontend_outputHtml.md' \
-    'complete frontend html role PRD source template' \
-    '前端 HTML PRD 主文档提示词模板' \
-    '完整前端 PRD 主文档' \
-    'HTML 主文档' \
+    'complete frontend html evidence source template' \
+    '前端 HTML Lanhu 原始需求证据包提示词模板' \
+    '前端 HTML Lanhu 原始需求证据包' \
+    'evidence reader' \
     'index.html' \
     'htmlPrdCompliance' \
     'checkedAgainstFullHtmlSourceTemplate' \
     'canonicalIndexHtmlShell' \
-    'lanhu-frontend-html-prd-index-shell-v1' \
+    'lanhu-frontend-html-evidence-index-shell-v1' \
     'selfContained' \
     'leftNavActiveSectionOnly' \
     'leftRightDocumentLayout' \
     'realHtmlInteractionControls' \
+    'notSuperpowersSpec' \
+    'doesNotConstrainSuperpowersOutput' \
     'uiControlsTraceableToLanhuEvidence' \
     'prototypeVisualLayoutMatchesLanhuEvidence' \
     'prototypeControlsRemainInSourceRegions' \
     'prototypeLayoutApproximationCaveats' \
+    'prototypeRealControlsRepresentSourceRequirements' \
+    'redundantControlTypeProseDetected' \
+    'finalAcceptanceCriteriaDetected' \
+    'sourceFactsDroppedDetected' \
     '固定 index.html 外壳模板' \
     'nav[aria-label="章节导航"]' \
-    'section.prd-section' \
+    'section.evidence-section' \
     'const activate = (id)' \
     'renderMermaid(current)' \
     "document.querySelector('main section.active')" \
     '{{overview_section_content}}' \
     '{{questions_section_content}}' \
     '必须先复制这份外壳' \
-    '页面交互结构与控件核对' \
+    '原始 UI 复现说明' \
     '左侧导航' \
     '右侧内容' \
     '真实 HTML 控件' \
@@ -360,18 +369,18 @@ check_optional_integration_overlays() {
 
   for required in \
     'role-prd/backend.md' \
-    'complete backend markdown role PRD source template' \
-    '后端开发角色视角 PRD' \
-    '## 二、本次变更范围判定' \
-    '### 2.1 需求思维导图' \
-    '业务对象' \
-    '业务流程' \
-    '业务规则' \
-    '业务状态流转' \
-    '权限与数据范围' \
-    '日志、审计与追踪需求' \
-    '统计与查询需求' \
-    '安全与合规需求'
+    'complete backend markdown evidence source template' \
+    '后端相关 Lanhu 原始需求证据包' \
+    '## 二、源需求范围证据判定' \
+    '### 2.1 源需求结构图' \
+    '业务对象源事实' \
+    '业务流程源事实' \
+    '业务规则源事实' \
+    '业务状态源事实' \
+    '权限与数据可见性源事实' \
+    '数据相关源事实' \
+    'AI 自定业务源事实主题' \
+    '待确认问题'
   do
     if ! grep -Fq "$required" "$lanhu_backend_agent"; then
       printf 'Missing backend Lanhu analyst guardrail: %s\n' "$required" >&2
@@ -379,11 +388,11 @@ check_optional_integration_overlays() {
     fi
   done
 
-  if grep -Fq '# 后端开发角色视角 PRD 提示词模板' "$lanhu_frontend_agent" "$lanhu_frontend_html_agent"; then
+  if grep -Fq '# 后端相关 Lanhu 原始需求证据包提示词模板' "$lanhu_frontend_agent" "$lanhu_frontend_html_agent"; then
     printf 'Frontend Lanhu analyst contains backend role template\n' >&2
     exit 1
   fi
-  if grep -Fq '# 前端开发角色视角 PRD 提示词模板' "$lanhu_backend_agent" || grep -Fq 'role-prd/frontend_outputHtml.md' "$lanhu_backend_agent"; then
+  if grep -Fq '# 前端 Lanhu 原始需求证据包提示词模板' "$lanhu_backend_agent" || grep -Fq 'role-prd/frontend_outputHtml.md' "$lanhu_backend_agent"; then
     printf 'Backend Lanhu analyst contains frontend template\n' >&2
     exit 1
   fi
@@ -391,7 +400,7 @@ check_optional_integration_overlays() {
     printf 'Frontend Markdown PRD template still owns HTML output settings\n' >&2
     exit 1
   fi
-  for required in 'html' 'index.html' '完整前端 PRD 主文档' 'fallbackToMarkdown' '不输出 XML-like 页面布局结构草图文本' '页面交互结构与控件核对' '左侧导航' '右侧内容区仅显示当前激活章节内容' '真实 HTML 控件' '固定 index.html 外壳模板' 'lanhu-frontend-html-prd-index-shell-v1' '{{overview_section_content}}' '{{questions_section_content}}' 'prototype 首要目标是“视觉布局 + 交互结构”核对'; do
+  for required in 'html' 'index.html' '前端 HTML Lanhu 原始需求证据包' 'fallbackToMarkdown' '不输出 XML-like 页面布局结构草图文本' '原始 UI 复现说明' '左侧导航' '右侧内容区仅显示当前激活章节内容' '真实 HTML 控件' '固定 index.html 外壳模板' 'lanhu-frontend-html-evidence-index-shell-v1' '{{overview_section_content}}' '{{questions_section_content}}' 'prototype 首要目标是“视觉布局 + 交互结构”核对'; do
     if ! grep -Fq "$required" "$SCRIPT_DIR/role-prd/frontend_outputHtml.md"; then
       printf 'Missing frontend HTML template guardrail: %s\n' "$required" >&2
       exit 1
@@ -448,24 +457,16 @@ check_native_skill_residuals() {
     'lanhu-frontend-requirements-analyst' \
     'lanhu-frontend-html-requirements-analyst' \
     'lanhu-backend-requirements-analyst' \
-    '.lanhu/MM-DD-需求名称/prd.md' \
     '.lanhu/MM-DD-需求名称/' \
-    '.lanhu/MM-DD-需求名称/prds/' \
     'index.md' \
     'Lanhu MCP is optional' \
     'do not block brainstorming' \
-    'page display' \
-    'user operation and interaction rules' \
-    'state flow' \
-    'business rules' \
-    'role-specific PRD package' \
+    'Lanhu original-requirement evidence input' \
     'role: frontend | backend' \
-    '前端开发角色视角 PRD' \
-    '后端开发角色视角 PRD' \
-    'Role PRD acceptance standards' \
-    'Given / When / Then' \
-    'business delivery boundary' \
-    'Tree mode' \
+    '前端 Lanhu 原始需求证据包' \
+    '后端相关 Lanhu 原始需求证据包' \
+    'final acceptance criteria' \
+    'source checklist sections' \
     'test cases' \
     'testing points' \
     'technical test plans' \
@@ -476,7 +477,6 @@ check_native_skill_residuals() {
     'explicitPageId' \
     'scopePolicy: pageid_children_only' \
     'childPagePolicy' \
-    'Allowed Lanhu MCP tools' \
     'lanhu_resolve_invite_link' \
     'lanhu_get_prd_page_scope' \
     'lanhu_get_prd_scoped_evidence' \
@@ -500,18 +500,13 @@ check_native_skill_residuals() {
     'mode: full' \
     'raw evidence only' \
     'not the adapter output schema' \
-    '## 四、页面展示规则' \
-    '### 4.1 页面布局结构草图' \
-    '## 六、用户操作与交互规则' \
-    '### 6.1 用户操作流程' \
-    '### 6.2 交互规则' \
     '本组核心N点' \
     '功能清单表' \
     '字段规则表' \
     'STAGE 4 输出要求' \
-    '.lanhu/MM-DD-需求名称/prds/' \
-    'Every PRD artifact must be a complete selected-role PRD' \
-    'index.md` is never a substitute' \
+    'sourceFactCoverage' \
+    'sourceFactsDroppedDetected: []' \
+    'aiCreatedSourceFactSections' \
     'templateCompliance' \
     'selectedTemplate' \
     'checkedAgainstFullSourceTemplate' \
@@ -526,19 +521,23 @@ check_native_skill_residuals() {
     'lanhu.frontend.output.format' \
     'format: markdown | html' \
     'index.html' \
-    'complete HTML PRD main document at `index.html`' \
-    '1:1 Lanhu interaction prototype at `prototype/index.html`' \
-    'frontend-only' \
+    'evidence reader at `index.html`' \
+    '1:1 Lanhu original-requirement UI replica at `prototype/index.html`' \
     'backend Markdown-only' \
     'htmlPrdCompliance' \
     'checkedAgainstFullHtmlSourceTemplate' \
+    'canonicalIndexHtmlShellVersion: lanhu-frontend-html-evidence-index-shell-v1' \
     'leftNavActiveSectionOnly' \
     'leftRightDocumentLayout' \
     'realHtmlInteractionControls' \
+    'notSuperpowersSpec' \
+    'doesNotConstrainSuperpowersOutput' \
     'uiControlsTraceableToLanhuEvidence' \
     'prototype/index.html' \
     'prototypeArtifactPresent' \
-    '1:1 Lanhu interaction prototype' \
+    'prototypeVisualLayoutMatchesLanhuEvidence' \
+    'prototypeControlsRemainInSourceRegions' \
+    'prototypeRealControlsRepresentSourceRequirements' \
     'prototypeLinkedFromIndexHtml' \
     'indexMdDynamicHtmlParsingGuidance' \
     'mermaidModuleScriptPresent' \

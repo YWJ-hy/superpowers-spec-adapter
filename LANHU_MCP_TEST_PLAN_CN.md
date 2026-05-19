@@ -8,8 +8,8 @@
 - 验证 Lanhu MCP 可用时，前端 / 后端专用 analyst 能从真实蓝湖 URL 生成 `.lanhu/MM-DD-需求名称/` 需求包。
 - 验证显式 `pageId` 场景必须先读取页面树、确认子页白名单，并对每个纳入页面使用自己的 scoped evidence `mode: full`，不能一次性请求父页加多个子页。
 - 验证 PRD 拆分由业务交付边界决定，不由页面数量决定，且 `index.md` 是入口和关系权威来源。
-- 验证多页面 Lanhu scope 的 page fan-out 只作为证据保真策略：每页产出完整页面 PRD 包，主会话只写聚合 `index.md`，不得根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
-- 验证输出只包含产品需求事实和角色 PRD，不包含测试点、技术方案、实现方案、接口 / 数据库推测、文件影响或 graphify 线索。
+- 验证多页面 Lanhu scope 的 page fan-out 只作为证据保真策略：每页产出完整页面 证据包，主会话只写聚合 `index.md`，不得根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
+- 验证输出只包含产品需求事实和角色证据包，不包含测试点、技术方案、实现方案、接口 / 数据库推测、文件影响或 graphify 线索。
 - 验证 `confirmationGate`、`requirementScopeJudgment`、`scopeConfirmationSummary` 的阻塞与二次确认流程正确。
 - 验证 `.lanhu/` 需求包确认前不会进入 Superpowers `brainstorming`，确认后才作为需求输入交接。
 - 验证 Lanhu MCP 不可用时 adapter 仍可用，可让用户粘贴需求或走普通 Superpowers 流程。
@@ -134,7 +134,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 通用验收点：
 
 - 主会话不能接收、粘贴或总结 raw Lanhu MCP tool result。
-- 主会话不能接收完整 PRD markdown，只能接收 compact metadata。
+- 主会话不能接收完整 evidence markdown，只能接收 compact metadata。
 - `.lanhu/` 之外不应有 Lanhu command 写入产物。
 - 不应写 `.superpowers/wiki/`。
 - 不应写 Superpowers spec、plan、plan sidecar 或 `Referenced Project Wiki`。
@@ -155,7 +155,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 预期：
 
-- 先询问：生成前端还是后端角色 PRD。
+- 先询问：生成前端还是后端角色证据包。
 - 在用户回答前，不调用 Lanhu analyst，不调用 Lanhu MCP。
 - 不创建 `.lanhu/` 需求包。
 
@@ -170,7 +170,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 预期：
 
-- 询问本次先生成哪一种角色 PRD。
+- 询问本次先生成哪一种角色证据包。
 - 建议前端和后端分别运行两次。
 - 在角色明确前，不读取蓝湖。
 
@@ -251,7 +251,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 - 不扩大范围去猜测其它页面。
 - 返回 `status: partial` 或清晰 caveat。
-- 若模板无法满足，不应写不完整 PRD 包；若已写，必须在 metadata 和 `index.md` 标明 caveat。
+- 若模板无法满足，不应写不完整 证据包；若已写，必须在 metadata 和 `index.md` 标明 caveat。
 
 ## 6. 显式 pageId 与页面树白名单测试
 
@@ -284,7 +284,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 - 先调用页面树读取能力。
 - 发现目标页有子页后，询问是否纳入子页，并推荐纳入。
-- 用户确认前，不生成最终 `.lanhu/` PRD 包。
+- 用户确认前，不生成最终 `.lanhu/` 证据包。
 - 不直接请求父页 + 所有子页的 full 分析。
 
 ### TC-P03：用户选择包含子页后逐页 full 分析
@@ -299,7 +299,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 - `allowedPages` 为目标页 + descendant whitelist。
 - `pagesRead` 按树顺序列出父页和子页。
-- 每个页面单独 full 分析，并在多页面 fan-out 时调用同一个已选角色 / 输出格式 analyst 写入该页完整页面 PRD 包。
+- 每个页面单独 full 分析，并在多页面 fan-out 时调用同一个已选角色 / 输出格式 analyst 写入该页完整页面 证据包。
 - 每个 `pageNamesArgument` 恰好一个页面名。
 - 前端 HTML 多页面输出时，每个页面包都有自己的 `index.md`、`index.html`、`prototype/index.html`，聚合根只写 `index.md`。
 - 不出现 `page_names: all`。
@@ -381,8 +381,8 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 前端输出路由到 `lanhu-frontend-html-requirements-analyst`，通常写 `index.md` + 包根目录 `index.html` + `prototype/index.html`。
 - 前端 Markdown analyst 只嵌入 `role-prd/frontend.md`；前端 HTML analyst 只嵌入 `role-prd/frontend_outputHtml.md`；后端 analyst 不嵌入 `role-prd/frontend_outputHtml.md`。
 - `role-prd/frontend.md` 保持 Markdown-only，不包含 `index.html` 输出职责。
-- `index.html` 是完整 HTML PRD 主文档，`prototype/index.html` 是目录化交互原型；两者互相链接并结合解读。
-- `index.html` 保留完整 PRD 信息结构；`prototype/index.html` 承载真实 HTML 控件、交互状态和可视化操作关系；不再依赖 Markdown PRD 作为权威正文。
+- `index.html` 是HTML evidence reader，`prototype/index.html` 是1:1 原始需求界面复刻原型；两者互相链接并结合解读。
+- `index.html` 保留完整 evidence 信息结构；`prototype/index.html` 承载真实 HTML 控件、交互状态和可视化操作关系；不再依赖 Markdown 文件作为“更权威正文”。
 - `index.md` 说明文件角色和 AI 解读原则，不硬编码 HTML 内部章节清单。
 - HTML Mermaid 通过必需 Mermaid CDN module script 和 `<pre class="mermaid">` 等浏览器可渲染容器展示；该 CDN 脚本是唯一允许的外部资源。
 - `htmlPrdCompliance` 干净，且 `checkedAgainstFullHtmlSourceTemplate: true`、`prototypeArtifactPresent: true`、`prototypeDirectoryized: true`、`mermaidModuleScriptPresent: true`、`mermaidBlocksBrowserRenderable: true`、`onlyAllowedExternalAssetIsMermaidCdn: true`、`rawHtmlInjectionDetected: []`。
@@ -437,7 +437,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 页面数量多但同一用户目标和验收边界时，不应机械拆分。
 - 列表页、详情弹窗、抽屉、跳转流程如果服务同一目标，应保留在同一个 PRD。
 - `index.md` 维护跨 PRD 关系、阅读顺序和必要 flowchart。
-- 每个 `prds/*.md` 都是完整角色 PRD，不用 `index.md` 替代正文。
+- 每个 `prds/*.md` 都是完整角色证据包，不用 `index.md` 替代正文。
 
 ### TC-O03：tree mode 第一层 PRD 仍可继续按业务边界拆分
 
@@ -489,21 +489,18 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - `## 一、需求概览`
 - `## 二、本次变更范围判定`
 - `### 2.1 需求思维导图`
-- `## 三、页面与入口范围`
-- `## 四、页面展示规则`
+- `## 三、页面与入口源事实`
+- `## 四、原始需求 UI 结构 1:1 复现`
 - `### 4.1 页面布局结构草图`
-- `### 4.2 展示规则说明`
-- `## 五、字段 UI 控件说明`
-- `## 六、用户操作与交互规则`
-- `### 6.1 用户操作流程`
-- `### 6.2 交互规则`
-- `## 七、页面状态流转`
-- `## 八、权限与可见性`
-- `## 九、前后端协作信息`
-- `## 十、异常与边界场景`
-- `## 十一、前端验收标准`
-- `## 十二、风险与依赖`
-- `## 十三、待确认问题`
+- `### 4.2 页面展示源事实`
+- `## 五、字段与控件源事实`
+- `## 六、用户操作与交互源事实`
+- `### 6.1 用户操作路径源事实`
+- `### 6.2 交互对象源事实`
+- `## 七、页面状态与提示源事实`
+- `## 八、权限与可见性源事实`
+- `## 九、AI 自定源事实主题（按需）`
+- `## 十、待确认问题`
 
 预期 metadata：
 
@@ -542,25 +539,18 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 必须包含：
 
-- `# 后端开发角色视角 PRD`
-- `## 一、需求概览`
-- `## 二、本次变更范围判定`
-- `### 2.1 需求思维导图`
-- `## 三、业务对象分析`
-- `## 四、业务对象关系图`
-- `## 五、业务流程`
-- `## 六、业务规则`
-- `## 七、业务状态流转`
-- `## 八、数据需求`
-- `## 九、权限与数据范围`
-- `## 十、前后端协作信息`
-- `## 十一、异常与边界场景`
-- `## 十二、日志、审计与追踪需求`
-- `## 十三、统计与查询需求`
-- `## 十四、安全与合规需求`
-- `## 十五、后端验收标准`
-- `## 十六、风险与依赖`
-- `## 十七、待确认问题`
+- `# 后端相关 Lanhu 原始需求证据包`
+- `## 一、来源与需求概览`
+- `## 二、源需求范围证据判定`
+- `### 2.1 源需求结构图`
+- `## 三、业务对象源事实`
+- `## 四、业务流程源事实`
+- `## 五、业务规则源事实`
+- `## 六、业务状态源事实`
+- `## 七、权限与数据可见性源事实`
+- `## 八、数据相关源事实`
+- `## 九、AI 自定业务源事实主题（按需）`
+- `## 十、待确认问题`
 
 预期 metadata：
 
@@ -614,7 +604,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - `requirementScopeJudgment.mode` 优先为 `delta`、`existing_context` 或 `unclear`，除非有明确全量证据。
 - 旧页面未标注部分标记为 `现有上下文`。
 - 明确新增 / 修改区域标记为 `新增` 或 `差量调整`。
-- 后续实现范围、验收标准只围绕 `新增`、`差量调整`、已确认 `全量重构` / `全量替换` 展开。
+- 后续源事实整理只围绕 `新增`、`差量调整`、已确认 `全量重构` / `全量替换` 展开；`现有上下文` 不得被写成源需求明确范围。
 - `scopeConfirmationSummary` 清楚列出 newItems、deltaItems、existingContextItems、unclearItems。
 
 ### TC-S02：无明确全量证据时不得按整页实现
@@ -729,7 +719,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 允许：
 
-- 模板要求的 Given / When / Then 产品行为验收标准。
+- 源证据中的真实控件、页面结构、字段与控件事实、交互事实、状态事实、权限与可见性事实，以及按需创建的 AI 自定源事实主题。
 
 ### TC-X02：PRD 不包含实现或技术方案
 
@@ -764,7 +754,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 验收：
 
 - agent 返回给主会话的是结构化 YAML compact metadata。
-- 不包含完整 PRD 正文。
+- 不包含完整 evidence 正文。
 - 不包含 Lanhu MCP 原始响应。
 - `confirmationGate`、`openQuestions`、`caveats` 都是紧凑用户可读文本。
 
@@ -836,8 +826,8 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 预期：
 
 - 生成两个独立 package。
-- 前端 PRD 聚焦页面展示、字段 UI、用户操作、页面状态、权限表现、异常、前后端协作信息。
-- 后端 PRD 聚焦业务对象、业务流程、业务规则、数据需求、权限与数据范围、日志审计、统计查询、安全合规。
+- 前端证据包聚焦页面展示、字段与控件、用户操作与交互、页面状态与提示、权限与可见性，以及必要的 AI 自定源事实主题。
+- 后端证据包聚焦业务对象、业务流程、业务规则、业务状态、权限与数据可见性、数据相关事实，以及必要的 AI 自定业务源事实主题。
 - 两者都不包含实现方案。
 - 两者 `scopeConfirmationSummary` 可有角色差异，但都基于同一源证据。
 
@@ -890,7 +880,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 预期：
 
-- 所有 per-page PRD 包生成且 `confirmationGate.status: clear` 后，主会话询问是否需要跨包总结、关系提取、共同业务目标识别、流程 / 依赖映射或判断是否属于同一业务需求。
+- 所有 per-page 证据包生成且 `confirmationGate.status: clear` 后，主会话询问是否需要跨包总结、关系提取、共同业务目标识别、流程 / 依赖映射或判断是否属于同一业务需求。
 - 用户拒绝时，聚合 `index.md` 只保留导航、范围摘要和确认状态。
 - 用户接受时，只在 per-page PRD 完成后更新聚合关系 / 总结，不替代页面 PRD，不生成基于 compact metadata 的全局最终 HTML PRD。
 
@@ -908,10 +898,10 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - [ ] 未使用 `page_names: all` 处理显式 pageId。
 - [ ] 未混入兄弟页、父流程页、未选中子页、相邻模块、垃圾站、旧页面或 AI 推荐相关页。
 - [ ] PRD 拆分由业务交付边界决定。
-- [ ] 多页面 fan-out 时，每个页面都有完整页面 PRD 包。
+- [ ] 多页面 fan-out 时，每个页面都有完整页面 证据包。
 - [ ] 聚合根目录只写全局 `index.md`，不根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
 - [ ] `index.md` 是入口和关系权威来源。
-- [ ] 每个 PRD 文件是完整角色 PRD。
+- [ ] 每个 PRD 文件是完整角色证据包。
 - [ ] `requirementScopeJudgment` 使用差量优先判断。
 - [ ] `scopeConfirmationSummary` 足够用户确认范围。
 - [ ] 阻塞问题进入 `confirmationGate.blockingQuestions`。

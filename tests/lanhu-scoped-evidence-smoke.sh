@@ -56,7 +56,7 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'confirmed_child_page_ids: []' \
     'pagePackageMode' \
     'full_package_per_page' \
-    'complete role-specific PRD package for the current selected page'
+    'complete evidence package for the current selected page'
   do
     require_in_file "$agent" "$required"
   done

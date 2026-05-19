@@ -4,10 +4,10 @@
 
 使用真实蓝湖链接验证 `/lanhu-requirements` 在默认 Markdown-only 和前端 `html` 配置下的端到端输出质量，重点确认：
 
-- `.lanhu/MM-DD-需求名称/` PRD 包是否完整、清晰、可交给 Superpowers 后续 brainstorming 使用。
+- `.lanhu/MM-DD-需求名称/` 证据包是否完整、清晰、可交给 Superpowers 后续 brainstorming 使用。
 - `index.md` 是否是稳定入口，并能清楚说明 PRD 文件关系、阅读顺序、范围判断和确认门禁状态。
-- `prd.md` 或 `prds/*.md` 是否满足前端 / 后端角色 PRD 模板，内容是否完整、结构清晰、范围判定明确。
-- 前端开启 `html` 后，`index.html` 是否作为完整 HTML PRD 主文档存在，`prototype/index.html` 是否作为目录化交互原型存在；HTML 是否使用左侧章节导航 + 右侧激活章节内容布局，并把第四部分页面展示规则转换为真实 HTML 控件和可核对交互结构。
+- `prd.md` 或 `prds/*.md` 是否满足前端 / 后端角色证据包 模板，内容是否完整、结构清晰、范围判定明确。
+- 前端开启 `html` 后，`index.html` 是否作为HTML evidence reader存在，`prototype/index.html` 是否作为1:1 原始需求界面复刻原型存在；HTML 是否使用左侧章节导航 + 右侧激活章节内容布局，并把第四部分页面展示规则转换为真实 HTML 控件和可核对交互结构。
 - 后端角色是否始终 Markdown-only，不输出 HTML。
 - Lanhu MCP 输出中的格式指令、AI 分析标题、测试/实现内容是否被正确剥离。
 
@@ -127,24 +127,22 @@
   - 阅读顺序
   - 范围判断摘要
   - 如有多个文件关系，包含 Mermaid flowchart
-- `prd.md` 存在，且包含完整前端 PRD 结构：
-  - `## 一、需求概览`
-  - `## 二、本次变更范围判定`
-  - `### 2.1 需求思维导图`
-  - `## 三、页面与入口范围`
-  - `## 四、页面展示规则`
+- `prd.md` 存在，且包含前端 Markdown evidence package 结构：
+  - `## 一、来源与需求概览`
+  - `## 二、源需求范围证据判定`
+  - `### 2.1 源需求结构图`
+  - `## 三、页面与入口源事实`
+  - `## 四、原始需求 UI 结构 1:1 复现`
   - `### 4.1 页面布局结构草图`
-  - `## 五、字段 UI 控件说明`
-  - `## 六、用户操作与交互规则`
-  - `### 6.1 用户操作流程`
-  - `### 6.2 交互规则`
-  - `## 七、页面状态流转`
-  - `## 八、权限与可见性`
-  - `## 九、前后端协作信息`
-  - `## 十、异常与边界场景`
-  - `## 十一、前端验收标准`
-  - `## 十二、风险与依赖`
-  - `## 十三、待确认问题`
+  - `### 4.2 页面展示源事实`
+  - `## 五、字段与控件源事实`
+  - `## 六、用户操作与交互源事实`
+  - `### 6.1 用户操作路径源事实`
+  - `### 6.2 交互对象源事实`
+  - `## 七、页面状态与提示源事实`
+  - `## 八、权限与可见性源事实`
+  - `## 九、AI 自定源事实主题（按需）`
+  - `## 十、待确认问题`
 - `prd.md` 中范围判定清楚区分：
   - `新增`
   - `差量调整`
@@ -177,8 +175,8 @@
 验收重点：
 
 - `index.md` 存在，且作为包入口、阅读顺序和范围判断摘要来源；它只说明文件角色和 AI 解读原则，不硬编码 HTML 内部章节清单。
-- `index.html` 存在，且是完整前端 HTML PRD 主文档。
-- `prototype/index.html` 存在，且是目录化交互原型，用于承载真实 HTML 控件、交互状态和可视化操作关系。
+- `index.html` 存在，且是完整前端 HTML evidence reader。
+- `prototype/index.html` 存在，且是1:1 原始需求界面复刻原型，用于承载真实 HTML 控件、交互状态和可视化操作关系。
 - `index.html` 和 `prototype/index.html` 可直接用浏览器打开。
 - `index.html` 使用左侧章节导航 + 右侧正文内容布局，不是顶部导航 + 单列内容。
 - `prototype/index.html` 应包含：
@@ -310,12 +308,12 @@
 - 业务交付边界分析基于可独立交付、负责或验收的子流程，而不是页面数量。
 - `index.md` 说明：
   - 输出格式为 frontend HTML
-  - `index.html` 是完整 HTML PRD 主文档
-  - `prototype/index.html` 是目录化交互原型
+  - `index.html` 是HTML evidence reader
+  - `prototype/index.html` 是1:1 原始需求界面复刻原型
   - 多交付边界之间的关系
   - 阅读顺序
   - 必要时有 Mermaid flowchart
-- `index.html` 是整个 package 的完整 HTML PRD 主文档，需通过左侧导航组织章节和交付边界关系。
+- `index.html` 是整个 package 的HTML evidence reader，需通过左侧导航组织章节和交付边界关系。
 - `prototype/index.html` 应为纳入范围的页面输出真实 HTML 控件和可核对交互结构。
 
 ### TC-07：阻塞确认点 gating
@@ -342,19 +340,19 @@
   - `suggestedConfirmationTarget`
 - `prd.md` 或 `prds/*.md` 的待确认问题表与 `confirmationGate.blockingQuestions` 一致。
 
-## 6. PRD 包完整性与清晰度评分表
+## 6. 证据包完整性与清晰度评分表
 
-每个生成的 PRD 包至少按以下维度评分，建议 1–5 分：
+每个生成的 证据包至少按以下维度评分，建议 1–5 分：
 
 | 维度 | 5 分标准 | 常见问题 |
 |---|---|---|
 | 入口清晰度 | `index.md` 能让读者快速知道读哪些文件、按什么顺序读、范围是什么 | 只有文件列表，没有关系说明 |
-| 范围判定 | 明确区分新增、差量、现有上下文、待确认，并有依据 | 把整张旧页面都当本期实现 |
-| 结构完整性 | PRD 章节完整，符合角色模板 | 缺少字段 UI、状态、异常、验收等章节 |
-| 内容可执行性 | 前端/后端能据此理解要做什么、不做什么 | 只有可见文案，没有规则和边界 |
+| 范围判定 | 明确区分新增、差量、现有上下文、待确认，并有依据 | 把整张旧页面都当源需求明确范围 |
+| 结构完整性 | evidence package 章节完整，符合角色模板 | 缺少字段与控件、状态与提示、权限与可见性、待确认等章节 |
+| 内容可读性 | 前端/后端能据此理解源需求说了什么、没说什么 | 只有可见文案，没有结构化事实 |
 | 待确认质量 | 阻塞/非阻塞区分准确，问题可回答 | 所有问题都阻塞，或阻塞问题被遗漏 |
 | 去实现化 | 不包含组件拆分、API 猜测、数据库设计、测试计划、代码文件影响 | Lanhu AI 的开发建议被照搬 |
-| HTML 结构核对 | `index.html` 是完整 PRD 主文档，`prototype/index.html` 用真实 HTML 控件 1:1 映射需求交互 | 只有静态表格，没有控件核对区，或虚构控件 |
+| HTML 结构核对 | `index.html` 是 evidence reader，`prototype/index.html` 用真实 HTML 控件 1:1 映射原始需求界面与交互 | 只有静态表格，没有控件核对区，或虚构控件 |
 | HTML 可用性 | 可直接打开，左侧章节导航 + 右侧激活章节内容清楚，核心交互可点击，状态切换清楚；Mermaid 可在浏览器渲染 | 顶部导航单列长文档，或依赖 Mermaid CDN 以外的外部资源 |
 | 后续交接 | 用户确认后能自然进入 Superpowers brainstorming | 入口不清楚，不知道交给 Superpowers 哪个文件 |
 
@@ -368,7 +366,7 @@
 
 ### 7.1 `index.md`
 
-- [ ] 包含 PRD 角色。
+- [ ] 包含证据包角色。
 - [ ] 包含需求名称和 package 说明。
 - [ ] 包含 PRD 文件列表。
 - [ ] 包含阅读顺序。
@@ -376,15 +374,15 @@
 - [ ] 多 PRD 时包含关系说明。
 - [ ] 多 PRD 或关系不明显时包含 Mermaid flowchart。
 - [ ] 包含范围判断摘要。
-- [ ] 不替代完整 PRD 正文。
+- [ ] 不替代完整 evidence 文档正文。
 
 ### 7.2 `prd.md` / `prds/*.md`
 
 - [ ] 章节完整。
 - [ ] 范围判定表完整。
 - [ ] 每个范围性质都有依据。
-- [ ] `现有上下文` 没进入实现或验收范围。
-- [ ] 字段 UI、交互、状态、权限、异常、验收标准清楚。
+- [ ] `现有上下文` 没被写成源需求明确范围。
+- [ ] 字段与控件、交互、状态、权限，以及必要的 AI 自定源事实主题清楚。 
 - [ ] 待确认问题区分阻塞 / 非阻塞。
 - [ ] 没有测试用例、测试点、技术测试方案。
 - [ ] 没有前端组件拆分、框架选型、状态管理实现。
@@ -420,14 +418,14 @@
 - `prd.md` / `prds/*.md` 缺少关键模板章节。
 - 范围判定没有依据，或把明显旧页面误判为本期全量实现。
 - HTML 缺少左侧章节导航 + 右侧激活章节内容布局。
-- HTML 缺少 `prototype/index.html` 目录化交互原型。
+- HTML 缺少 `prototype/index.html` 1:1 原始需求界面复刻原型。
 - `prototype/index.html` 没有把页面展示规则转换为真实 HTML 控件和交互结构。
 - HTML 控件与 Lanhu 需求不一致，或虚构源证据中不存在的产品控件。
 - 多页面 frontend HTML scope 只产出 page summaries / `.yaml`，或聚合根目录根据 compact metadata 生成全局最终 `index.html`。
 - Mermaid 仍以不可渲染源码块输出，或缺少必需 Mermaid module script。
 - HTML 包含真实接口、框架代码、Mermaid CDN 以外的外部资源或生产实现方案。
-- Lanhu MCP 的输出格式说明、AI 建议、测试视角或开发方案进入最终 PRD schema。
-- `status: need_confirmation` 时主会话粘贴完整 PRD 或绕过 analyst 的 confirmation gate。
+- Lanhu MCP 的输出格式说明、AI 建议、测试视角或开发方案进入最终 evidence schema。
+- `status: need_confirmation` 时主会话粘贴完整 evidence 正文或绕过 analyst 的 confirmation gate。
 
 ## 9. 测试记录模板
 

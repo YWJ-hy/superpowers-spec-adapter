@@ -93,20 +93,8 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     '字段规则表' \
     'STAGE 4 输出要求' \
     '.lanhu/MM-DD-需求名称/prd.md' \
-    'business delivery boundary' \
-    'not page count' \
-    'list/detail/modal/drawer' \
-    'independently delivered, owned, or accepted' \
-    'Tree mode is first-level structure' \
-    'split further' \
-    'index.md` is never a substitute' \
-    'Mermaid flowchart' \
-    'mindmap is allowed only for small/simple structures' \
-    'short node labels' \
-    'limited depth' \
-    'Split dense diagrams' \
-    'move details to tables' \
-    'templateCompliance' \
+              'split further' \
+                  'templateCompliance' \
     'selectedTemplate' \
     'checkedAgainstFullSourceTemplate' \
     'missingTemplateRequirements' \
@@ -115,7 +103,7 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'packageDir' \
     'indexPath' \
     'writtenFiles' \
-    'Do not return full PRD markdown' \
+    'Do not return full evidence markdown' \
     'compact write metadata' \
     '.superpowers/settings.json' \
     'lanhu.frontend.output.format' \
@@ -130,19 +118,12 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'uiControlsTraceableToLanhuEvidence' \
     'prototype/index.html' \
     'prototypeArtifactPresent' \
-    'prototypeDirectoryized' \
-    'prototypeLinkedFromIndexHtml' \
-    'indexMdDynamicHtmlParsingGuidance' \
-    'mermaidModuleScriptPresent' \
-    'mermaidBlocksBrowserRenderable' \
-    'onlyAllowedExternalAssetIsMermaidCdn' \
-    'prdPrototypeConflictQuestionsRaised' \
-    'fallbackToMarkdown' \
+                  'fallbackToMarkdown' \
     'pagePackageMode' \
     'full_package_per_page' \
     'page fan-out is only an evidence-fidelity strategy' \
-    'complete role-specific PRD package for the current selected page' \
-    'Compact metadata is not a PRD source' \
+    'complete evidence package for the current selected page' \
+    'Compact metadata is not an evidence source' \
     'do not regenerate final HTML from compressed subagent outputs'
   do
     require_in_file "$agent" "$required"
@@ -152,16 +133,14 @@ done
 for required in \
   'lanhu-frontend-requirements-analyst' \
   'role-prd/frontend.md' \
-  'complete frontend markdown role PRD source template' \
-  '## 二、本次变更范围判定' \
-  '### 2.1 需求思维导图' \
-  '## 四、页面展示规则' \
+  'complete frontend markdown evidence source template' \
+  '## 二、源需求范围证据判定' \
+  '### 2.1 源需求结构图' \
+  '## 四、原始需求 UI 结构 1:1 复现' \
   '### 4.1 页面布局结构草图' \
-  '## 六、用户操作与交互规则' \
-  '### 6.1 用户操作流程' \
-  '### 6.2 交互规则' \
-  '复杂状态页面' \
-  '简单页面可只保留表格' \
+  '## 六、用户操作与交互源事实' \
+  '### 6.1 用户操作路径源事实' \
+  '### 6.2 交互对象源事实' \
   '低保真 1:1' \
   '真实 Tab 标签' \
   '源证据没有 Tab 时，不输出 `tab-area`' \
@@ -175,20 +154,20 @@ do
 done
 
 forbid_in_file "$LANHU_FRONTEND_AGENT" 'role-prd/frontend_outputHtml.md'
-forbid_in_file "$LANHU_FRONTEND_AGENT" 'lanhu-frontend-html-prd-index-shell-v1'
-forbid_in_file "$LANHU_BACKEND_AGENT" 'lanhu-frontend-html-prd-index-shell-v1'
+forbid_in_file "$LANHU_FRONTEND_AGENT" 'lanhu-frontend-html-evidence-index-shell-v1'
+forbid_in_file "$LANHU_BACKEND_AGENT" 'lanhu-frontend-html-evidence-index-shell-v1'
 
 for required in \
   'lanhu-frontend-html-requirements-analyst' \
   'role-prd/frontend_outputHtml.md' \
-  'complete frontend html role PRD source template' \
-  '前端 HTML PRD 主文档提示词模板' \
-  '完整前端 PRD 主文档' \
+  'complete frontend html evidence source template' \
+  '前端 HTML Lanhu 原始需求证据包提示词模板' \
+  '前端 HTML Lanhu 原始需求证据包' \
   'index.html' \
   'htmlPrdCompliance' \
   'checkedAgainstFullHtmlSourceTemplate' \
   'canonicalIndexHtmlShell' \
-  'lanhu-frontend-html-prd-index-shell-v1' \
+  'lanhu-frontend-html-evidence-index-shell-v1' \
   'selfContained' \
   'leftNavActiveSectionOnly' \
   'leftRightDocumentLayout' \
@@ -199,7 +178,7 @@ for required in \
   'prototypeLayoutApproximationCaveats' \
   '固定 index.html 外壳模板' \
   'nav[aria-label="章节导航"]' \
-  'section.prd-section' \
+  'section.evidence-section' \
   'const activate = (id)' \
   'renderMermaid(current)' \
   "document.querySelector('main section.active')" \
@@ -207,9 +186,9 @@ for required in \
   '{{questions_section_content}}' \
   '必须先复制这份外壳' \
   'prototype 首要目标是“视觉布局 + 交互结构”核对' \
-  '页面交互结构与控件核对' \
+  '原始 UI 复现说明' \
   'prototype/index.html' \
-  '1:1 复刻原型文档' \
+  '1:1 界面复刻原型' \
   'Mermaid CDN module script' \
   'https://cdn.jsdelivr.net/npm/mermaid@latest/dist/mermaid.esm.min.mjs' \
   'startOnLoad: false' \
@@ -232,27 +211,27 @@ forbid_in_file "$LANHU_FRONTEND_HTML_AGENT" '### 4.1 页面布局结构草图'
 for required in \
   'lanhu-backend-requirements-analyst' \
   'role-prd/backend.md' \
-  'complete backend markdown role PRD source template' \
-  '## 二、本次变更范围判定' \
-  '### 2.1 需求思维导图' \
+  'complete backend markdown evidence source template' \
+  '## 二、源需求范围证据判定' \
+  '### 2.1 源需求结构图' \
   '业务对象' \
   '业务流程' \
   '业务规则' \
-  '业务状态流转' \
-  '权限与数据范围' \
-  '日志、审计与追踪需求' \
-  '统计与查询需求' \
-  '安全与合规需求'
+  '业务状态源事实' \
+  '权限与数据可见性源事实' \
+  '数据相关源事实' \
+  'AI 自定业务源事实主题' \
+  '待确认问题'
 do
   require_in_file "$LANHU_BACKEND_AGENT" "$required"
 done
 
-if grep -Fq '# 后端开发角色视角 PRD 提示词模板' "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT"; then
+if grep -Fq '# 后端相关 Lanhu 原始需求证据包 提示词模板' "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT"; then
   printf 'Frontend Lanhu analyst unexpectedly contains backend template\n' >&2
   exit 1
 fi
 
-if grep -Fq '# 前端开发角色视角 PRD 提示词模板' "$LANHU_BACKEND_AGENT" || grep -Fq 'role-prd/frontend_outputHtml.md' "$LANHU_BACKEND_AGENT"; then
+if grep -Fq '# 前端 Lanhu 原始需求证据包 提示词模板' "$LANHU_BACKEND_AGENT" || grep -Fq 'role-prd/frontend_outputHtml.md' "$LANHU_BACKEND_AGENT"; then
   printf 'Backend Lanhu analyst unexpectedly contains frontend template\n' >&2
   exit 1
 fi
@@ -272,39 +251,26 @@ for required in \
   'raw Lanhu tool-result text' \
   'standalone adapter requirements-intake command' \
   'Superpowers completion, review, verification' \
-  'Lightweight Role PRD post-write gate' \
+  'Lightweight evidence post-write gate' \
   'templateCompliance' \
   'selectedTemplate' \
   'checkedAgainstFullSourceTemplate' \
   'missingTemplateRequirements' \
   'genericHeadingsDetected' \
   'forbiddenContentDetected' \
-  '# 前端开发角色视角 PRD' \
-  '# 后端开发角色视角 PRD' \
-  '.lanhu/MM-DD-需求名称/prds/' \
-  'business delivery boundary' \
-  'not page count' \
-  'list/detail/modal/drawer' \
-  'independently delivered, owned, or accepted' \
-  'tree-mode PRD' \
-  'index.md` is never a substitute' \
-  'Mermaid flowchart' \
-  '复杂状态页面' \
-  '简单页面可只保留表格' \
-  'mindmap only for small/simple structures' \
-  'short node labels' \
-  'limited depth' \
-  'dense details to tables' \
+  '# 前端 Lanhu 原始需求证据包' \
+  '# 后端相关 Lanhu 原始需求证据包' \
+  'not splitting by page count' \
   '.superpowers/settings.json' \
   'lanhu.frontend.output.format' \
   'format: markdown | html' \
   'index.html' \
-  'complete HTML PRD main document' \
+  'evidence reader' \
   'leftNavActiveSectionOnly' \
   'leftRightDocumentLayout' \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
-  'frontend-only' \
+  'HTML is frontend-only' \
   'backend Markdown-only' \
   'htmlPrdCompliance' \
   'checkedAgainstFullHtmlSourceTemplate' \
@@ -313,15 +279,7 @@ for required in \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
   'prototype/index.html' \
-  'prototypeArtifactPresent' \
-  'prototypeDirectoryized' \
-  'prototypeLinkedFromIndexHtml' \
-  'indexMdDynamicHtmlParsingGuidance' \
-  'mermaidModuleScriptPresent' \
-  'mermaidBlocksBrowserRenderable' \
-  'onlyAllowedExternalAssetIsMermaidCdn' \
-  'prdPrototypeConflictQuestionsRaised' \
-  'fallbackToMarkdown'
+  'prototypeArtifactPresent'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
@@ -343,20 +301,6 @@ for required in \
   '功能清单表' \
   '字段规则表' \
   'STAGE 4 输出要求' \
-  '.lanhu/MM-DD-需求名称/prds/' \
-  'business delivery boundary' \
-  'not page count' \
-  'list/detail/modal/drawer' \
-  'independently delivered, owned, or accepted' \
-  'Tree mode is first-level structure' \
-  'Every PRD artifact must be a complete selected-role PRD' \
-  'index.md` is never a substitute' \
-  'Mermaid flowchart' \
-  'mindmap is allowed only for small/simple structures' \
-  'short node labels' \
-  'limited depth' \
-  'Split dense diagrams' \
-  'move details to tables' \
   'templateCompliance' \
   'selectedTemplate' \
   'checkedAgainstFullSourceTemplate' \
@@ -367,9 +311,9 @@ for required in \
   'lanhu.frontend.output.format' \
   'format: markdown | html' \
   'index.html' \
-  'complete HTML PRD main document at `index.html`' \
-  '1:1 Lanhu interaction prototype at `prototype/index.html`' \
-  'frontend-only' \
+  'evidence reader at `index.html`' \
+  '1:1 Lanhu original-requirement UI replica at `prototype/index.html`' \
+  'HTML is frontend-only' \
   'backend Markdown-only' \
   'htmlPrdCompliance' \
   'checkedAgainstFullHtmlSourceTemplate' \
@@ -378,15 +322,7 @@ for required in \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
   'prototype/index.html' \
-  'prototypeArtifactPresent' \
-  'prototypeDirectoryized' \
-  'prototypeLinkedFromIndexHtml' \
-  'indexMdDynamicHtmlParsingGuidance' \
-  'mermaidModuleScriptPresent' \
-  'mermaidBlocksBrowserRenderable' \
-  'onlyAllowedExternalAssetIsMermaidCdn' \
-  'prdPrototypeConflictQuestionsRaised' \
-  'fallbackToMarkdown'
+  'prototypeArtifactPresent'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done
