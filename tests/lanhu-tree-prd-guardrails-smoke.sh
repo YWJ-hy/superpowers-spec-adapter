@@ -118,6 +118,10 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'uiControlsTraceableToLanhuEvidence' \
     'prototype/index.html' \
     'prototypeArtifactPresent' \
+    'prototypeIsOneToOneLanhuUiReplica' \
+    'prototypeSimpleCssJsOnlyForReview' \
+    'interactionFlowsDocumentedAsSourceFacts' \
+    'businessWorkflowImplementationDetected' \
                   'fallbackToMarkdown' \
     'pagePackageMode' \
     'full_package_per_page' \
@@ -148,7 +152,11 @@ for required in \
   '单个节点建议 4–12 个中文字符' \
   '推荐最大层级 3 层' \
   '如果内容过多，请拆成多个小图' \
-  '将细节放入后续表格和章节'
+  '将细节放入后续表格和章节' \
+  '标准 PRD evidence package structure' \
+  '不得改变顶层包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态' \
+  '必覆盖维度' \
+  '不得省略'
 do
   require_in_file "$LANHU_FRONTEND_AGENT" "$required"
 done
@@ -174,7 +182,11 @@ for required in \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
   'prototypeVisualLayoutMatchesLanhuEvidence' \
+  'prototypeIsOneToOneLanhuUiReplica' \
   'prototypeControlsRemainInSourceRegions' \
+  'prototypeSimpleCssJsOnlyForReview' \
+  'interactionFlowsDocumentedAsSourceFacts' \
+  'businessWorkflowImplementationDetected' \
   'prototypeLayoutApproximationCaveats' \
   '固定 index.html 外壳模板' \
   'nav[aria-label="章节导航"]' \
@@ -201,7 +213,14 @@ for required in \
   '真实 HTML 控件' \
   'rawHtmlInjectionDetected' \
   'fallbackToMarkdown' \
-  '不输出 XML-like 页面布局结构草图文本'
+  '不输出 XML-like 页面布局结构草图文本' \
+  '标准 PRD evidence package structure' \
+  '具体交互流程必须在 `index.html` 的「用户操作与交互源事实」中以源事实表述' \
+  '1:1 Lanhu 原始需求界面复刻' \
+  '基础状态可视化' \
+  '不得承载业务流程实现' \
+  '必覆盖维度' \
+  '不得省略'
 do
   require_in_file "$LANHU_FRONTEND_HTML_AGENT" "$required"
 done
@@ -221,7 +240,11 @@ for required in \
   '权限与数据可见性源事实' \
   '数据相关源事实' \
   'AI 自定业务源事实主题' \
-  '待确认问题'
+  '待确认问题' \
+  '标准 PRD evidence package structure' \
+  '不得改变顶层包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态' \
+  '必覆盖维度' \
+  '不得省略'
 do
   require_in_file "$LANHU_BACKEND_AGENT" "$required"
 done

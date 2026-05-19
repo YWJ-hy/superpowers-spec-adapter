@@ -278,9 +278,9 @@ baseBranch: master
 
 `.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 和 `scopeConfirmationSummary` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 evidence markdown、完整 HTML 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 evidence package，直到 `confirmationGate.status: clear`。
 
-Frontend Markdown evidence package 会保留 XML-like 的 1:1 原始需求界面复刻。Frontend HTML evidence package 会生成 `index.html` evidence reader 和 `prototype/index.html` 1:1 原始需求界面复刻；prototype 使用真实 HTML 控件，因此 HTML 正文不需要重复输出“控件类型”文案。无设计稿时，原始需求界面布局就是后续开发布局依据；有设计稿时，布局可能由设计稿调整，但 UI 控件仍来自原始需求定义。
+Frontend Markdown evidence package 会保留 XML-like 的 1:1 原始需求界面复刻。Frontend HTML evidence package 会生成 `index.html` evidence reader 和 `prototype/index.html` 1:1 原始需求界面复刻；prototype 使用真实 HTML 控件，因此 HTML 正文不需要重复输出“控件类型”文案。无设计稿时，原始需求界面布局就是后续开发布局依据；有设计稿时，布局可能由设计稿调整，但 UI 控件仍来自原始需求定义。HTML prototype 只允许简单 CSS/JS 用于阅读、核对、导航、基础显隐和状态可视化；具体交互流程必须在 `index.html` 中作为源事实表述，不能写成生产逻辑、业务流程实现或技术方案。
 
-蓝湖原始需求中的明确事实不得因模板主题分类装不下而遗失；analyst 可以按源需求创建具体源事实主题，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”，但不能用“其他/杂项”泛化兜底。文档中不应包含最终验收标准、Given / When / Then、测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案、代码文件影响、前后端边界推断、异常/风险推断或 Superpowers plan tasks。
+`role-prd/` 主题定义固定 PRD evidence package 结构和必覆盖维度；AI 可以自定义内容组织和表达，但不能改变包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态。蓝湖原始需求中的明确事实不得因模板主题分类装不下而遗失、弱化或合并成不可追溯摘要；analyst 可以按源需求创建具体源事实主题，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”，但不能用“其他/杂项”泛化兜底。文档中不应包含最终验收标准、Given / When / Then、测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案、代码文件影响、前后端边界推断、异常/风险推断或 Superpowers plan tasks。
 
 lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求并按已确认角色生成 `.lanhu/` evidence package，或直接走普通 Superpowers 流程。
 

@@ -51,9 +51,7 @@ for orchestrator in "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; do
     'one selected role-and-format analyst per selected page' \
     'include_child_pages: false' \
     'confirmed_child_page_ids: []' \
-    'optional cross-package synthesis' \
-    'after per-page PRD' \
-    'must not replace them'
+    'full_package_per_page'
   do
     require_in_file "$orchestrator" "$required"
   done
@@ -61,6 +59,14 @@ for orchestrator in "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; do
   forbid_in_file "$orchestrator" 'target page is always included'
   forbid_in_file "$orchestrator" 'If child pages exist, ask the user whether to include them before reading page content'
   forbid_in_file "$orchestrator" 'use `include_child_pages: true`'
+done
+
+for required in \
+  'optional cross-package synthesis' \
+  'after per-page evidence packages' \
+  'must not replace them'
+do
+  require_in_file "$LANHU_COMMAND" "$required"
 done
 
 for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT"; do
