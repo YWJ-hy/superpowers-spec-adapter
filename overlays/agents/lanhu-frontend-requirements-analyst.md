@@ -43,6 +43,19 @@ explicitPageId: <optional pageId, page_id, or equivalent page identifier from th
 role: frontend
 scopePolicy: pageid_children_only
 childPagePolicy: ask-when-present | include | exclude
+rootScopeContext:
+  rootScopeUrl: <optional original/resolved URL-rooted scope URL from the main session>
+  rootPageId: <optional URL current/root page id used for lightweight tree selection>
+  rootScopeHash: <optional scopeHash from the main session's rootScopeTree>
+  selectedFromRootTree: true | false
+  selectedPage:
+    pageId: <this analyst's already-selected page id>
+    pageName: <page name from rootScopeTree>
+    pagePath: <page path inside rootScopeTree>
+    selectionReason: <explicit page name | matched user description | current page default>
+  selectionTreeBoundary:
+    matchingRestrictedToRootTree: true
+    mainAgentReadFullPageEvidenceBeforeDispatch: false
 userHint: <optional feature name, scope, or page focus>
 requestedOutputLanguage: zh-CN
 resolutionMode: initial | resolve_confirmation
@@ -73,7 +86,7 @@ confirmationAnswers:
     answer: <user answer or explicit accepted assumption>
 ```
 
-`role` must be `frontend`. `outputPreference.format` must be `markdown` for this agent. If `role` is missing, invalid, ambiguous, or does not equal `frontend`, return `status: need_role` and do not call Lanhu MCP tools. If the main session routes a different output format to this agent, return `status: partial` with a routing caveat instead of writing the wrong package shape. Treat missing `resolutionMode` as `initial`. Treat missing `outputPreference` as `format: markdown` for Markdown agents and as a routing error for the HTML frontend agent. Backend Markdown-only is mandatory: backend output must never write `.html` files, and `lanhu.frontend.output.format` must not affect backend behavior. Treat missing `pagePackageMode` as `false`. When `pagePackageMode: true`, `aggregationPolicy` must be `full_package_per_page`, `aggregatePackageDir` must point to the aggregate `.lanhu/MM-DD-需求名称/`, and `pagePackageDirHint` must point inside `aggregatePackageDir/pages/<page-slug>/`; this agent still produces a complete role-specific PRD package for the current page instead of a compressed intermediate summary. In `resolve_confirmation` mode, use `previousPackageDir`, `previousIndexPath`, and `confirmationAnswers` to repair the same package; if `pagePackageMode: true`, also preserve `aggregatePackageDir`, `pagePackageDirHint`, `pageOrder`, and `aggregationPolicy: full_package_per_page`. If fresh Lanhu evidence is needed, reuse `lanhu_get_prd_scoped_evidence` with `scope_policy: pageid_children_only` instead of broadening scope.
+`role` must be `frontend`. `outputPreference.format` must be `markdown` for this agent. If `role` is missing, invalid, ambiguous, or does not equal `frontend`, return `status: need_role` and do not call Lanhu MCP tools. If the main session routes a different output format to this agent, return `status: partial` with a routing caveat instead of writing the wrong package shape. Treat missing `resolutionMode` as `initial`. Treat missing `outputPreference` as `format: markdown` for Markdown agents and as a routing error for the HTML frontend agent. Backend Markdown-only is mandatory: backend output must never write `.html` files, and `lanhu.frontend.output.format` must not affect backend behavior. Treat missing `pagePackageMode` as `false`. When `rootScopeContext.selectedFromRootTree: true`, the main session has already selected this PRD target page from lightweight URL-rooted page tree metadata; `explicitPageId` must equal `rootScopeContext.selectedPage.pageId`, and this analyst must not choose additional target pages from the original root tree. In selected-page mode, treat missing `childPagePolicy` as `exclude`; descendants are not evidence for this page unless the main session selected them as separate target pages and dispatched separate analysts. When `pagePackageMode: true`, `aggregationPolicy` must be `full_package_per_page`, `aggregatePackageDir` must point to the aggregate `.lanhu/MM-DD-需求名称/`, and `pagePackageDirHint` must point inside `aggregatePackageDir/pages/<page-slug>/`; this agent still produces a complete role-specific PRD package for the current selected page instead of a compressed intermediate summary. In `resolve_confirmation` mode, use `previousPackageDir`, `previousIndexPath`, and `confirmationAnswers` to repair the same package; if `pagePackageMode: true`, also preserve `aggregatePackageDir`, `pagePackageDirHint`, `pageOrder`, `aggregationPolicy: full_package_per_page`, and `rootScopeContext`. If fresh Lanhu evidence is needed, reuse `lanhu_get_prd_scoped_evidence` with `scope_policy: pageid_children_only` instead of broadening scope.
 
 ## Selected output format contract
 
@@ -111,23 +124,23 @@ target_page_id: <explicitPageId>
 scope_policy: pageid_children_only
 ```
 
-3. Treat `lanhu_get_prd_page_scope.targetPage` as the only mandatory scope. Treat `childPages` as confirmable descendants only; they are not included until user confirmation.
-4. If `needsChildConfirmation: true` and `childPagePolicy: ask-when-present`, ask the user whether to include child pages before calling any page-content evidence tool. Recommend inclusion when the target page is a parent or summary page and child pages carry concrete requirement details.
-5. Call `lanhu_get_prd_scoped_evidence` only after child scope is resolved, with exactly:
+3. Treat `lanhu_get_prd_page_scope.targetPage` as the selected page's metadata check, not as permission to expand analysis to descendants. When `rootScopeContext.selectedFromRootTree: true`, the analyst must verify `explicitPageId == rootScopeContext.selectedPage.pageId`, `rootScopeContext.selectionTreeBoundary.matchingRestrictedToRootTree: true`, and `rootScopeContext.selectionTreeBoundary.mainAgentReadFullPageEvidenceBeforeDispatch: false`; if these do not hold, return `status: partial` and do not broaden scope.
+4. In selected-page mode, do not ask whether to include child pages and do not automatically include descendants. If descendants should also become PRD targets, the main session must select them from the URL-rooted `rootScopeTree` and dispatch separate page analysts.
+5. Call `lanhu_get_prd_scoped_evidence` only after the selected-page metadata check, with exactly:
 
 ```yaml
 url: <resolved Lanhu URL>
 target_page_id: <explicitPageId>
 scope_policy: pageid_children_only
-include_child_pages: true | false
-confirmed_child_page_ids: [] | [user-selected child pageIds]
+include_child_pages: false
+confirmed_child_page_ids: []
 mode: full
 output_mode: evidence_only
 scope_hash: <scopeHash from lanhu_get_prd_page_scope if available>
 ```
 
-6. Verify `scopeValidation.returnedOutOfScopePages == 0`, `scopeValidation.targetPageId == explicitPageId`, and every returned page id is the target page or a confirmed descendant. If validation fails, return `status: partial` and do not write package files.
-7. Never read sibling pages, parent flow pages, adjacent modules, trash or legacy pages, other pages in the same document, navigation-linked pages, or Lanhu AI related-page suggestions. These are excluded even when Lanhu evidence mentions them.
+6. Verify `scopeValidation.returnedOutOfScopePages == 0`, `scopeValidation.targetPageId == explicitPageId`, and every returned page id is the selected target page only. If validation fails, return `status: partial` and do not write package files.
+7. Never read child pages unless they were separately selected and dispatched as their own analyst calls. Never read sibling pages, parent flow pages, adjacent modules, trash or legacy pages, other pages in the same document, navigation-linked pages, or Lanhu AI related-page suggestions. These are excluded even when Lanhu evidence mentions them.
 8. If the scoped tools are unavailable, do not silently fall back to `lanhu_get_pages`, `lanhu_get_ai_analyze_page_result`, `page_names: all`, broad full analysis, or arbitrary Lanhu MCP tools. Return `status: unavailable` or `status: partial` and ask the user to upgrade Lanhu MCP or paste requirements.
 
 If `explicitPageId` cannot be resolved by `lanhu_get_prd_page_scope`, return `status: partial` with a caveat instead of analyzing the whole document.
@@ -158,7 +171,7 @@ Before Superpowers brainstorming continues, return a compact `scopeConfirmationS
 
 Set `outputMode: package` for all successful Lanhu outputs.
 
-This agent supports only `outputPreference.format: markdown`. Use page-tree evidence and requirementScopeJudgment only to decide the number of delivery boundaries. PRD splitting is based on business delivery boundary, not page count or child-page count. In `pagePackageMode`, page fan-out is only an evidence-fidelity strategy selected by the main session; this agent must still create one complete PRD package for the current page and must not reduce the page to `.yaml`, summary Markdown, or compact metadata for a later HTML regeneration step.
+This agent supports only `outputPreference.format: markdown`. Use the selected page's scoped evidence and requirementScopeJudgment only to decide the number of delivery boundaries. PRD splitting is based on business delivery boundary, not page count or child-page count. In `pagePackageMode`, page fan-out is only an evidence-fidelity strategy selected by the main session; this agent must still create one complete PRD package for the current selected page and must not reduce the page to `.yaml`, summary Markdown, or compact metadata for a later HTML regeneration step.
 
 Set `deliveryBoundaryCount: 1` when the resolved scope is best represented by a single complete role-specific PRD.
 
@@ -173,7 +186,7 @@ Before writing any `.lanhu` package files, build an adapter-owned `deliveryBound
 Return `status: need_confirmation` before writing package files when the delivery boundary is ambiguous, including these cases:
 - two independently deliverable user goals appear in the scoped evidence and might be over-merged;
 - one user goal spans multiple pages, child pages, modal, drawer, detail view, or state screens and might be over-split;
-- child pages carry concrete requirements but the user has not confirmed whether they are included;
+- the selected page evidence references descendant pages that may be separate target pages but the main session did not select and dispatch them;
 - one page contains several modules and the source evidence does not prove whether they share one acceptance boundary;
 - frontend HTML `index.html` and `prototype/index.html` would need different boundary assumptions.
 
@@ -750,7 +763,7 @@ And 展示对应字段的错误提示
 
 ## PRD split
 
-Use page-tree evidence only to decide the number of delivery boundaries. PRD splitting is based on business delivery boundary, not page count or child-page count.
+Use selected-page evidence only to decide the number of delivery boundaries. PRD splitting is based on business delivery boundary, not page count or child-page count.
 
 Set `deliveryBoundaryCount: 1` when the resolved scope is best represented by a single complete role-specific PRD.
 
@@ -820,6 +833,19 @@ scopedEvidenceContract:
   scopePolicy: pageid_children_only
   outputMode: evidence_only
   arbitraryLanhuToolsUsed: false
+rootScopeContext:
+  rootScopeUrl: <original/resolved URL-rooted scope URL from the main session>
+  rootPageId: <URL current/root page id used for lightweight tree selection>
+  rootScopeHash: <scopeHash from the main session's rootScopeTree if available>
+  selectedFromRootTree: true | false
+  selectedPage:
+    pageId: <this analyst's selected page id>
+    pageName: <page name from rootScopeTree>
+    pagePath: <page path inside rootScopeTree>
+    selectionReason: <why the main session selected this page>
+  selectionTreeBoundary:
+    matchingRestrictedToRootTree: true
+    mainAgentReadFullPageEvidenceBeforeDispatch: false
 source:
   lanhuUrl: <url if known>
   allowedPages:
@@ -827,10 +853,10 @@ source:
       name: <page name>
       path: <page path if known>
       level: <page depth if known>
-      role: target | child
+      role: selected_target
   scopeValidation:
     targetPageId: <explicitPageId>
-    includeChildPages: true | false
+    includeChildPages: false
     requestedChildPageIds: []
     acceptedChildPageIds: []
     rejectedChildPageIds: []
@@ -860,7 +886,7 @@ deliveryBoundaryPlan:
           - <operation>
       excludedEvidence:
         - object: <excluded page/region/object>
-          reason: sibling | parent | adjacent | existing_context | unrelated | unconfirmed_child
+          reason: child | sibling | parent | adjacent | existing_context | unrelated | unselected_target
       keepTogetherReason: <why these pages/states stay together>
       splitReason: <why this boundary is split from others or null>
       acceptanceBoundary: <acceptance boundary>

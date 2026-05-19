@@ -208,7 +208,7 @@ def sync(root: Path) -> bool:
         rendered = render_agent(root, config)
         original = path.read_text(encoding='utf-8') if path.exists() else None
         if original != rendered:
-            path.write_text(rendered, encoding='utf-8')
+            path.write_text(rendered, encoding='utf-8', newline='\n')
             changed = True
             print(f'Updated {config.agent_path.as_posix()}')
     return changed

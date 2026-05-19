@@ -849,17 +849,64 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - `lanhu-backend-requirements-analyst` 不输出 `# 前端开发角色视角 PRD`。
 - frontend / backend metadata `prdTemplate` 与 role 一致。
 
-## 14. 人工验收清单
+## 14. URL-rooted page selection 测试
+
+### TC-R01：URL 当前页仅作为范围入口，用户只分析指定子页
+
+入口：
+
+```text
+/lanhu-requirements <带 root pageId 且有子页的 Lanhu URL> 前端 预估报价新增报价类型
+用户说明：只分析子页“手术报价”、“门诊报价”、“简易住院”，当前页“预估报价”为现有功能无需分析。
+```
+
+预期：
+
+- 主会话把 URL 当作 `rootScopeUrl`，当前页当作 `rootPageId`。
+- 主会话只调用 `lanhu_get_prd_page_scope` 获取当前页及子树的轻量 page tree metadata。
+- 主会话不在派发前调用 `lanhu_get_prd_scoped_evidence`，也不读取完整页面 evidence。
+- `selectedTargetPages` 只包含“手术报价”、“门诊报价”、“简易住院”。
+- 当前页“预估报价”被记录为排除项，原因是用户说明为已有功能 / 范围入口。
+- 每个选中页面派发一个 analyst，且传入 `childPagePolicy: exclude`。
+- 每个 analyst 只读取自己的 selected page evidence，固定 `include_child_pages: false`、`confirmed_child_page_ids: []`。
+
+### TC-R02：用户点名 URL-rooted tree 外页面
+
+预期：
+
+- 主会话说明该页面不在当前 URL-rooted tree 内。
+- 主会话询问用户更正页面名或提供新的 root URL。
+- 不调用 broad Lanhu tools，不使用 `page_names: all`，不读取 scoped evidence。
+
+### TC-R03：用户点名页面名存在歧义
+
+预期：
+
+- 主会话展示 tree 内候选 page name / path / pageId。
+- 用户选择前不派发 analyst。
+- 用户选择后只派发被选中的 page。
+
+### TC-R04：多页面包完成后询问跨包 synthesis
+
+预期：
+
+- 所有 per-page PRD 包生成且 `confirmationGate.status: clear` 后，主会话询问是否需要跨包总结、关系提取、共同业务目标识别、流程 / 依赖映射或判断是否属于同一业务需求。
+- 用户拒绝时，聚合 `index.md` 只保留导航、范围摘要和确认状态。
+- 用户接受时，只在 per-page PRD 完成后更新聚合关系 / 总结，不替代页面 PRD，不生成基于 compact metadata 的全局最终 HTML PRD。
+
+## 15. 人工验收清单
 
 每个真实 URL 用例完成后，人工检查以下清单：
 
 - [ ] role 在读取 Lanhu 前已明确。
-- [ ] 显式 pageId 先读取页面树。
-- [ ] 有子页时先询问是否纳入。
-- [ ] 分析范围符合页面白名单。
-- [ ] 每页单独 `mode: full`，`page_names` 恰好一个页面。
+- [ ] 显式 pageId 先读取 URL 当前页及子树的轻量 page tree metadata。
+- [ ] 主会话在派发前未调用 `lanhu_get_prd_scoped_evidence` 或读取完整 page evidence。
+- [ ] `selectedTargetPages` 只来自 URL-rooted tree。
+- [ ] 用户显式排除当前页时，当前页只作为范围入口，不派发 analyst。
+- [ ] 页面名不在 tree 内或存在歧义时，先询问用户，不 broad read。
+- [ ] 每个 selected page 单独 `mode: full`，且 `include_child_pages: false`、`confirmed_child_page_ids: []`。
 - [ ] 未使用 `page_names: all` 处理显式 pageId。
-- [ ] 未混入兄弟页、父流程页、相邻模块、垃圾站、旧页面或 AI 推荐相关页。
+- [ ] 未混入兄弟页、父流程页、未选中子页、相邻模块、垃圾站、旧页面或 AI 推荐相关页。
 - [ ] PRD 拆分由业务交付边界决定。
 - [ ] 多页面 fan-out 时，每个页面都有完整页面 PRD 包。
 - [ ] 聚合根目录只写全局 `index.md`，不根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。

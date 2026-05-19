@@ -66,7 +66,10 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'possibleOverMerge' \
     'possibleOverSplit' \
     'confirmationGate.phase' \
-    'only mandatory scope' \
+    "selected page's metadata check" \
+    'selected target page only' \
+    'rootScopeContext' \
+    'selectedFromRootTree' \
     'requirementScopeJudgment' \
     'scopeConfirmationSummary' \
     'delta-first requirement scope judgment' \
@@ -138,7 +141,7 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'pagePackageMode' \
     'full_package_per_page' \
     'page fan-out is only an evidence-fidelity strategy' \
-    'complete role-specific PRD package for the current page' \
+    'complete role-specific PRD package for the current selected page' \
     'Compact metadata is not a PRD source' \
     'do not regenerate final HTML from compressed subagent outputs'
   do

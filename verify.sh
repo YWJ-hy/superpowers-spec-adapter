@@ -150,7 +150,15 @@ check_optional_integration_overlays() {
     'possibleOverMerge' \
     'possibleOverSplit' \
     'confirmationGate.phase' \
-    'target page is always included' \
+    'rootScopeContext' \
+    'rootScopeUrl' \
+    'rootPageId' \
+    'selectedTargetPages' \
+    'selectedFromRootTree' \
+    'matchingRestrictedToRootTree' \
+    'mainAgentReadFullPageEvidenceBeforeDispatch: false' \
+    'include_child_pages: false' \
+    'confirmed_child_page_ids: []' \
     'packageDir' \
     'Do not write `.superpowers/wiki/`' \
     'mode: full' \
@@ -207,7 +215,7 @@ check_optional_integration_overlays() {
     'pagePackageMode' \
     'full_package_per_page' \
     'pagePackageDirHint' \
-    'complete role-specific PRD package for the current page' \
+    'complete role-specific PRD package for the current selected page' \
     'Compact metadata is not a PRD source' \
     'do not regenerate final HTML from compressed subagent outputs'
   do
@@ -484,7 +492,9 @@ check_native_skill_residuals() {
     'possibleOverMerge' \
     'possibleOverSplit' \
     'confirmationGate.phase' \
-    'target page is always included' \
+    'rootScopeContext' \
+    'selectedFromRootTree' \
+    'selected target page only' \
     '__AI_INSTRUCTION__' \
     'ai_suggestion' \
     'mode: full' \

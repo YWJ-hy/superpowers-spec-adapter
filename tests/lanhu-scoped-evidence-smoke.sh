@@ -46,12 +46,17 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'possibleOverSplit' \
     'confirmationGate.phase' \
     'targetPage' \
-    'only mandatory scope' \
+    "selected page's metadata check" \
+    'selected target page only' \
     'do not silently fall back to `lanhu_get_pages`' \
     'Do not call any other Lanhu MCP tool' \
+    'rootScopeContext' \
+    'selectedFromRootTree' \
+    'include_child_pages: false' \
+    'confirmed_child_page_ids: []' \
     'pagePackageMode' \
     'full_package_per_page' \
-    'complete role-specific PRD package for the current page'
+    'complete role-specific PRD package for the current selected page'
   do
     require_in_file "$agent" "$required"
   done
@@ -72,9 +77,15 @@ for required in \
   'deliveryBoundaryPlan' \
   'confirmationGate.phase: delivery_boundary' \
   'Do not silently fall back to old broad Lanhu MCP tools' \
+  'rootScopeUrl' \
+  'rootPageId' \
+  'selectedTargetPages' \
+  'childPagePolicy: exclude' \
+  'include_child_pages: false' \
+  'confirmed_child_page_ids: []' \
   'pagePackageMode: true' \
   'aggregationPolicy: full_package_per_page' \
-  'same fixed scoped evidence workflow'
+  'fixed Lanhu MCP tool sequence'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
