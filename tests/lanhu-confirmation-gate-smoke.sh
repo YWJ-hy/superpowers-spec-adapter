@@ -66,7 +66,10 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'pagePackageMode' \
     'full_package_per_page' \
     'Compact metadata is not an evidence source' \
-    'Missing implementation field names'
+    'Missing implementation field names' \
+    'image relevance' \
+    'status: need_confirmation' \
+    'selectiveImageAnalysis'
   do
     require_in_file "$agent" "$required"
   done

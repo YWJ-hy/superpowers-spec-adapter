@@ -128,7 +128,12 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'page fan-out is only an evidence-fidelity strategy' \
     'complete evidence package for the current selected page' \
     'Compact metadata is not an evidence source' \
-    'do not regenerate final HTML from compressed subagent outputs'
+    'do not regenerate final HTML from compressed subagent outputs' \
+    'Selective image analysis policy' \
+    'designInfo.images' \
+    'candidate evidence only' \
+    'structured source facts' \
+    'persistedImages: false'
   do
     require_in_file "$agent" "$required"
   done
@@ -302,7 +307,9 @@ for required in \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
   'prototype/index.html' \
-  'prototypeArtifactPresent'
+  'prototypeArtifactPresent' \
+  'selectiveImageAnalysis' \
+  'base64 blobs, remote image references'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
@@ -345,7 +352,9 @@ for required in \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
   'prototype/index.html' \
-  'prototypeArtifactPresent'
+  'prototypeArtifactPresent' \
+  'selectiveImageAnalysis' \
+  'base64 blobs, remote image references'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

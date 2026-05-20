@@ -56,7 +56,12 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'confirmed_child_page_ids: []' \
     'pagePackageMode' \
     'full_package_per_page' \
-    'complete evidence package for the current selected page'
+    'complete evidence package for the current selected page' \
+    'Selective image analysis policy' \
+    'must not broaden the allowed Lanhu MCP tool set' \
+    'designInfo.images' \
+    'lanhu_get_prd_scoped_evidence' \
+    'output_mode: evidence_only'
   do
     require_in_file "$agent" "$required"
   done
@@ -85,7 +90,9 @@ for required in \
   'confirmed_child_page_ids: []' \
   'pagePackageMode: true' \
   'aggregationPolicy: full_package_per_page' \
-  'fixed Lanhu MCP tool sequence'
+  'fixed Lanhu MCP tool sequence' \
+  'selective image analysis policy' \
+  'broad Lanhu design tools'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done

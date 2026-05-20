@@ -220,7 +220,12 @@ check_optional_integration_overlays() {
     'pagePackageDirHint' \
     'complete evidence package for the current selected page' \
     'Compact metadata is not an evidence source' \
-    'do not regenerate final HTML from compressed subagent outputs'
+    'do not regenerate final HTML from compressed subagent outputs' \
+    'Selective image analysis policy' \
+    'designInfo.images' \
+    'candidate evidence only' \
+    'structured source facts' \
+    'persistedImages: false'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_command"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
@@ -354,6 +359,12 @@ check_optional_integration_overlays() {
     'productionImplementationDetected' \
     'rawHtmlInjectionDetected' \
     'fallbackToMarkdown' \
+    'selectiveImageAnalysisPolicyApplied: true' \
+    'imageFactsAreStructured: true' \
+    'remoteLanhuImagesEmbedded: []' \
+    'persistedLanhuImageFiles: []' \
+    'fullScreenshotParsingDetected: []' \
+    'selected scoped/evidenced Lanhu requirement range' \
     '不输出 XML-like 页面布局结构草图文本'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_html_agent"; then
