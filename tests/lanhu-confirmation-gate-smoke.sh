@@ -65,7 +65,8 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'fallbackToMarkdown' \
     'pagePackageMode' \
     'full_package_per_page' \
-    'Compact metadata is not an evidence source'
+    'Compact metadata is not an evidence source' \
+    'Missing implementation field names'
   do
     require_in_file "$agent" "$required"
   done
@@ -100,7 +101,8 @@ for required in \
   'leftRightDocumentLayout' \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
-  'fallbackToMarkdown'
+  'fallbackToMarkdown' \
+  'Missing implementation field names'
 do
   require_in_file "$LANHU_COMMAND" "$required"
 done
@@ -123,7 +125,8 @@ for required in \
   'leftRightDocumentLayout' \
   'realHtmlInteractionControls' \
   'uiControlsTraceableToLanhuEvidence' \
-  'fallbackToMarkdown'
+  'fallbackToMarkdown' \
+  'Missing implementation field names'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

@@ -276,7 +276,7 @@ baseBranch: master
 
 如果蓝湖链接带有明确 `pageId`，adapter 会在角色确认后把该 URL 当作范围入口：先用 `lanhu_get_prd_page_scope` 只获取当前页及子树的轻量 page tree metadata，再结合用户描述选择目标页面。每个选中的页面单独派发 analyst，并由 analyst 用 `lanhu_get_prd_scoped_evidence` 读取 `output_mode: evidence_only` 的单页证据，固定 `include_child_pages: false`、`confirmed_child_page_ids: []`。相邻页面、同文档其它模块、父级流程页、未选中的子页、垃圾站 / 旧页面、导航关联页或 Lanhu AI 认为“相关”的页面不会进入该页面包。
 
-`.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 和 `scopeConfirmationSummary` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 evidence markdown、完整 HTML 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 evidence package，直到 `confirmationGate.status: clear`。
+`.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 和 `scopeConfirmationSummary` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 evidence markdown、完整 HTML 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 evidence package，直到 `confirmationGate.status: clear`。缺少后端接口字段名、数据库列名、枚举编码或代码模型属性名不应阻塞 Lanhu 包，除非源证据连产品语义字段/控件含义、可见性、必填/默认/只读、校验、状态、权限、交互或范围都无法确认。
 
 Frontend Markdown evidence package 会保留 XML-like 的 1:1 原始需求界面复刻。Frontend HTML evidence package 会生成 `index.html` evidence reader 和 `prototype/index.html` 1:1 原始需求界面复刻；prototype 使用真实 HTML 控件，因此 HTML 正文不需要重复输出“控件类型”文案。无设计稿时，原始需求界面布局就是后续开发布局依据；有设计稿时，布局可能由设计稿调整，但 UI 控件仍来自原始需求定义。HTML prototype 只允许简单 CSS/JS 用于阅读、核对、导航、基础显隐和状态可视化；具体交互流程必须在 `index.html` 中作为源事实表述，不能写成生产逻辑、业务流程实现或技术方案。
 

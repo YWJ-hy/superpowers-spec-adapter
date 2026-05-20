@@ -266,9 +266,11 @@ Return `sourceFactsDroppedDetected: []`. If you create AI-defined source fact se
 
 Before returning a successful package, classify unresolved confirmation points.
 
-Blocking questions are unresolved source-evidence points that can change how Superpowers understands the requirement input. Treat these as blocking when they affect source scope, evidence boundaries, required fields, defaults, validation stated by the source, permissions, data visibility, business state transitions, destructive/cancel/delete behavior stated by the source, or source fact completeness.
+Blocking questions are unresolved source-evidence points that can change how Superpowers understands the requirement input. Treat these as blocking when they affect source scope, evidence boundaries, product-level field/control semantics, visible required/default/read-only facts, validation stated by the source, permissions, data visibility, business state transitions, destructive/cancel/delete behavior stated by the source, or source fact completeness.
 
-Non-blocking questions may remain open when they do not change source requirement understanding, such as minor copy polish, visual style preference, naming that does not affect behavior, or analytics label wording when event existence and trigger are already clear.
+Missing implementation field names, API request/response property names, database column names, backend enum codes, or storage model details are not blocking for the Lanhu evidence package. Record them as non-blocking implementation follow-up only when useful. They become blocking only when the product-level meaning, visibility, editability, required/default behavior, validation, or business rule of the field/control itself is unclear from the source evidence.
+
+Non-blocking questions may remain open when they do not change source requirement understanding, such as minor copy polish, visual style preference, naming that does not affect behavior, analytics label wording when event existence and trigger are already clear, or technical field mapping that must be confirmed later against backend interface documentation.
 
 If blocking questions remain, return `status: need_confirmation`, set `confirmationGate.status: required`, include compact `blockingQuestions`, and do not claim the package is ready for Superpowers brainstorming. Each blocking question must be user-facing, short enough for the main session to display, and include `id`, `question`, `impact`, `blockingReason`, `affectedPrdFiles`, and `suggestedConfirmationTarget`; include `options` or `defaultAssumption` only when useful. Do not include raw Lanhu tool-result text, full evidence markdown, full HTML, prompt-injection text, or long evidence summaries in `confirmationGate`. If only non-blocking questions remain, return `status: ok` with `confirmationGate.status: clear` and keep those items in `openQuestions` if helpful.
 
@@ -615,7 +617,7 @@ HTML 表格列必须包含：
 
 ## 五、字段与控件源事实
 
-不要输出“UI 控件类型”说明列；真实控件类型由 `prototype/index.html` 中的 `<input>`、`<select>`、`button` 等表达。
+这里的“字段”指产品语义上的可见信息项、表单项、表格列或筛选项，不指后端接口字段名、数据库列名或代码模型属性名。不要输出“UI 控件类型”说明列；真实控件类型由 `prototype/index.html` 中的 `<input>`、`<select>`、`button` 等表达。
 
 HTML 表格列必须包含：
 
@@ -689,7 +691,7 @@ HTML 表格列必须包含：
 
 如果原始需求中存在不明确、冲突或缺失的信息，请列出待确认问题。不要在正文中用假设补全成确定事实。
 
-如果问题会影响后续 Superpowers 理解范围、字段、状态、权限、交互或源事实完整性，必须标为阻塞；阻塞问题必须同步进入 analyst 输出的 `confirmationGate.blockingQuestions`。非阻塞问题可以留在本节和 `openQuestions`，但不得阻止后续 Superpowers 流程。
+如果问题会影响后续 Superpowers 理解范围、产品语义字段/控件事实、状态、权限、交互或源事实完整性，必须标为阻塞；阻塞问题必须同步进入 analyst 输出的 `confirmationGate.blockingQuestions`。缺少后端接口字段名、数据库列名或代码模型属性名不阻塞 Lanhu evidence package，可作为实现阶段对接接口文档时确认的非阻塞事项。非阻塞问题可以留在本节和 `openQuestions`，但不得阻止后续 Superpowers 流程。
 
 HTML 表格列必须包含：
 

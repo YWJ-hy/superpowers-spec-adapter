@@ -257,7 +257,7 @@ HTML 表格列必须包含：
 
 ## 五、字段与控件源事实
 
-不要输出“UI 控件类型”说明列；真实控件类型由 `prototype/index.html` 中的 `<input>`、`<select>`、`button` 等表达。
+这里的“字段”指产品语义上的可见信息项、表单项、表格列或筛选项，不指后端接口字段名、数据库列名或代码模型属性名。不要输出“UI 控件类型”说明列；真实控件类型由 `prototype/index.html` 中的 `<input>`、`<select>`、`button` 等表达。
 
 HTML 表格列必须包含：
 
@@ -331,7 +331,7 @@ HTML 表格列必须包含：
 
 如果原始需求中存在不明确、冲突或缺失的信息，请列出待确认问题。不要在正文中用假设补全成确定事实。
 
-如果问题会影响后续 Superpowers 理解范围、字段、状态、权限、交互或源事实完整性，必须标为阻塞；阻塞问题必须同步进入 analyst 输出的 `confirmationGate.blockingQuestions`。非阻塞问题可以留在本节和 `openQuestions`，但不得阻止后续 Superpowers 流程。
+如果问题会影响后续 Superpowers 理解范围、产品语义字段/控件事实、状态、权限、交互或源事实完整性，必须标为阻塞；阻塞问题必须同步进入 analyst 输出的 `confirmationGate.blockingQuestions`。缺少后端接口字段名、数据库列名或代码模型属性名不阻塞 Lanhu evidence package，可作为实现阶段对接接口文档时确认的非阻塞事项。非阻塞问题可以留在本节和 `openQuestions`，但不得阻止后续 Superpowers 流程。
 
 HTML 表格列必须包含：
 

@@ -81,6 +81,7 @@ The aggregate `index.md` is only the global entrypoint, page package table, read
 - Always ask the user to review and confirm the written `.lanhu/.../index.md` entry point and the analyst's `scopeConfirmationSummary` before continuing to Superpowers brainstorming.
 - If the analyst returns `status: need_confirmation`, do not continue to Superpowers brainstorming; show only compact blocking questions plus `role`, `packageDir`, `indexPath`, and question count, then route user answers back to the same role analyst.
 - Do not read, paste, or summarize full evidence markdown or full HTML to decide confirmation status. The analyst owns blocking classification; the main session must not override `confirmationGate` directly.
+- Missing implementation field names, API request/response property names, database columns, backend enum codes, or code model properties must not block Lanhu readiness; only missing product-level field/control semantics, required/default/read-only behavior, validation, permissions, state, interaction, or source scope may block.
 - Role selection is mandatory before analysis; if the user asks for both frontend and backend, ask them to choose one for this run.
 
 ## User Input
