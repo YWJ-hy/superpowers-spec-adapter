@@ -16,6 +16,7 @@ from wiki_common import (
     shared_wiki_neutrality_violations,
     wiki_root_by_name,
 )
+from wiki_section import list_section_ids, validate_section_markers
 
 VALID = "valid"
 WARNING = "warning"
@@ -103,6 +104,21 @@ def check_file(project_root: Path, root_desc, path: Path, *, leaf: bool) -> tupl
             if missing:
                 title = lines[start].strip()
                 warnings.append(f"Incomplete update block in {rel} ({title}): missing {', '.join(missing)}")
+
+    if leaf:
+        marker_errors = validate_section_markers(text)
+        for err in marker_errors:
+            errors.append(f"Section marker error in {rel}: {err}")
+        if lines_count > 100 and not list_section_ids(text):
+            warnings.append(f"Leaf page over 100 lines without section markers: {rel} ({lines_count} lines)")
+        section_index_path = path.parent / f"{path.stem}.index.md"
+        if list_section_ids(text) and section_index_path.is_file():
+            index_text = section_index_path.read_text(encoding="utf-8")
+            doc_ids = set(list_section_ids(text))
+            index_ids = {sid for sid in doc_ids if sid in index_text}
+            missing_in_index = doc_ids - index_ids
+            if missing_in_index:
+                warnings.append(f"Section index stale for {rel}: sections {', '.join(sorted(missing_in_index))} not in {path.stem}.index.md")
 
     return warnings, errors, oversized
 

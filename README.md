@@ -159,6 +159,20 @@ For normal use in Claude Code or similar tools, use the installed Superpowers co
 
 The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Shared imports must already be neutral/portable and are rejected when configured shared neutrality guards match system-specific identifiers. Because imports create wiki documents, `/import-wiki` honors the selected root's `wiki.updateAuthorization.createNewDocument` setting and asks by default before creating new files. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
 
+### Migrating wiki to section-marker format
+
+Use `/migrate-wiki` in Claude Code to migrate existing wiki documents to the two-layer index structure with `<!-- wiki-section:xxx -->` markers. The AI agent analyzes each document semantically, identifies independent constraint units, inserts section markers, and generates per-document `<stem>.index.md` companion files.
+
+The mechanical helper is also available via CLI:
+
+```bash
+./manage.sh migrate-wiki-sections --inventory /path/to/project --wiki-root all
+./manage.sh migrate-wiki-sections --validate /path/to/project --wiki-root project
+./manage.sh migrate-wiki-sections --generate-indexes /path/to/project --wiki-root project
+```
+
+Documents without a companion `<stem>.index.md` are invisible to `wiki-researcher`. Migration is required for wiki constraints to participate in the planning and execution flow.
+
 ## Optional Lanhu requirements intake
 
 If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command confirms the evidence role and determines the matching `lanhu-frontend-requirements-analyst`, `lanhu-frontend-html-requirements-analyst`, or `lanhu-backend-requirements-analyst` according to role and output format.

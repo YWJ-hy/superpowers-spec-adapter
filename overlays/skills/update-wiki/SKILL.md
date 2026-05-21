@@ -228,7 +228,24 @@ Allowed values are:
 
 New leaf creation, topic-directory creation, and missing index creation are governed by `createNewDocument`. Editing an existing leaf or refreshing an existing index is governed by `updateExistingPage`.
 
-### 9. Choose local edit or remote shared-wiki MCP PR
+### 9. Maintain section markers
+
+When editing a wiki page that already uses `<!-- wiki-section:xxx -->` markers:
+- Preserve existing section markers and their IDs.
+- Place new content inside the most appropriate existing section, or create a new section if the content represents an independent constraint topic.
+- New section IDs must be kebab-case (`[a-z0-9][a-z0-9_-]*`) and reflect the constraint's core semantics.
+
+When creating a new wiki page that will contain multiple independent constraint topics:
+- Add section markers from the start.
+- Each section should be an independently citable constraint unit.
+
+After editing or creating a page with section markers, regenerate the per-document section index:
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_generate_section_index.py <wiki-file-path> --wiki-root <project|shared> --project-root .
+```
+
+### 10. Choose local edit or remote shared-wiki MCP PR
 
 For normal project wiki updates, edit the chosen leaf wiki page with `Read` and `Edit` whenever possible.
 Keep the existing style of the target file.
@@ -244,7 +261,7 @@ If the selected target is shared wiki and the user/project uses the GitHub-backe
 4. If validation passes, call `shared_wiki_create_patch_pr` to create a branch and PR.
 5. Report the PR URL, branch, changed files, and validation summary; do not claim the shared wiki has been merged or published.
 
-### 10. Refresh and validate the mechanical state
+### 11. Refresh and validate the mechanical state
 
 After editing body content, refresh indexed summaries:
 

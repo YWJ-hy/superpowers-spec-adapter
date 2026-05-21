@@ -105,6 +105,19 @@ python3 overlays/scripts/wiki_update_check.py --json
 
 只有在用户入口明确后，再实现或调整 `overlays/scripts/*.py`。涉及 wiki 内容判断的 command / skill 应优先由 agent 主导；Python 只做 inventory、copy、validate、refresh、过大页面统计等机械操作，不应独立判断 durable knowledge、target ownership、拆分边界或 contract 内容。
 
+### Wiki 文档 Section 标记规范
+
+Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section:section-id -->` HTML 注释标记包裹独立约束主题段落。Section ID 必须为 kebab-case（`[a-z0-9][a-z0-9_-]*`），反映约束的核心语义。
+
+- 一个 section = 一个可独立引用的约束单元
+- 多个 heading 描述同一约束主题时合并为一个 section
+- 一个 heading 包含多个独立约束时拆分为多个 section
+- 支持嵌套 section（父 section 包含子 section）
+- 文档 < 50 行且只有单一主题时可不加标记
+- 每个有标记的文档必须有伴随的 `<stem>.index.md`（由 `wiki_generate_section_index.py` 自动生成）
+- `wiki-researcher` 只选择有 `<stem>.index.md` 的文档；未迁移的文档不参与选择
+- 用户通过 `/migrate-wiki` command 将现有 wiki 迁移到 section-marker 格式
+
 Lanhu 集成必须保持可选：不能要求用户安装 lanhu-mcp 才能使用 adapter；Lanhu 产物只能作为用户确认的原始需求证据包输入写入用户项目根目录，不是 Superpowers spec，也不能约束 Superpowers 后续输出。Lanhu URL 场景必须先解析 `role: frontend | backend`，command、agent 和 native patch 的输入示例都要携带该字段；角色可由 `.superpowers/settings.json` 的 `lanhu.role` 预设，用户未显式给出角色且无配置时才询问，不读取或分析蓝湖。
 
 显式 `pageId` 场景必须先把 Lanhu URL 当作 `rootScopeUrl`、当前页当作 `rootPageId`，由主会话只调用 `lanhu_get_prd_page_scope` 获取 URL 当前页及子树的轻量 page tree metadata，并结合用户描述选择 `selectedTargetPages`；主会话在派发前不得调用 `lanhu_get_prd_scoped_evidence` 或读取完整页面 evidence。每个选中页面必须固定使用一个 analyst subagent，subagent 再使用 scoped Lanhu MCP 工具序列：必要时 `lanhu_resolve_invite_link`，随后 `lanhu_get_prd_page_scope`，最后 `lanhu_get_prd_scoped_evidence`；取证调用参数必须固定为 `scope_policy: pageid_children_only`、`include_child_pages: false`、`confirmed_child_page_ids: []`、`mode: full`、`output_mode: evidence_only`，并校验 `source.scopeValidation.returnedOutOfScopePages: 0`、`source.scopeValidation.targetPageId` 等于选中页面、`rootScopeContext.selectionTreeBoundary.mainAgentReadFullPageEvidenceBeforeDispatch: false` 与 `scopedEvidenceContract.arbitraryLanhuToolsUsed: false`。

@@ -28,7 +28,8 @@ adapter 增强这些阶段：
 - 可选图谱辅助：如果项目已有 graphify 能力或 `graphify-out/` 产物，`graphify-researcher` 只在 agent 判断需要关系线索时提供 candidate hints，不作为必经步骤。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
-- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。
+- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。对 `hardConstraint: true` 的约束条目，执行阶段会强制回读原始 wiki section 全文（通过 `<!-- wiki-section:xxx -->` 标记提取），注入 implementer 和 spec-reviewer prompt，确保约束不因摘要信息衰减而被忽略。
+- Wiki 文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section:section-id -->` 标记包裹独立约束主题段落，每个文档自动生成 `<stem>.index.md` 伴随索引。`wiki-researcher` 通过读取 per-document index 快速定位相关 section，未迁移到新格式的文档不参与 wiki-researcher 选择。用户可通过 `/migrate-wiki` command 将现有 wiki 迁移到 section-marker 格式。
 - 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki；只有证据已收窄且需要调用方、依赖或邻近模块线索时，才可条件式调用 `graphify-researcher`。wiki 和 graphify 都只作为待验证线索，不替代 root cause evidence。
 - `update-wiki` 写入前读取目标 root 的 settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；默认更新已有页面跳过授权，创建新 wiki 文档询问用户授权；写入 shared wiki 前必须把内容中性化，不能保留当前系统特有标识。如团队使用 GitHub-backed shared-wiki MCP，则 shared wiki 写入通过 MCP validate patch + branch + PR，不直接改本地 shared wiki。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
