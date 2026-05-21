@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Section marker extraction for wiki documents.
+
+Markers use HTML comments: <!-- wiki-section:section-id --> / <!-- /wiki-section:section-id -->
+Section IDs are restricted to kebab-case: [a-z0-9][a-z0-9_-]*
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+SECTION_ID_PATTERN = r"[a-z0-9][a-z0-9_-]*"
+OPEN_RE = re.compile(r"^<!-- wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
+CLOSE_RE = re.compile(r"^<!-- /wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
+FENCE_OPEN_RE = re.compile(r"^(`{3,}|~{3,})")
+
+
+@dataclass
+class _SectionSpan:
+    section_id: str
+    start_line: int
+    end_line: int | None = None
+    children: list[_SectionSpan] = field(default_factory=list)
+
+
+def _skip_fenced_blocks(lines: list[str]) -> set[int]:
+    """Return set of line indices that are inside fenced code blocks."""
+    inside: set[int] = set()
+    fence_char: str | None = None
+    fence_len: int = 0
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if fence_char is None:
+            m = FENCE_OPEN_RE.match(stripped)
+            if m:
+                fence_char = m.group(1)[0]
+                fence_len = len(m.group(1))
+                inside.add(i)
+        else:
+            inside.add(i)
+            if stripped.startswith(fence_char * fence_len) and stripped.rstrip(fence_char) == "":
+                fence_char = None
+                fence_len = 0
+    return inside
+
+
+def _parse_spans(text: str) -> tuple[list[_SectionSpan], list[str]]:
+    """Parse all section spans from text, returning top-level spans and errors."""
+    lines = text.splitlines()
+    fenced = _skip_fenced_blocks(lines)
+    errors: list[str] = []
+    stack: list[_SectionSpan] = []
+    top_level: list[_SectionSpan] = []
+
+    for i, line in enumerate(lines):
+        if i in fenced:
+            continue
+        stripped = line.strip()
+        open_m = OPEN_RE.match(stripped)
+        if open_m:
+            span = _SectionSpan(section_id=open_m.group(1), start_line=i)
+            if stack:
+                stack[-1].children.append(span)
+            else:
+                top_level.append(span)
+            stack.append(span)
+            continue
+        close_m = CLOSE_RE.match(stripped)
+        if close_m:
+            sid = close_m.group(1)
+            if not stack:
+                errors.append(f"Line {i + 1}: closing marker for '{sid}' without matching open")
+            elif stack[-1].section_id != sid:
+                errors.append(
+                    f"Line {i + 1}: closing marker for '{sid}' but expected '{stack[-1].section_id}'"
+                )
+            else:
+                stack[-1].end_line = i
+                stack.pop()
+
+    for span in stack:
+        errors.append(f"Line {span.start_line + 1}: unclosed section '{span.section_id}'")
+
+    return top_level, errors
+
+
+def _collect_all(spans: list[_SectionSpan], lines: list[str]) -> dict[str, str]:
+    """Recursively collect all sections (including nested) into a flat dict."""
+    result: dict[str, str] = {}
+    for span in spans:
+        if span.end_line is None:
+            continue
+        content_lines = lines[span.start_line + 1 : span.end_line]
+        result[span.section_id] = "\n".join(content_lines)
+        result.update(_collect_all(span.children, lines))
+    return result
+
+
+def extract_all_sections(text: str) -> dict[str, str]:
+    """Extract all sections from text, returning {section_id: content}.
+
+    Parent sections include child markers in their content.
+    Child sections return only their own content.
+    """
+    lines = text.splitlines()
+    top_level, _ = _parse_spans(text)
+
+    def _collect(spans: list[_SectionSpan]) -> dict[str, str]:
+        result: dict[str, str] = {}
+        for span in spans:
+            if span.end_line is None:
+                continue
+            content_lines = lines[span.start_line + 1 : span.end_line]
+            result[span.section_id] = "\n".join(content_lines)
+            result.update(_collect(span.children))
+        return result
+
+    return _collect(top_level)
+
+
+def extract_section(text: str, section_id: str) -> str | None:
+    """Extract a single named section. Returns None if not found."""
+    sections = extract_all_sections(text)
+    return sections.get(section_id)
+
+
+def list_section_ids(text: str) -> list[str]:
+    """List all section IDs in document order."""
+    lines = text.splitlines()
+    fenced = _skip_fenced_blocks(lines)
+    ids: list[str] = []
+    for i, line in enumerate(lines):
+        if i in fenced:
+            continue
+        m = OPEN_RE.match(line.strip())
+        if m:
+            ids.append(m.group(1))
+    return ids
+
+
+def validate_section_markers(text: str) -> list[str]:
+    """Validate section markers, returning a list of error messages (empty = valid)."""
+    _, errors = _parse_spans(text)
+    return errors

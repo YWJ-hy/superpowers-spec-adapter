@@ -80,6 +80,10 @@ case "$COMMAND" in
     TARGET_INPUT="${2:-}"
     exec "$SCRIPT_DIR/release-check.sh" "$TARGET_INPUT" "$PROJECT_ROOT"
     ;;
+  migrate-wiki-sections)
+    require_project_root "${1:-}"
+    exec python3 "$SCRIPT_DIR/overlays/scripts/wiki_migrate_helper.py" "$@"
+    ;;
   help|-h|--help)
     usage 0
     ;;

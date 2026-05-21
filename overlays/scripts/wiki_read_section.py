@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""CLI wrapper for wiki section extraction.
+
+Usage: wiki_read_section.py <wiki-file-path> <section-id> [--wiki-root project|shared]
+
+Extracts a named section from a wiki document and prints it to stdout.
+Exit code 1 if section not found (available sections listed on stderr).
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from wiki_section import extract_section, list_section_ids  # noqa: E402
+from wiki_common import repo_root, select_wiki_root  # noqa: E402
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Extract a wiki section by marker ID.")
+    parser.add_argument("file_path", help="Wiki file path (relative to wiki root or absolute)")
+    parser.add_argument("section_id", help="Section marker ID to extract")
+    parser.add_argument("--wiki-root", choices=["project", "shared"], default="project")
+    parser.add_argument("--project-root", default=None, help="Project root (auto-detected if omitted)")
+    args = parser.parse_args()
+
+    project = Path(args.project_root) if args.project_root else repo_root(Path.cwd())
+    wiki = select_wiki_root(project, args.wiki_root)
+
+    file_path = Path(args.file_path)
+    if not file_path.is_absolute():
+        file_path = wiki.path / file_path
+
+    if not file_path.is_file():
+        print(f"Error: file not found: {file_path}", file=sys.stderr)
+        sys.exit(1)
+
+    text = file_path.read_text(encoding="utf-8")
+    content = extract_section(text, args.section_id)
+
+    if content is None:
+        available = list_section_ids(text)
+        print(f"Error: section '{args.section_id}' not found in {file_path.name}", file=sys.stderr)
+        if available:
+            print(f"Available sections: {', '.join(available)}", file=sys.stderr)
+        else:
+            print("No section markers found in this file.", file=sys.stderr)
+        sys.exit(1)
+
+    print(content)
+
+
+if __name__ == "__main__":
+    main()
