@@ -193,7 +193,10 @@ PY
     "$target_dir/scripts/init-wiki.py" \
     "$target_dir/scripts/wiki_update_check.py" \
     "$target_dir/scripts/wiki_select_target.py" \
-    "$target_dir/scripts/wiki_apply_update.py"
+    "$target_dir/scripts/wiki_apply_update.py" \
+    "$target_dir/scripts/wiki_read_section.py" \
+    "$target_dir/scripts/wiki_generate_section_index.py" \
+    "$target_dir/scripts/wiki_migrate_helper.py"
   python3 "$HOOK_PATCHER" install "$target_dir"
   python3 "$NATIVE_SKILL_PATCHER" install "$target_dir"
   python3 "$SUBAGENT_MODEL_PATCHER" install "$target_dir"

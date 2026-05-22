@@ -23,7 +23,6 @@ Analyze existing wiki leaf pages, identify semantically independent constraint/k
 - Ask the user to confirm the migration plan before applying changes.
 - A section must be a **independently referenceable constraint unit**, not an arbitrary paragraph.
 - Section IDs must be kebab-case (`[a-z0-9][a-z0-9_-]*`) and reflect the constraint's core semantics.
-- Do not add markers to documents shorter than 50 lines with only a single topic.
 - After migration, generate companion `.index.md` files for all migrated documents.
 
 ## Section Design Principles
@@ -56,14 +55,17 @@ This outputs all indexed leaf pages with their line counts and heading structure
 
 ### Step 2: Analyze each document
 
-For each leaf page in the inventory (skip pages < 50 lines with single topic):
+For each leaf page in the inventory:
 
 1. Read the full document content.
 2. Identify semantically independent constraint/knowledge blocks.
 3. Decide section boundaries and assign meaningful section IDs.
-4. Determine constraint strength for each section:
+4. Write a one-line document overview that captures the page's topic, scope, and when it applies.
+5. Determine constraint strength for each section:
    - `hard`: contains mandatory rules (必须, 禁止, MUST, MUST NOT, REQUIRED, SHALL NOT)
    - `soft`: contains recommendations or patterns
+
+The document overview is a semantic summary based on understanding the page. Do not mechanically copy a blockquote, first paragraph, or heading named "概览"; rewrite the overview as a concise description in the document's primary language.
 
 ### Step 3: Present migration plan
 
@@ -71,33 +73,51 @@ Show the user a summary for each document:
 
 ```
 frontend/hook-guidelines.md (180 lines):
+  overview: "本项目 hooks / composables 的分类、命名、组织与数据获取约束。"
   1. path-based-update (L5-45): "基础字段更新路径写入机制" [hard]
   2. deep-path (L47-82): "嵌套对象深层路径处理" [hard]
   3. hook-composition (L84-130): "Hook 组合与复用模式" [soft]
   4. hook-naming (L132-178): "Hook 命名约定" [soft]
 
 frontend/component-patterns.md (95 lines):
+  overview: "组件组合、插槽和渲染边界的项目约定。"
   1. slot-pattern (L3-50): "插槽组合模式" [soft]
   2. render-boundary (L52-93): "渲染边界规则" [hard]
 ```
 
 Ask the user to confirm or adjust before proceeding.
 
-### Step 4: Apply markers
+### Step 4: Apply markers and move overview to `.index.md`
 
-For each confirmed document, insert `<!-- wiki-section:xxx -->` and `<!-- /wiki-section:xxx -->` markers around the identified sections.
+For each confirmed document:
 
-### Step 5: Validate and generate indexes
+1. Insert `<!-- wiki-section:xxx -->` and `<!-- /wiki-section:xxx -->` markers around the identified sections.
+2. Keep the page's `# Title` in the `.md` file.
+3. Remove document-level overview text from the `.md` file, including blockquote summaries, `## 概览` sections, or equivalent introductory summaries.
+4. Create or update the companion `<stem>.index.md` header with the confirmed overview:
+
+```markdown
+# Sections: <relative-path-to-page.md>
+
+> <semantic overview of the document's topic and scope>
+
+```
+
+The section table belongs below this header and is generated from markers by the script in the next step.
+
+### Step 5: Validate and generate section tables
 
 ```bash
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_migrate_helper.py --validate . --wiki-root $WIKI_ROOT
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_migrate_helper.py --generate-indexes . --wiki-root $WIKI_ROOT
 ```
 
+The index generator updates only the section table and preserves the `.index.md` header, including the semantic overview.
+
 ### Step 6: Report
 
 Summarize what was migrated:
 - Number of documents processed
 - Number of sections created
-- Any documents skipped (too short, single topic)
+- Number of companion `.index.md` files generated or updated
 - Remind user to commit the changes

@@ -17,17 +17,22 @@
     "commands/import-wiki.md",
     "commands/init-wiki.md",
     "commands/lanhu-requirements.md",
+    "commands/migrate-wiki.md",
     "commands/publish-shared-wiki.md",
     "commands/shared-wiki-mcp.md",
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
     "scripts/wiki_common.py",
+    "scripts/wiki_section.py",
+    "scripts/wiki_read_section.py",
+    "scripts/wiki_generate_section_index.py",
     "scripts/lanhu_settings.py",
     "scripts/wiki_import.py",
     "scripts/init-wiki.py",
     "scripts/wiki_update_check.py",
     "scripts/wiki_select_target.py",
-    "scripts/wiki_apply_update.py"
+    "scripts/wiki_apply_update.py",
+    "scripts/wiki_migrate_helper.py"
   ],
   "removedPaths": [
     "agents/lanhu-requirements-analyst.md",

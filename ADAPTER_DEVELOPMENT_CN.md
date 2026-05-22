@@ -113,8 +113,8 @@ Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section
 - 多个 heading 描述同一约束主题时合并为一个 section
 - 一个 heading 包含多个独立约束时拆分为多个 section
 - 支持嵌套 section（父 section 包含子 section）
-- 文档 < 50 行且只有单一主题时可不加标记
-- 每个有标记的文档必须有伴随的 `<stem>.index.md`（由 `wiki_generate_section_index.py` 自动生成）
+- 每个叶子文档都必须有伴随的 `<stem>.index.md`，短文档和单一主题文档也不能跳过
+- `<stem>.index.md` 必须包含文档级语义概览和 section 表格；`wiki_generate_section_index.py` 只负责刷新表格并保留已有概览
 - `wiki-researcher` 只选择有 `<stem>.index.md` 的文档；未迁移的文档不参与选择
 - 用户通过 `/migrate-wiki` command 将现有 wiki 迁移到 section-marker 格式
 

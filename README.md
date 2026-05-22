@@ -161,7 +161,7 @@ The import recursively scans source wiki pages, copies each file into `.superpow
 
 ### Migrating wiki to section-marker format
 
-Use `/migrate-wiki` in Claude Code to migrate existing wiki documents to the two-layer index structure with `<!-- wiki-section:xxx -->` markers. The AI agent analyzes each document semantically, identifies independent constraint units, inserts section markers, and generates per-document `<stem>.index.md` companion files.
+Use `/migrate-wiki` in Claude Code to migrate existing wiki documents to the two-layer index structure with `<!-- wiki-section:xxx -->` markers. The AI agent analyzes each document semantically, identifies independent constraint units, inserts section markers, and generates per-document `<stem>.index.md` companion files that include a document-level overview plus a section table.
 
 The mechanical helper is also available via CLI:
 
@@ -171,7 +171,7 @@ The mechanical helper is also available via CLI:
 ./manage.sh migrate-wiki-sections --generate-indexes /path/to/project --wiki-root project
 ```
 
-Documents without a companion `<stem>.index.md` are invisible to `wiki-researcher`. Migration is required for wiki constraints to participate in the planning and execution flow.
+Documents without a companion `<stem>.index.md` are invisible to `wiki-researcher`, so every leaf wiki page should be migrated, including short or single-topic pages. Migration is required for wiki constraints to participate in the planning and execution flow.
 
 ## Optional Lanhu requirements intake
 

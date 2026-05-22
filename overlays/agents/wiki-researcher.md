@@ -75,11 +75,11 @@ Do not mix local shared wiki and MCP shared wiki pages in the same selected resu
 3. If neither project nor selected shared source has an index, return `status: missing_wiki_root` and do not guess wiki paths.
 4. If one root/source is missing but the other is usable, continue and mention the missing root/source in `caveats`.
 5. Use the task, phase, plan summary, changed files, and focus to identify the most likely index branches.
-6. Follow links progressively inside each root/source: read directory index files, then per-document section indexes (`<stem>.index.md`).
+6. Follow links progressively inside each root/source: read directory index files, then per-document section indexes (`<stem>.index.md`). Each `<stem>.index.md` contains a title line, a document-level overview blockquote summarizing the page's topic and scope, and a section table.
 7. Do not follow cross-root links or invent paths from one root/source into the other.
 8. **Per-document section index requirement**: For each leaf wiki page, check whether a companion `<stem>.index.md` exists. If it does NOT exist, skip that document entirely — it is not available for selection. Only documents with a companion section index participate in the selection process.
 9. **Phase-dependent reading depth**:
-   - `phase: brainstorm` — Read directory `index.md` and per-document `<stem>.index.md` files only. Do NOT read section full text. Use the section index table (section names + descriptions + constraint strength) to assess relevance. This keeps brainstorming lightweight.
+   - `phase: brainstorm` — Read directory `index.md` and per-document `<stem>.index.md` files only. Do NOT read section full text. Use the document overview for document-level relevance assessment, and the section index table (section names + descriptions + constraint strength) for section-level relevance. This keeps brainstorming lightweight.
    - `phase: plan` — Read directory `index.md` and per-document `<stem>.index.md` to identify candidate sections. Then read candidate section full text (by reading the wiki document and locating content between `<!-- wiki-section:xxx -->` markers) to confirm relevance and extract constraints.
    - `phase: debug` — Same as plan but bounded to at most 2 sections. Prefer `focus`, `changedFiles`, and evidence already gathered by `systematic-debugging`.
 10. Classify each selected section:
