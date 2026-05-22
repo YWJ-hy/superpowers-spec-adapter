@@ -75,12 +75,12 @@ Do not mix local shared wiki and MCP shared wiki pages in the same selected resu
 3. If neither project nor selected shared source has an index, return `status: missing_wiki_root` and do not guess wiki paths.
 4. If one root/source is missing but the other is usable, continue and mention the missing root/source in `caveats`.
 5. Use the task, phase, plan summary, changed files, and focus to identify the most likely index branches.
-6. Follow links progressively inside each root/source: read directory index files, then per-document section indexes (`<stem>.index.md`). Each `<stem>.index.md` contains a title line, a document-level overview blockquote summarizing the page's topic and scope, and a section table.
+6. Follow links progressively inside each root/source: read directory index files, then per-document section indexes (`<stem>.index.md`). Each `<stem>.index.md` contains a title line, a document-level overview blockquote summarizing the page's topic and scope, and a section table. Preserve the title and overview as bounded `documentContext` for any selected section so section text is not detached from its page-level subject.
 7. Do not follow cross-root links or invent paths from one root/source into the other.
 8. **Per-document section index requirement**: For each leaf wiki page, check whether a companion `<stem>.index.md` exists. If it does NOT exist, skip that document entirely — it is not available for selection. Only documents with a companion section index participate in the selection process.
 9. **Phase-dependent reading depth**:
    - `phase: brainstorm` — Read directory `index.md` and per-document `<stem>.index.md` files only. Do NOT read section full text. Use the document overview for document-level relevance assessment, and the section index table (section names + descriptions + constraint strength) for section-level relevance. This keeps brainstorming lightweight.
-   - `phase: plan` — Read directory `index.md` and per-document `<stem>.index.md` to identify candidate sections. Then read candidate section full text (by reading the wiki document and locating content between `<!-- wiki-section:xxx -->` markers) to confirm relevance and extract constraints.
+   - `phase: plan` — Read directory `index.md` and per-document `<stem>.index.md` to identify candidate sections. Then read candidate section full text (by reading the wiki document and locating content between `<!-- wiki-section:xxx -->` markers) to confirm relevance and extract constraints. Do not read sibling sections or the whole page merely to recover context; use only the companion index title/overview for page-level context.
    - `phase: debug` — Same as plan but bounded to at most 2 sections. Prefer `focus`, `changedFiles`, and evidence already gathered by `systematic-debugging`.
 10. Classify each selected section:
     - `direct`: the task must follow it or clearly affects it.
@@ -126,6 +126,11 @@ selectedWikiPages:
       commitSha: <for github_mcp>
       shortSha: <for github_mcp>
     section_name: <section marker ID from the document> # NEW — required when selecting a specific section
+    documentContext:
+      title: <document title from companion section index>
+      overview: <bounded document-level overview from companion section index>
+      scope: <optional explicit scope if present in the index overview>
+      contextSource: <companion <stem>.index.md path or MCP wikiPath>
     readDepth: index-only | full # NEW — index-only for brainstorm, full for plan/debug
     relevance: direct | supporting | phase_only
     confidence: high | medium | low
@@ -162,7 +167,7 @@ For `source: github_mcp`, `path` is a human-readable logical display path, not a
 
 Treat `readDepth` as a phase-driven label. Use `readDepth: index-only` during brainstorming or when the section index description alone is sufficient. Use `readDepth: full` during planning when the wiki section is a hard constraint for implementation, tests, API contracts, directory layout, naming, or review, and the main agent must distill it into the plan's linked `.wiki-context.md` file.
 
-During `phase: plan`, include `section_name`, `hardConstraint`, `constraints`, and `sourceAnchors` when you read the section full text. The main agent determines `appliesTo` (specific task numbers) after task decomposition — this agent outputs only `relevanceTo` (coarse description). The main agent, not this agent, writes `docs/superpowers/plans/<plan-stem>.wiki-context.md` and links it from the plan's `Referenced Project Wiki` section.
+During `phase: plan`, include `section_name`, `documentContext`, `hardConstraint`, `constraints`, and `sourceAnchors` when you read the section full text. `documentContext` must come from the companion `<stem>.index.md` title/overview and stay bounded; do not summarize sibling sections or the full page into it. The main agent determines `appliesTo` (specific task numbers) after task decomposition — this agent outputs only `relevanceTo` (coarse description). The main agent, not this agent, writes `docs/superpowers/plans/<plan-stem>.wiki-context.md` and links it from the plan's `Referenced Project Wiki` section.
 
 During `phase: debug`, `constraints` are project rules, contracts, or gotchas to verify; they are not confirmed root causes and are not plan constraints. `hardConstraint: true` only means the wiki section states a strong project rule, not that the bug root cause is confirmed. Include caveats when wiki context may be stale, incomplete, or needs verification against code, logs, tests, reproduction steps, or diagnostics.
 

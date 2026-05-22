@@ -115,6 +115,7 @@ Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section
 - 支持嵌套 section（父 section 包含子 section）
 - 每个叶子文档都必须有伴随的 `<stem>.index.md`，短文档和单一主题文档也不能跳过
 - `<stem>.index.md` 必须包含文档级语义概览和 section 表格；`wiki_generate_section_index.py` 只负责刷新表格并保留已有概览
+- planning / execution 中选中的 section 必须携带来自 `<stem>.index.md` 的有界 `documentContext`（标题 / 概览 / source metadata），用于保留页面主语；不得为了恢复上下文而注入 sibling sections 或整页正文
 - `wiki-researcher` 只选择有 `<stem>.index.md` 的文档；未迁移的文档不参与选择
 - 用户通过 `/migrate-wiki` command 将现有 wiki 迁移到 section-marker 格式
 
@@ -188,7 +189,7 @@ writing-plans
 ```
 
 4. 确认 agent 实际走的是文档指定的分析、wiki-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `wiki-progressive-disclosure`。
-5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，执行阶段会读取该 sidecar context。
+5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.md`；sidecar 应包含选中 section 的有界 `documentContext`，执行阶段只重读选中 hard section 的 document context + section body，不注入 sibling sections 或整页正文。
 6. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和少量 `maxWikiPages`，wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.md`、不运行 `update-wiki`。
 
 ### 5.3 修改 hook 配置或安装逻辑时

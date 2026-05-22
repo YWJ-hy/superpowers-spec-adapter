@@ -9,8 +9,42 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from wiki_section import extract_section, list_section_ids  # noqa: E402
+from wiki_section import extract_document_context_from_index, extract_section, list_section_ids  # noqa: E402
 from wiki_common import repo_root, select_wiki_root  # noqa: E402
+
+
+def _display_path(file_path: Path, wiki_root: Path) -> str:
+    try:
+        return file_path.relative_to(wiki_root).as_posix()
+    except ValueError:
+        return file_path.as_posix()
+
+
+def _print_with_document_context(file_path: Path, wiki_root: Path, section_id: str, content: str) -> None:
+    index_path = file_path.parent / f"{file_path.stem}.index.md"
+    context: dict[str, object] = {
+        "title": None,
+        "overview": None,
+        "caveats": ["companion section index not found"],
+    }
+    if index_path.is_file():
+        context = extract_document_context_from_index(index_path.read_text(encoding="utf-8"))
+
+    print("## Wiki Constraint — Document Context")
+    print()
+    print(f"- Path: `{_display_path(file_path, wiki_root)}`")
+    print(f"- Section: `{section_id}`")
+    if context.get("title"):
+        print(f"- Document: {context['title']}")
+    if context.get("overview"):
+        print(f"- Overview: {context['overview']}")
+    print(f"- Context source: `{_display_path(index_path, wiki_root)}`")
+    for caveat in context.get("caveats", []):
+        print(f"- Caveat: {caveat}")
+    print()
+    print("## Wiki Constraint — Full Section Text")
+    print()
+    print(content)
 
 
 def main() -> None:
@@ -19,6 +53,7 @@ def main() -> None:
     parser.add_argument("section_id", help="Section marker ID to extract")
     parser.add_argument("--wiki-root", choices=["project", "shared"], default="project")
     parser.add_argument("--project-root", default=None, help="Project root (auto-detected if omitted)")
+    parser.add_argument("--include-document-context", action="store_true", help="Print bounded document context before section text")
     args = parser.parse_args()
 
     project = Path(args.project_root) if args.project_root else repo_root(Path.cwd())
@@ -44,7 +79,10 @@ def main() -> None:
             print("No section markers found in this file.", file=sys.stderr)
         sys.exit(1)
 
-    print(content)
+    if args.include_document_context:
+        _print_with_document_context(file_path, wiki.path, args.section_id, content)
+    else:
+        print(content)
 
 
 if __name__ == "__main__":

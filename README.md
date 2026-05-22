@@ -16,7 +16,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output
-- Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed `.wiki-context.md` constraints
+- Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed `.wiki-context.md` constraints with bounded section `documentContext`
 - Patch Superpowers `systematic-debugging` so it may conditionally use `wiki-researcher` after evidence narrows the suspected project contract or component, without making wiki lookup a default prerequisite
 - Let implementation and review consume plan `Referenced Project Wiki` and linked `.wiki-context.md` instead of reselecting wiki pages at execution time
 - Patch Superpowers `using-git-worktrees` and `finishing-a-development-branch` so worktree tasks can merge back to the branch that created them
@@ -171,7 +171,7 @@ The mechanical helper is also available via CLI:
 ./manage.sh migrate-wiki-sections --generate-indexes /path/to/project --wiki-root project
 ```
 
-Documents without a companion `<stem>.index.md` are invisible to `wiki-researcher`, so every leaf wiki page should be migrated, including short or single-topic pages. Migration is required for wiki constraints to participate in the planning and execution flow.
+Documents without a companion `<stem>.index.md` are invisible to `wiki-researcher`, so every leaf wiki page should be migrated, including short or single-topic pages. Migration is required for wiki constraints to participate in the planning and execution flow. The companion index also supplies bounded `documentContext` so selected sections keep their page-level subject/scope without injecting sibling sections or the full page body.
 
 ## Optional Lanhu requirements intake
 
@@ -213,10 +213,11 @@ The default selection path is the installed `wiki-researcher` agent. The install
 Progressive wiki reading still follows these rules:
 
 1. Read existing root indexes: `.superpowers/wiki/index.md` and `.shared-superpowers/wiki/index.md`
-2. Follow each root index to narrower indexes or files
-3. Read only the files needed for the current phase
-4. Avoid full-tree wiki loading unless explicitly requested
-5. Use plan `Referenced Project Wiki` and linked `.wiki-context.md` during implementation and review
+2. Follow each root index to narrower indexes or per-document section indexes
+3. During brainstorming, stay index-only and do not read section full text
+4. During planning, read only candidate section full text and carry bounded `documentContext` from the companion index
+5. During implementation and review, use plan `Referenced Project Wiki` and linked `.wiki-context.md`; hard-constraint rereads inject document context plus the selected section body only
+6. Avoid full-tree wiki loading unless explicitly requested, and do not inject sibling sections or full pages just to recover section context
 
 No SessionStart hook is installed. Wiki reading is triggered on demand by `wiki-researcher` during Superpowers `brainstorming` and `writing-plans`.
 
@@ -249,7 +250,7 @@ Detailed constraints are written to a plan sidecar file such as:
 docs/superpowers/plans/<plan-stem>.wiki-context.md
 ```
 
-Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch.
+Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar includes selected section constraints plus bounded `documentContext` from `<stem>.index.md`; forced hard-constraint rereads use that context with the selected section body, not sibling sections or whole pages.
 
 ## Optional graphify relationship hints
 

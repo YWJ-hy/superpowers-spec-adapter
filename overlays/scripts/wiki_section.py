@@ -7,6 +7,8 @@ import re
 from dataclasses import dataclass, field
 
 SECTION_ID_PATTERN = r"[a-z0-9][a-z0-9_-]*"
+DOCUMENT_OVERVIEW_LIMIT = 600
+AUTO_GENERATED_INDEX_NOTICE = "Auto-generated from section markers. Do not edit manually."
 OPEN_RE = re.compile(r"^<!-- wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
 CLOSE_RE = re.compile(r"^<!-- /wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
 FENCE_OPEN_RE = re.compile(r"^(`{3,}|~{3,})")
@@ -119,6 +121,44 @@ def extract_section(text: str, section_id: str) -> str | None:
     """Extract a single named section. Returns None if not found."""
     sections = extract_all_sections(text)
     return sections.get(section_id)
+
+
+def extract_document_context_from_index(index_text: str) -> dict[str, object]:
+    title: str | None = None
+    overview_lines: list[str] = []
+    caveats: list[str] = []
+    in_overview = False
+
+    for line in index_text.splitlines():
+        stripped = line.strip()
+        if title is None and stripped.startswith("# "):
+            title = stripped.lstrip("#").strip()
+            continue
+        if stripped.startswith("|"):
+            break
+        if stripped.startswith(">"):
+            value = stripped.lstrip(">").strip()
+            if not value or value == AUTO_GENERATED_INDEX_NOTICE:
+                continue
+            overview_lines.append(value)
+            in_overview = True
+            continue
+        if in_overview:
+            break
+
+    if not title:
+        caveats.append("document title missing from companion index")
+    overview = " ".join(overview_lines).strip()
+    if len(overview) > DOCUMENT_OVERVIEW_LIMIT:
+        overview = overview[:DOCUMENT_OVERVIEW_LIMIT].rstrip() + "…"
+    if not overview:
+        caveats.append("document overview missing from companion index")
+
+    return {
+        "title": title,
+        "overview": overview or None,
+        "caveats": caveats,
+    }
 
 
 def list_section_ids(text: str) -> list[str]:

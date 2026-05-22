@@ -10,9 +10,9 @@ This skill is a reference and fallback guide, not the default wiki selection pat
 Default adapter flow:
 1. During `brainstorming`, use `wiki-researcher` with `phase: brainstorm` to disclose a small amount of relevant project/shared wiki context.
 2. During `writing-plans`, use `wiki-researcher` with `phase: plan` to formally select relevant project/shared wiki.
-3. Write detailed selected-page constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.md`.
+3. Write detailed selected-section constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.md`, including bounded `documentContext` from the companion `<stem>.index.md` title/overview.
 4. Record a lightweight `## Referenced Project Wiki` section in the plan that links the `.wiki-context.md` file and summarizes selected pages, applicable tasks, and hard constraints.
-5. During implementation and review, consume the plan's `Referenced Project Wiki` and linked `.wiki-context.md` instead of reselecting wiki pages from scratch.
+5. During implementation and review, consume the plan's `Referenced Project Wiki` and linked `.wiki-context.md` instead of reselecting wiki pages from scratch; forced hard-constraint rereads include document context plus the selected section body only.
 6. After finishing work, use the `update-wiki` skill to review whether durable implementation knowledge should persist in the appropriate wiki root.
 
 Use this skill only when:
@@ -24,7 +24,7 @@ Reference rules:
 1. Start with existing root indexes: `.superpowers/wiki/index.md` and `.shared-superpowers/wiki/index.md`.
 2. For shared wiki, use the selected source consistently: local `.shared-superpowers/wiki/` or the configured GitHub-backed shared-wiki MCP source.
 3. Follow links or listed paths to narrower indexes before reading leaf wiki pages.
-4. Read only the minimum detailed wiki pages needed for the current phase.
+4. Read only the minimum detailed wiki pages needed for the current phase; use per-document section indexes to carry page title/overview as context for selected sections.
 5. Do not read either wiki tree in full unless the human explicitly asks for a full audit.
 6. If one root index is missing, continue with the other root and mention the caveat.
 7. If both root indexes are missing, report that project/shared wiki is unavailable instead of guessing paths.
@@ -37,6 +37,6 @@ Manual fallback flow:
 - Follow links or listed paths to narrower indexes inside each root.
 - Read the minimum relevant leaf wiki page files.
 - Use root-prefixed paths such as `.shared-superpowers/wiki/frontend/contracts.md` in selected-page output.
-- If planning, write detailed constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.md` and link it from `Referenced Project Wiki`.
-- If implementing or reviewing, use the plan's `Referenced Project Wiki` and linked `.wiki-context.md`.
+- If planning, write detailed constraints plus bounded `documentContext` to `docs/superpowers/plans/<plan-stem>.wiki-context.md` and link it from `Referenced Project Wiki`.
+- If implementing or reviewing, use the plan's `Referenced Project Wiki` and linked `.wiki-context.md`; for hard-constraint rereads, inject document context before the selected section body and do not include sibling sections or the whole page.
 - After finishing work, update relevant wiki pages if new knowledge should persist.

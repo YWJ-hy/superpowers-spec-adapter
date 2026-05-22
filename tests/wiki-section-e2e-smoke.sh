@@ -22,6 +22,17 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local label="$1" needle="$2" haystack="$3"
+  if [[ "$haystack" != *"$needle"* ]]; then
+    printf '  ✓ %s\n' "$label"
+    PASS=$((PASS + 1))
+  else
+    printf '  ✗ %s (unexpected: %s)\n' "$label" "$needle"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 assert_file_exists() {
   local label="$1" path="$2"
   if [[ -f "$path" ]]; then
@@ -63,6 +74,13 @@ cat > "$TMP/.superpowers/wiki/frontend/index.md" << 'WIKI'
 # Frontend
 
 - [Hook Guidelines](hook-guidelines.md)
+WIKI
+
+cat > "$TMP/.superpowers/wiki/frontend/hook-guidelines.index.md" << 'WIKI'
+# Hook Guidelines
+
+> Project-private hook rules for generated form adapters.
+
 WIKI
 
 cat > "$TMP/.superpowers/wiki/frontend/hook-guidelines.md" << 'WIKI'
@@ -120,6 +138,13 @@ assert_contains "index has path-based-update" "path-based-update" "$INDEX_CONTEN
 assert_contains "index has deep-path" "deep-path" "$INDEX_CONTENT"
 assert_contains "index has hook-naming" "hook-naming" "$INDEX_CONTENT"
 assert_contains "path-based-update is hard" "hard" "$INDEX_CONTENT"
+
+OUT=$(python3 "$SCRIPTS/wiki_read_section.py" \
+  "frontend/hook-guidelines.md" "path-based-update" \
+  --wiki-root project --project-root "$TMP" --include-document-context)
+assert_contains "context reread includes overview" "Project-private hook rules" "$OUT"
+assert_contains "context reread includes selected section" "updateByPath" "$OUT"
+assert_not_contains "context reread excludes sibling section" "Do not destructure" "$OUT"
 
 printf '\nStep 3: Migrate helper inventory\n'
 

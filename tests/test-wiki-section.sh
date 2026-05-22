@@ -33,6 +33,17 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local label="$1" needle="$2" haystack="$3"
+  if [[ "$haystack" != *"$needle"* ]]; then
+    printf '  ✓ %s\n' "$label"
+    PASS=$((PASS + 1))
+  else
+    printf '  ✗ %s (unexpected: %s)\n' "$label" "$needle"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 assert_exit_code() {
   local label="$1" expected="$2"
   shift 2
@@ -79,6 +90,18 @@ Parent outro.
 <!-- /wiki-section:parent-section -->
 WIKI
 
+cat > "$TMP/.superpowers/wiki/frontend/hook-guidelines.index.md" << 'WIKI'
+# Hook Guidelines
+
+> Project-private hook rules for form field updates and naming.
+
+| section | 描述 | 约束强度 |
+|---|---|---|
+| path-based-update | Path-Based Update | hard |
+| deep-path | Deep Path Handling | soft |
+| parent-section | Parent Section | soft |
+WIKI
+
 cat > "$TMP/.superpowers/wiki/frontend/with-code-block.md" << 'WIKI'
 # Code Block Test
 
@@ -113,11 +136,26 @@ OUT=$(python3 "$SCRIPTS/wiki_read_section.py" \
   --wiki-root project --project-root "$TMP")
 assert_contains "contains updateByPath" "updateByPath(path, value)" "$OUT"
 assert_contains "contains forbidden" "forbidden" "$OUT"
+assert_not_contains "default output has no document context" "Wiki Constraint — Document Context" "$OUT"
+
+OUT=$(python3 "$SCRIPTS/wiki_read_section.py" \
+  "frontend/hook-guidelines.md" "path-based-update" \
+  --wiki-root project --project-root "$TMP" --include-document-context)
+assert_contains "context output has context heading" "Document Context" "$OUT"
+assert_contains "context output has document title" "Document: Hook Guidelines" "$OUT"
+assert_contains "context output has overview" "Project-private hook rules" "$OUT"
+assert_contains "context output has section body" "updateByPath(path, value)" "$OUT"
 
 OUT=$(python3 "$SCRIPTS/wiki_read_section.py" \
   "frontend/hook-guidelines.md" "deep-path" \
   --wiki-root project --project-root "$TMP")
 assert_contains "deep-path contains dot-notation" "dot-notation" "$OUT"
+
+OUT=$(python3 "$SCRIPTS/wiki_read_section.py" \
+  "frontend/with-code-block.md" "real-section" \
+  --wiki-root project --project-root "$TMP" --include-document-context)
+assert_contains "missing companion index still extracts" "real section" "$OUT"
+assert_contains "missing companion index caveat" "companion section index not found" "$OUT"
 
 printf '\nTest: nested sections\n'
 
@@ -162,25 +200,25 @@ assert_exit_code "nonexistent section exits 1" 1 \
 
 printf '\nTest: validation (unclosed markers)\n'
 
-ERRORS=$(python3 -c "
-import sys; sys.path.insert(0, '$SCRIPTS')
+ERRORS=$(PYTHONPATH="$SCRIPTS" python3 -c "
 from wiki_section import validate_section_markers
 from pathlib import Path
-text = Path('$TMP/.superpowers/wiki/frontend/broken.md').read_text()
+import sys
+text = Path(sys.argv[1]).read_text()
 errors = validate_section_markers(text)
 for e in errors: print(e)
-")
+" "$TMP/.superpowers/wiki/frontend/broken.md")
 assert_contains "reports unclosed" "unclosed" "$ERRORS"
 
 printf '\nTest: list_section_ids\n'
 
-IDS=$(python3 -c "
-import sys; sys.path.insert(0, '$SCRIPTS')
+IDS=$(PYTHONPATH="$SCRIPTS" python3 -c "
 from wiki_section import list_section_ids
 from pathlib import Path
-text = Path('$TMP/.superpowers/wiki/frontend/hook-guidelines.md').read_text()
+import sys
+text = Path(sys.argv[1]).read_text()
 for sid in list_section_ids(text): print(sid)
-")
+" "$TMP/.superpowers/wiki/frontend/hook-guidelines.md")
 assert_contains "lists path-based-update" "path-based-update" "$IDS"
 assert_contains "lists deep-path" "deep-path" "$IDS"
 assert_contains "lists parent-section" "parent-section" "$IDS"

@@ -31,8 +31,12 @@ export function createServer(config: SharedWikiConfig): McpServer {
   }, async (input) => toResult(await readTool(config, input)));
 
   server.registerTool('shared_wiki_read_section', {
-    description: 'Read a specific marked section from an indexed shared wiki page.',
-    inputSchema: z.object({ path: z.string().min(1), section: z.string().min(1) }),
+    description: 'Read a specific marked section from an indexed shared wiki page, optionally with bounded document context from its companion section index.',
+    inputSchema: z.object({
+      path: z.string().min(1),
+      section: z.string().min(1),
+      includeDocumentContext: z.boolean().optional(),
+    }),
     annotations: { readOnlyHint: true, idempotentHint: true },
   }, async (input) => toResult(await readSectionTool(config, input)));
 
