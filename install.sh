@@ -194,6 +194,7 @@ PY
     "$target_dir/scripts/wiki_update_check.py" \
     "$target_dir/scripts/wiki_select_target.py" \
     "$target_dir/scripts/wiki_apply_update.py" \
+    "$target_dir/scripts/wiki_section.py" \
     "$target_dir/scripts/wiki_read_section.py" \
     "$target_dir/scripts/wiki_generate_section_index.py" \
     "$target_dir/scripts/wiki_migrate_helper.py"

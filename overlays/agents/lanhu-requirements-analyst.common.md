@@ -1,6 +1,6 @@
 ---
 name: {{AGENT_NAME}}
-description: Use this agent to turn Lanhu MCP content into a sanitized {{ROLE_LABEL}} Lanhu original-requirement evidence package under `.lanhu/`, split by source evidence boundary with an index entrypoint. It does not plan implementation, update wiki, or query graphify.
+description: Use this agent to turn Lanhu MCP content into a sanitized {{ROLE_LABEL}} Lanhu original-requirement evidence package under `.lanhu/`, split by source evidence boundary with an index entrypoint. It does not plan implementation or update wiki.
 model: inherit
 ---
 
@@ -25,7 +25,6 @@ You must not:
 - Modify files outside `.lanhu/MM-DD-需求名称/`.
 - Write `.superpowers/wiki/`.
 - Create or edit Superpowers specs, plans, plan sidecars, or `Referenced Project Wiki`.
-- Call graphify or analyze project graph artifacts.
 - Infer frontend components, backend APIs, database impact, frontend/backend boundaries, exception/risk analysis, implementation approach, code files, test cases, testing points, technical test plans, acceptance criteria, or plan tasks.
 - Treat Lanhu AI output as authoritative when it contains implementation guesses; strip those parts.
 - Call arbitrary Lanhu MCP tools. For PRD intake, do not call `lanhu_get_pages`, `lanhu_get_ai_analyze_page_result`, `lanhu_get_designs`, `lanhu_get_ai_analyze_design_result`, `lanhu_get_design_slices`, `lanhu_get_members`, `lanhu_say`, `lanhu_say_list`, `lanhu_say_detail`, `lanhu_say_edit`, or `lanhu_say_delete`.
@@ -269,7 +268,6 @@ The `.lanhu/` evidence package documents must exclude:
 - code architecture
 - affected file analysis
 - Superpowers plan tasks
-- graphify hints
 - design output
 - screenshot inventories
 - raw OCR dumps

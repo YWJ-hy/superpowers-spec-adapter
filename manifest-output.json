@@ -5,7 +5,7 @@
     "description": "Pluggable overlay that adds wiki-researcher-driven project wiki selection, bug retrospective handoff, and update-wiki workflow to Superpowers without making Trellis a runtime dependency."
   },
   "target": {
-    "repoRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/adapter-release-check.RuBefN",
+    "repoRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.99wnhJJ4n5",
     "superpowersPath": "/Users/yewenjie/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0",
     "exists": true
   },
@@ -16,7 +16,6 @@
       "agents/lanhu-frontend-requirements-analyst.md",
       "agents/lanhu-frontend-html-requirements-analyst.md",
       "agents/lanhu-backend-requirements-analyst.md",
-      "agents/graphify-researcher.md",
       "skills/break-loop/SKILL.md",
       "skills/wiki-progressive-disclosure/SKILL.md",
       "skills/update-wiki/SKILL.md",
@@ -33,7 +32,11 @@
       "scripts/init-wiki.py",
       "scripts/wiki_update_check.py",
       "scripts/wiki_select_target.py",
-      "scripts/wiki_apply_update.py"
+      "scripts/wiki_apply_update.py",
+      "scripts/wiki_section.py",
+      "scripts/wiki_read_section.py",
+      "scripts/wiki_generate_section_index.py",
+      "scripts/wiki_migrate_helper.py"
     ],
     "missingFiles": []
   },
@@ -50,7 +53,7 @@
     "skills/finishing-a-development-branch/SKILL.md": true
   },
   "wikiState": {
-    "wikiRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/adapter-release-check.RuBefN/.superpowers/wiki",
+    "wikiRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.99wnhJJ4n5/.superpowers/wiki",
     "exists": true,
     "entryIndexExists": true,
     "ignoreFileExists": true,

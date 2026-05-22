@@ -75,7 +75,6 @@ The aggregate `index.md` is only the global entrypoint, page package table, read
 - Do not require Lanhu MCP to be installed. If tools are unavailable, ask the user to paste requirements or continue with normal Superpowers flow.
 - Do not write `.superpowers/wiki/`.
 - Do not write Superpowers specs, plans, plan sidecars, or `Referenced Project Wiki`.
-- Do not invoke graphify.
 - Do not implement code.
 - Do not run Superpowers writing-plans or execution from this command.
 - Treat this as a standalone adapter requirements-intake command until the user confirms the generated `.lanhu/.../index.md`; do not invoke Superpowers completion, review, verification, or similar workflow skills when this command finishes its local evidence package work.
@@ -316,7 +315,6 @@ The `.lanhu/` evidence package documents must exclude:
 - code architecture
 - affected file analysis
 - Superpowers plan tasks
-- graphify hints
 - UI design output
 - visual-specification details
 - screenshot inventories

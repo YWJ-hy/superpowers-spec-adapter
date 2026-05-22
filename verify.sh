@@ -52,6 +52,26 @@ check_file() {
   printf 'OK %s\n' "$relative"
 }
 
+check_removed_files() {
+  while IFS= read -r relative; do
+    relative="${relative%$'\r'}"
+    [[ -z "$relative" ]] && continue
+    local target="$TARGET_DIR/$relative"
+    if [[ -f "$target" ]] && grep -Fq "$MARKER" "$target"; then
+      printf 'Deprecated adapter file remains installed: %s\n' "$target" >&2
+      exit 1
+    fi
+  done < <(python3 - <<'PY' "$SCRIPT_DIR"
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(sys.argv[1]) / 'lib'))
+from adapter_manifest import removed_paths
+for item in removed_paths(Path(sys.argv[1])):
+    print(item)
+PY
+  )
+}
+
 check_optional_integration_overlays() {
   python3 "$SCRIPT_DIR/lib/sync_role_prd.py" check "$SCRIPT_DIR"
   python3 "$SCRIPT_DIR/lib/sync_role_prd.py" check "$SCRIPT_DIR" --target-root "$TARGET_DIR"
@@ -61,7 +81,6 @@ check_optional_integration_overlays() {
   local lanhu_backend_agent="$TARGET_DIR/agents/lanhu-backend-requirements-analyst.md"
   local lanhu_command="$TARGET_DIR/commands/lanhu-requirements.md"
   local lanhu_settings_script="$TARGET_DIR/scripts/lanhu_settings.py"
-  local graphify_agent="$TARGET_DIR/agents/graphify-researcher.md"
 
   for required_file in "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_command" "$lanhu_settings_script"; do
     if [[ ! -f "$required_file" ]]; then
@@ -127,7 +146,6 @@ check_optional_integration_overlays() {
     '如果内容过多，请拆成多个小图' \
     '将细节放入后续表格和章节' \
     '.superpowers/wiki/' \
-    'graphify' \
     '.lanhu/MM-DD-需求名称/prd.md' \
     '.lanhu/MM-DD-需求名称/' \
     '.lanhu/MM-DD-需求名称/prds/' \
@@ -240,7 +258,6 @@ check_optional_integration_overlays() {
     'role: frontend | backend' \
     'Do not require Lanhu MCP to be installed' \
     'Always ask the user to review and confirm' \
-    'Do not invoke graphify' \
     'Lightweight evidence post-write gate' \
     'templateCompliance' \
     'selectedTemplate' \
@@ -418,19 +435,6 @@ check_optional_integration_overlays() {
     fi
   done
 
-  for required in \
-    'Graphify is optional' \
-    'must never block Superpowers' \
-    'mustVerifyInSource: true' \
-    'must not:' \
-    'Run `graphify`' \
-    'Decide final implementation files'
-  do
-    if ! grep -Fq "$required" "$graphify_agent"; then
-      printf 'Missing graphify researcher guardrail: %s\n' "$required" >&2
-      exit 1
-    fi
-  done
 
   printf 'Optional integration overlay checks OK\n'
 }
@@ -459,7 +463,7 @@ check_native_skill_residuals() {
     printf 'Deprecated plan-context render path remains in subagent-driven-development patch\n' >&2
     exit 1
   fi
-  if grep -Eq 'must install (lanhu-mcp|graphify)|requires (lanhu-mcp|graphify)|required dependency.*(lanhu-mcp|graphify)' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/systematic-debugging/SKILL.md"; then
+  if grep -Eq 'must install lanhu-mcp|requires lanhu-mcp|required dependency.*lanhu-mcp' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/systematic-debugging/SKILL.md"; then
     printf 'Invalid required external dependency language in native skill patches\n' >&2
     exit 1
   fi
@@ -570,11 +574,6 @@ check_native_skill_residuals() {
   done
   local writing_skill="$TARGET_DIR/skills/writing-plans/SKILL.md"
   for required in \
-    'graphify-researcher' \
-    'Graphify is optional' \
-    'candidate hints' \
-    'Every useful hint must be verified against current source' \
-    'not graphify alone' \
     'sharedWikiSource: auto' \
     'schemaVersion: 2' \
     'source: github_mcp' \
@@ -593,11 +592,6 @@ check_native_skill_residuals() {
     'phase: debug' \
     'maxWikiPages: 2' \
     'Do not call `wiki-researcher` at the start of debugging' \
-    'graphify-researcher' \
-    'Do not call `graphify-researcher` at the start of debugging' \
-    'Phase 1 evidence has narrowed' \
-    'candidate-hint research' \
-    'not root-cause evidence' \
     'continue systematic debugging' \
     'do not write `.wiki-context.md`' \
     'sharedWikiSource: auto' \
@@ -665,6 +659,7 @@ for item in installed_paths(Path(sys.argv[1])):
     print(item)
 PY
   )
+  check_removed_files
   python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
   python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
   python3 "$SUBAGENT_MODEL_PATCHER" verify "$TARGET_DIR"

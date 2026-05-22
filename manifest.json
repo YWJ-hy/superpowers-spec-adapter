@@ -10,7 +10,6 @@
     "agents/lanhu-frontend-requirements-analyst.md",
     "agents/lanhu-frontend-html-requirements-analyst.md",
     "agents/lanhu-backend-requirements-analyst.md",
-    "agents/graphify-researcher.md",
     "skills/break-loop/SKILL.md",
     "skills/wiki-progressive-disclosure/SKILL.md",
     "skills/update-wiki/SKILL.md",
@@ -35,6 +34,7 @@
     "scripts/wiki_migrate_helper.py"
   ],
   "removedPaths": [
+    "agents/graphify-researcher.md",
     "agents/lanhu-requirements-analyst.md",
     "commands/update-wiki.md",
     "commands/plan-context.md",

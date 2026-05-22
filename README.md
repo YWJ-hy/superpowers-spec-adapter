@@ -12,7 +12,6 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Store project wiki pages in `.superpowers/wiki/` and optional neutral/portable shared wiki pages in `.shared-superpowers/wiki/` or a GitHub-backed shared-wiki repository accessed through the copyable MCP server
 - Use `index.md` as the entry point
 - Optionally turn Lanhu links into confirmed frontend/backend original-requirement evidence packages under `.lanhu/MM-DD-<requirement-name>/` before Superpowers brainstorming, with `index.md` as the entrypoint and relationship map; Lanhu images are analyzed selectively by evidence signal and are not saved as `.lanhu/` assets by default
-- Optionally use graphify as agent-judged candidate relationship hints during planning or narrowed debugging, without making it a dependency or gate
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output
@@ -54,7 +53,6 @@ To pin models, copy the relevant entries from `adapter.config.example.jsonc` int
   "subagentModels": {
     "agents": {
       "wiki-researcher": "sonnet",
-      "graphify-researcher": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-frontend-html-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
@@ -252,11 +250,6 @@ docs/superpowers/plans/<plan-stem>.wiki-context.md
 
 Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar includes selected section constraints plus bounded `documentContext` from `<stem>.index.md`; forced hard-constraint rereads use that context with the selected section body, not sibling sections or whole pages.
 
-## Optional graphify relationship hints
-
-Graphify is not required to install or use this adapter. When graphify MCP tools or existing `graphify-out/` artifacts are available, `writing-plans` may use the installed `graphify-researcher` agent only after requirements are understood, initial source exploration has happened, and relationship uncertainty remains.
-
-Graphify output is treated as candidate hints only. It can suggest files, symbols, callers, neighbors, dependency paths, or downstream consumers to inspect, but final plan `Files:` entries must come from direct source verification by Superpowers. Missing, stale, or unavailable graphify never blocks planning or debugging. If a user manually asks to use graphify, treat that as separate graph exploration or maintenance; development still proceeds through Superpowers brainstorming, writing-plans, and execution.
 
 ## Worktree origin tracking
 
@@ -266,7 +259,7 @@ That metadata is not written to `plan.md`, `spec.md`, `.superpowers/`, or the re
 
 ## Break the bug loop
 
-For bugs, keep Superpowers `systematic-debugging` as the fix workflow. The adapter patch does not make wiki or graph lookup an upfront debugging prerequisite: complete Phase 1 first, narrow the failing boundary with evidence, then use `wiki-researcher` only when a project-specific contract, known gotcha, cross-layer boundary, or workflow convention may clarify what to verify. Use `graphify-researcher` only after evidence narrows the boundary and caller/dependency/neighbor relationship hints could help identify what to verify next.
+For bugs, keep Superpowers `systematic-debugging` as the fix workflow. The adapter patch does not make wiki lookup an upfront debugging prerequisite: complete Phase 1 first, narrow the failing boundary with evidence, then use `wiki-researcher` only when a project-specific contract, known gotcha, cross-layer boundary, or workflow convention may clarify what to verify.
 
 Debug wiki lookup uses `phase: debug` and should stay small, normally `maxWikiPages: 2`. If the bug happens while executing a Superpowers plan, read that plan's `Referenced Project Wiki` and linked `.wiki-context.md` first instead of reselecting wiki pages; without a current plan context, do not search old plans by default. Missing or irrelevant wiki does not block debugging, and wiki context is not root-cause evidence. Verify every wiki-derived idea against code, logs, tests, reproduction steps, or diagnostics.
 

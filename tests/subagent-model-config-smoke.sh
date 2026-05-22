@@ -74,7 +74,6 @@ JSON
 "$ROOT/install.sh" "$TARGET_INPUT" >/dev/null
 "$ROOT/verify.sh" "$TARGET_INPUT" >/dev/null
 assert_agent_model wiki-researcher inherit
-assert_agent_model graphify-researcher inherit
 assert_agent_model lanhu-frontend-requirements-analyst inherit
 assert_agent_model lanhu-frontend-html-requirements-analyst inherit
 assert_agent_model lanhu-backend-requirements-analyst inherit
@@ -87,7 +86,6 @@ write_config <<'JSON'
   "subagentModels": {
     "agents": {
       "wiki-researcher": "deepseek-v4-pro[1m]",
-      "graphify-researcher": "haiku",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-frontend-html-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "sonnet"
@@ -109,7 +107,6 @@ JSON
 require_in_file /tmp/subagent-model-agent-warning.out 'Warning: adapter.config.json: subagentModels.agents.wiki-researcher uses non-standard model'
 require_in_file /tmp/subagent-model-agent-warning.out 'deepseek-v4-pro[1m]'
 assert_agent_model wiki-researcher 'deepseek-v4-pro[1m]'
-assert_agent_model graphify-researcher haiku
 assert_agent_model lanhu-frontend-requirements-analyst opus
 assert_agent_model lanhu-frontend-html-requirements-analyst opus
 assert_agent_model lanhu-backend-requirements-analyst sonnet
@@ -146,7 +143,6 @@ JSON
 "$ROOT/install.sh" "$TARGET_INPUT" >/dev/null
 "$ROOT/verify.sh" "$TARGET_INPUT" >/dev/null
 assert_agent_model wiki-researcher inherit
-assert_agent_model graphify-researcher inherit
 assert_agent_model lanhu-frontend-requirements-analyst inherit
 assert_agent_model lanhu-frontend-html-requirements-analyst inherit
 assert_agent_model lanhu-backend-requirements-analyst inherit

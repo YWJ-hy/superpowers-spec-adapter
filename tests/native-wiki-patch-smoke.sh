@@ -32,10 +32,6 @@ if [[ ! -f "${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md" ]]; th
   exit 1
 fi
 
-if [[ ! -f "${TARGET_INPUT}/agents/graphify-researcher.md" ]]; then
-  printf 'Expected installed graphify-researcher agent\n' >&2
-  exit 1
-fi
 
 if [[ ! -f "${TARGET_INPUT}/commands/lanhu-requirements.md" ]]; then
   printf 'Expected installed lanhu-requirements command\n' >&2
@@ -173,11 +169,6 @@ if ! grep -Fq 'wiki-researcher' "$WRITING_SKILL"; then
 fi
 
 for required in \
-  'graphify-researcher' \
-  'Graphify is optional' \
-  'candidate hints' \
-  'Every useful hint must be verified against current source' \
-  'not graphify alone' \
   'sharedWikiSource: auto' \
   'schemaVersion: 2' \
   'source: github_mcp' \
@@ -200,11 +191,6 @@ for required in \
   'phase: debug' \
   'maxWikiPages: 2' \
   'Do not call `wiki-researcher` at the start of debugging' \
-  'graphify-researcher' \
-  'Do not call `graphify-researcher` at the start of debugging' \
-  'Phase 1 evidence has narrowed' \
-  'candidate-hint research' \
-  'not root-cause evidence' \
   'continue systematic debugging' \
   'do not write `.wiki-context.md`' \
   'sharedWikiSource: auto' \
@@ -373,11 +359,11 @@ if grep -Fq 'plan-context.py" render --phase implement' "${TARGET_INPUT}/skills/
   exit 1
 fi
 
-if grep -Eq 'must install (lanhu-mcp|graphify)|requires (lanhu-mcp|graphify)|required dependency.*(lanhu-mcp|graphify)' \
+if grep -Eq 'must install lanhu-mcp|requires lanhu-mcp|required dependency.*lanhu-mcp' \
   "${TARGET_INPUT}/skills/brainstorming/SKILL.md" \
   "${TARGET_INPUT}/skills/writing-plans/SKILL.md" \
   "${TARGET_INPUT}/skills/systematic-debugging/SKILL.md"; then
-  printf 'Expected native patches not to require lanhu-mcp or graphify installation\n' >&2
+  printf 'Expected native patches not to require lanhu-mcp installation\n' >&2
   exit 1
 fi
 

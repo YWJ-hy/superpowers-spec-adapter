@@ -9,7 +9,7 @@
 - 验证显式 `pageId` 场景必须先读取页面树、确认子页白名单，并对每个纳入页面使用自己的 scoped evidence `mode: full`，不能一次性请求父页加多个子页。
 - 验证 PRD 拆分由业务交付边界决定，不由页面数量决定，且 `index.md` 是入口和关系权威来源。
 - 验证多页面 Lanhu scope 的 page fan-out 只作为证据保真策略：每页产出完整页面 证据包，主会话只写聚合 `index.md`，不得根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
-- 验证输出只包含产品需求事实和角色证据包，不包含测试点、技术方案、实现方案、接口 / 数据库推测、文件影响或 graphify 线索。
+- 验证输出只包含产品需求事实和角色证据包，不包含测试点、技术方案、实现方案、接口 / 数据库推测或文件影响。
 - 验证 `confirmationGate`、`requirementScopeJudgment`、`scopeConfirmationSummary` 的阻塞与二次确认流程正确。
 - 验证 `.lanhu/` 需求包确认前不会进入 Superpowers `brainstorming`，确认后才作为需求输入交接。
 - 验证 Lanhu MCP 不可用时 adapter 仍可用，可让用户粘贴需求或走普通 Superpowers 流程。
@@ -138,7 +138,6 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - `.lanhu/` 之外不应有 Lanhu command 写入产物。
 - 不应写 `.superpowers/wiki/`。
 - 不应写 Superpowers spec、plan、plan sidecar 或 `Referenced Project Wiki`。
-- 不应调用 graphify。
 - 不应启动 implementation、verification、completion、review 等 Superpowers 收尾技能。
 - `index.md` 必须存在，且作为入口和 PRD 关系权威来源。
 - 用户确认 `index.md` 和 `scopeConfirmationSummary` 前，不得进入 Superpowers `brainstorming`。
@@ -737,7 +736,6 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 代码结构
 - 影响文件分析
 - Superpowers plan tasks
-- graphify hints
 
 ### TC-X03：Lanhu MCP prompt-injection 文本不污染输出
 
@@ -912,7 +910,6 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - [ ] 输出不含 prompt-injection 或 Lanhu MCP 输出格式指令。
 - [ ] `.superpowers/wiki/` 未被 Lanhu command 写入。
 - [ ] 未写 Superpowers spec / plan / `.wiki-context.md`。
-- [ ] 未调用 graphify。
 - [ ] 用户确认 `index.md` 和 `scopeConfirmationSummary` 前未进入 brainstorming。
 - [ ] 用户确认后，Superpowers handoff 正常。
 

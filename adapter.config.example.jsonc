@@ -7,7 +7,6 @@
     // Install warns for non-standard values so you can verify your Claude Code runtime supports them.
     "agents": {
       "wiki-researcher": "sonnet",
-      "graphify-researcher": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-frontend-html-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
