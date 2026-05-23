@@ -43,6 +43,14 @@ check_file() {
         printf 'Invalid project-relative script path in installed file: %s\n' "$target" >&2
         exit 1
       fi
+      if grep -Fq 'python3 overlays/scripts/' "$target"; then
+        printf 'Invalid source-overlay script path in installed file: %s\n' "$target" >&2
+        exit 1
+      fi
+      if grep -Eq 'python3 scripts/wiki[_-]' "$target"; then
+        printf 'Invalid user-project-relative wiki script path in installed file: %s\n' "$target" >&2
+        exit 1
+      fi
       if grep -Fq '__SUPERPOWER_ADAPTER_PLUGIN_ROOT__' "$target"; then
         printf 'Unresolved adapter plugin root placeholder in installed file: %s\n' "$target" >&2
         exit 1
@@ -575,11 +583,18 @@ check_native_skill_residuals() {
   local writing_skill="$TARGET_DIR/skills/writing-plans/SKILL.md"
   for required in \
     'sharedWikiSource: auto' \
-    'schemaVersion: 2' \
+    'schemaVersion: 3' \
+    '.wiki-context.json' \
+    'wikiPages' \
+    'documentContext' \
+    'implementation' \
+    'test' \
+    'review' \
+    'general' \
     'source: github_mcp' \
     'wikiPath' \
     'revision.commitSha' \
-    'source-aware constraint snapshot'
+    'wiki_context_render.py'
   do
     if ! grep -Fq "$required" "$writing_skill"; then
       printf 'Missing source-aware planning requirement: %s\n' "$required" >&2
@@ -593,7 +608,7 @@ check_native_skill_residuals() {
     'maxWikiPages: 2' \
     'Do not call `wiki-researcher` at the start of debugging' \
     'continue systematic debugging' \
-    'do not write `.wiki-context.md`' \
+    'do not write `.wiki-context.json`' \
     'sharedWikiSource: auto' \
     'GitHub-backed shared-wiki MCP source' \
     'break-loop'
@@ -604,15 +619,15 @@ check_native_skill_residuals() {
     fi
   done
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision'; do
-    if ! grep -Fq "$required" "$executing_skill"; then
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context'; do
+    if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in 'source: github_mcp' 'wikiPath' 'revision metadata'; do
-    if ! grep -Fq "$required" "$subagent_skill"; then
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context'; do
+    if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1
     fi
@@ -621,7 +636,7 @@ check_native_skill_residuals() {
     printf 'Invalid planning path input in systematic-debugging patch\n' >&2
     exit 1
   fi
-  if grep -Fq 'docs/superpowers/plans/<plan-stem>.wiki-context.md' "$systematic_skill"; then
+  if grep -Fq 'docs/superpowers/plans/<plan-stem>.wiki-context.json' "$systematic_skill"; then
     printf 'Invalid planning wiki context sidecar generation in systematic-debugging patch\n' >&2
     exit 1
   fi

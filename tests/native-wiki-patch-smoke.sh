@@ -80,7 +80,7 @@ if ! grep -Fq 'wiki-researcher' "$BRAINSTORMING_SKILL"; then
   printf 'Expected brainstorming patch to mention wiki-researcher\n' >&2
   exit 1
 fi
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'logical display path' 'MCP is unavailable' 'Do not write sidecar JSONL or `.wiki-context.md` during brainstorming.'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'logical display path' 'MCP is unavailable' 'Do not write sidecar JSONL or `.wiki-context.json` during brainstorming.'; do
   if ! grep -Fq -- "$required" "$BRAINSTORMING_SKILL"; then
     printf 'Expected brainstorming patch to contain shared wiki source text: %s\n' "$required" >&2
     exit 1
@@ -170,7 +170,7 @@ fi
 
 for required in \
   'sharedWikiSource: auto' \
-  'schemaVersion: 2' \
+  'schemaVersion: 3' \
   'source: github_mcp' \
   'wikiPath' \
   'revision.commitSha' \
@@ -192,7 +192,7 @@ for required in \
   'maxWikiPages: 2' \
   'Do not call `wiki-researcher` at the start of debugging' \
   'continue systematic debugging' \
-  'do not write `.wiki-context.md`' \
+  'do not write `.wiki-context.json`' \
   'sharedWikiSource: auto' \
   'GitHub-backed shared-wiki MCP source' \
   'break-loop'
@@ -208,7 +208,7 @@ if grep -Fq 'planPath:' "$SYSTEMATIC_SKILL"; then
   exit 1
 fi
 
-if grep -Fq 'docs/superpowers/plans/<plan-stem>.wiki-context.md' "$SYSTEMATIC_SKILL"; then
+if grep -Fq 'docs/superpowers/plans/<plan-stem>.wiki-context.json' "$SYSTEMATIC_SKILL"; then
   printf 'Expected systematic-debugging patch not to generate planning wiki context sidecar\n' >&2
   exit 1
 fi
@@ -218,7 +218,7 @@ if grep -Fq 'Before attempting ANY fix, use wiki-researcher' "$SYSTEMATIC_SKILL"
   exit 1
 fi
 
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 2' 'source-aware constraint snapshot' 'documentContext'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 3' 'page-rooted `wikiPages` tree' 'documentContext'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
     printf 'Expected writing-plans patch to contain source-aware wiki context: %s\n' "$required" >&2
     exit 1
@@ -230,15 +230,17 @@ if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/writing-plans/SK
   exit 1
 fi
 
-if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
+if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
   printf 'Expected writing-plans patch to require wiki context sidecar\n' >&2
   exit 1
 fi
 
-if ! grep -Fq 'concrete implementation/test/review constraints' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
-  printf 'Expected writing-plans patch to require concrete constraints\n' >&2
-  exit 1
-fi
+for required in 'categorized constraints' 'implementation' 'test' 'review' 'general'; do
+  if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
+    printf 'Expected writing-plans patch to require categorized constraints: %s\n' "$required" >&2
+    exit 1
+  fi
+done
 
 if ! grep -Fq 'hard constraint status' "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
   printf 'Expected writing-plans patch to require hard constraint status\n' >&2
@@ -250,12 +252,12 @@ if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/executing-plans/
   exit 1
 fi
 
-if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
+if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
   printf 'Expected executing-plans patch to consume wiki context sidecar\n' >&2
   exit 1
 fi
 
-for required in 'Do not reselect wiki pages from scratch' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true'; do
+for required in 'Do not reselect wiki pages from scratch' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
     printf 'Expected executing-plans patch to contain source-aware execution text: %s\n' "$required" >&2
     exit 1
@@ -267,12 +269,12 @@ if ! grep -Fq 'Referenced Project Wiki' "${TARGET_INPUT}/skills/subagent-driven-
   exit 1
 fi
 
-if ! grep -Fq '.wiki-context.md' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
+if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
   printf 'Expected subagent-driven-development patch to forward wiki context sidecar\n' >&2
   exit 1
 fi
 
-for required in 'Do not make subagents reselect wiki pages' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true'; do
+for required in 'Do not make subagents reselect wiki pages' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
     printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
     exit 1

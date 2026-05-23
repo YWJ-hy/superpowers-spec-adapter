@@ -114,9 +114,13 @@ Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section
 - 支持嵌套 section（父 section 包含子 section）
 - 每个叶子文档都必须有伴随的 `<stem>.index.md`，短文档和单一主题文档也不能跳过
 - `<stem>.index.md` 必须包含文档级语义概览和 section 表格；`wiki_generate_section_index.py` 只负责刷新表格并保留已有概览
-- planning / execution 中选中的 section 必须携带来自 `<stem>.index.md` 的有界 `documentContext`（标题 / 概览 / source metadata），用于保留页面主语；不得为了恢复上下文而注入 sibling sections 或整页正文
+- planning 中选中的 wiki context 必须写入 schemaVersion 3 `.wiki-context.json`；JSON 使用 page-rooted `wikiPages`，每个 page 只携带一份来自 `<stem>.index.md` 的有界 `documentContext`（标题 / 概览 / source metadata），sections 作为子节点保留 `appliesTo`、hard constraint、reread、source anchors、caveats 和 implementation / test / review / general 分类约束；不得为了恢复上下文而注入 sibling sections 或整页正文
 - `wiki-researcher` 只选择有 `<stem>.index.md` 的文档；未迁移的文档不参与选择
 - 用户通过 `/migrate-wiki` command 将现有 wiki 迁移到 section-marker 格式
+
+### Plugin-root 脚本执行边界
+
+Superpowers command / skill / native patch 中需要执行 adapter 脚本时，必须执行安装到 Superpowers plugin 目录内的脚本，不能要求 agent 在用户项目内执行 adapter 脚本。source overlay 中应使用 `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__` 占位符，安装阶段会解析为实际 plugin root。禁止在用户入口文档或 native patch 中出现 `python3 superpowers/scripts/...`、`python3 overlays/scripts/...`、`python3 scripts/...`、复制到 `docs/superpowers/plans/` 下再执行等用户项目相对路径。新增任何会被 command / skill 调用的脚本时，必须同步更新 `manifest.json`、`install.sh` chmod 列表、`verify.sh` 和 smoke 测试，确保安装产物存在且文档引用的是 plugin-root 脚本。
 
 Lanhu 集成必须保持可选：不能要求用户安装 lanhu-mcp 才能使用 adapter；Lanhu 产物只能作为用户确认的原始需求证据包输入写入用户项目根目录，不是 Superpowers spec，也不能约束 Superpowers 后续输出。Lanhu URL 场景必须先解析 `role: frontend | backend`，command、agent 和 native patch 的输入示例都要携带该字段；角色可由 `.superpowers/settings.json` 的 `lanhu.role` 预设，用户未显式给出角色且无配置时才询问，不读取或分析蓝湖。
 
@@ -135,9 +139,9 @@ Lanhu 默认 Markdown-only；目标项目 `.superpowers/settings.json` 可通过
 `role-prd/` 是 Lanhu 证据包提示词维护源；`role-prd/frontend.md` 和 `role-prd/backend.md` 是 Markdown evidence package 模板，`role-prd/frontend_outputHtml.md` 是前端 HTML evidence package 模板。修改 `role-prd/` 模板结构、Lanhu 输出结构或 Lanhu status schema 时，必须同步更新共享 analyst skeleton、生成后的前端/后端 analyst、command、native patch、`verify.sh`、smoke 测试和用户流程文档。
 
 
-新增或修改 wiki 能力时，必须同时覆盖 `.superpowers/wiki/` 与 `.shared-superpowers/wiki/` 的行为边界：读取/候选可以同时查看两个 root，写入/导入/刷新必须明确目标 root，且两个 root 的 index graph 不得交叉污染。shared wiki 写入内容必须中性、可迁移，不能包含当前系统特有标识、内部 URL、环境名、本地路径、部署实例标识或当前系统专属业务规则；这些内容应留在 project wiki，或由 agent 改写为中性术语后再写入 shared wiki。写入类能力还必须遵守 root-specific settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；`wiki.updateAuthorization.updateExistingPage` 默认 `skip`，`wiki.updateAuthorization.createNewDocument` 默认 `ask`，允许值为 `skip` / `ask` / `refuse`；shared root 可用 `wiki.sharedNeutrality.blockedTerms` / `blockedPatterns` 配置已知系统标识的机械拒绝防线。`ask` 必须在 command / skill 入口先取得用户授权，再由执行层脚本通过 `--authorized-update` 或 `--authorized-create` 表示授权；`refuse` 必须阻止写入。shared wiki submodule 的同步由目标项目里的 `.shared-superpowers/settings.json` 和 `.shared-superpowers/scripts/run-hook.py` 触发，不通过 adapter 安装 SessionStart hook；发布入口使用 `/publish-shared-wiki`，执行前必须完成 shared wiki 校验并确认 commit/push 范围。GitHub-backed shared-wiki MCP 是另一条可选后端：MCP server 必须保持 copyable，不依赖 adapter 仓库运行时路径；它只做 indexed read/search、机械校验、branch、commit、push、PR，不做 durable knowledge、target ownership 或中立化语义判断，也不能自动 merge。正常开发流程中的 shared wiki 渐进披露仍应统一由 `wiki-researcher` 发起；当 MCP 被用作 shared source 时，`.wiki-context.md` 必须记录 `source: github_mcp`、`wikiPath` 和 revision，不能把 `.shared-superpowers/wiki/<path>.md` 当成本地文件路径。
+新增或修改 wiki 能力时，必须同时覆盖 `.superpowers/wiki/` 与 `.shared-superpowers/wiki/` 的行为边界：读取/候选可以同时查看两个 root，写入/导入/刷新必须明确目标 root，且两个 root 的 index graph 不得交叉污染。shared wiki 写入内容必须中性、可迁移，不能包含当前系统特有标识、内部 URL、环境名、本地路径、部署实例标识或当前系统专属业务规则；这些内容应留在 project wiki，或由 agent 改写为中性术语后再写入 shared wiki。写入类能力还必须遵守 root-specific settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；`wiki.updateAuthorization.updateExistingPage` 默认 `skip`，`wiki.updateAuthorization.createNewDocument` 默认 `ask`，允许值为 `skip` / `ask` / `refuse`；shared root 可用 `wiki.sharedNeutrality.blockedTerms` / `blockedPatterns` 配置已知系统标识的机械拒绝防线。`ask` 必须在 command / skill 入口先取得用户授权，再由执行层脚本通过 `--authorized-update` 或 `--authorized-create` 表示授权；`refuse` 必须阻止写入。shared wiki submodule 的同步由目标项目里的 `.shared-superpowers/settings.json` 和 `.shared-superpowers/scripts/run-hook.py` 触发，不通过 adapter 安装 SessionStart hook；发布入口使用 `/publish-shared-wiki`，执行前必须完成 shared wiki 校验并确认 commit/push 范围。GitHub-backed shared-wiki MCP 是另一条可选后端：MCP server 必须保持 copyable，不依赖 adapter 仓库运行时路径；它只做 indexed read/search、机械校验、branch、commit、push、PR，不做 durable knowledge、target ownership 或中立化语义判断，也不能自动 merge。正常开发流程中的 shared wiki 渐进披露仍应统一由 `wiki-researcher` 发起；当 MCP 被用作 shared source 时，`.wiki-context.json` 必须记录 `source: github_mcp`、`wikiPath` 和 revision，不能把 `.shared-superpowers/wiki/<path>.md` 当成本地文件路径。
 
-新增 bug 调试辅助能力时，bug 修复过程仍由 Superpowers `systematic-debugging` 负责，wiki 查询只能在 Phase 1 证据收窄后条件式触发，不能成为默认前置步骤，不能写 `.wiki-context.md`，不能更新 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/`；复盘由 `break-loop` 负责，wiki 写入仍由 `update-wiki` 负责。
+新增 bug 调试辅助能力时，bug 修复过程仍由 Superpowers `systematic-debugging` 负责，wiki 查询只能在 Phase 1 证据收窄后条件式触发，不能成为默认前置步骤，不能写 `.wiki-context.json`，不能更新 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/`；复盘由 `break-loop` 负责，wiki 写入仍由 `update-wiki` 负责。
 
 Standalone adapter command 和 adapter maintenance skill 的本地完成不等于 Superpowers development-task completion。`/init-wiki`、`/import-wiki`、`/lanhu-requirements` 以及 `update-wiki` 的本地检查、索引刷新、metadata gate 或 skip decision 不应自动触发 Superpowers completion/review/verification；但正常 `brainstorming → writing-plans → executing-plans/subagent-driven-development → verification-before-completion → update-wiki` 和 `systematic-debugging → break-loop → update-wiki` 流程不能被削弱。修改该边界时必须同步检查 `using-superpowers` native patch、相关 command/skill overlay、`README.md` / 用户流程文档，以及 smoke 测试。
 
@@ -186,8 +190,8 @@ writing-plans
 ```
 
 4. 确认 agent 实际走的是文档指定的分析、wiki-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `wiki-progressive-disclosure`。
-5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.md`；sidecar 应包含选中 section 的有界 `documentContext`，执行阶段只重读选中 hard section 的 document context + section body，不注入 sibling sections 或整页正文。
-6. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和少量 `maxWikiPages`，wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.md`、不运行 `update-wiki`。
+5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.json`；sidecar 应使用 schemaVersion 3 page-rooted `wikiPages`，每个 page 只保留一份有界 `documentContext`，sections 保留适用任务、分类约束、hard constraint、reread 和 anchors；执行阶段必须通过 plugin-root `wiki_context_render.py` 按 task / role 渲染约束，并只重读选中 hard section 的 document context + section body，不注入 sibling sections 或整页正文。
+6. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和少量 `maxWikiPages`，wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.json`、不运行 `update-wiki`。
 
 ### 5.3 修改 hook 配置或安装逻辑时
 
@@ -256,8 +260,8 @@ bash tests/shared-wiki-submodule-smoke.sh
 
 - 底层脚本行为正确
 - overlay command / skill / agent 能正确引导用户路径
-- 如涉及 wiki 披露主流程，验收重点是 `wiki-researcher`、plan 中的轻量 `Referenced Project Wiki`，以及其链接的 `.wiki-context.md` 约束产物；`wiki-progressive-disclosure` 只是说明性 / fallback，不是默认路径成功标志
-- 如涉及 `systematic-debugging` wiki 辅助，验收重点是证据收窄后才条件式调用 `phase: debug`、少量读取 wiki、不把 wiki 当 root cause evidence、不生成 `.wiki-context.md`、不更新 wiki
+- 如涉及 wiki 披露主流程，验收重点是 `wiki-researcher`、plan 中的轻量 `Referenced Project Wiki`，以及其链接的 `.wiki-context.json` 约束产物；`wiki-progressive-disclosure` 只是说明性 / fallback，不是默认路径成功标志
+- 如涉及 `systematic-debugging` wiki 辅助，验收重点是证据收窄后才条件式调用 `phase: debug`、少量读取 wiki、不把 wiki 当 root cause evidence、不生成 `.wiki-context.json`、不更新 wiki
 - 如涉及 Superpowers worktree 收尾流程，验收重点是安装后的 `using-git-worktrees` 是否把 origin metadata 写入 linked worktree private git-dir，以及 `finishing-a-development-branch` 是否基于该 metadata 提供合并回原始分支的选项；不要把该临时 metadata 写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区
 - adapter 能成功安装到 Superpowers 插件目录
 - `verify` / 相关测试通过

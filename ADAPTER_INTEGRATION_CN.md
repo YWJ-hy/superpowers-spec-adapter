@@ -103,14 +103,30 @@ maxWikiPages: 5
 status: ok | partial | missing_wiki_root | no_relevant_wiki
 query: <任务复述>
 phase: brainstorm | plan | implement | review
-selectedWikiPages:
+wikiPages:
   - path: .superpowers/wiki/<path>.md
-    relevance: direct | supporting | phase_only
-    readMode: summary | full
-    confidence: high | medium | low
-    reason: <选择原因>
-indexesRead:
-  - .superpowers/wiki/index.md
+    root: project | shared
+    source: local | github_mcp
+    displayPath: .superpowers/wiki/<path>.md
+    localPath: <path>.md
+    wikiPath: <仅 github_mcp>
+    revision: <仅 github_mcp>
+    documentContext:
+      title: <来自 companion section index>
+      overview: <有界文档级概览>
+      contextSource: <companion <stem>.index.md>
+    sections:
+      - sectionId: <section marker ID>
+        relevance: direct | supporting | phase_only
+        readDepth: index-only | full
+        confidence: high | medium | low
+        reason: <选择原因>
+        constraints:
+          implementation: []
+          test: []
+          review: []
+          general: []
+indexesRead: []
 rejectedWikiPages: []
 caveats: []
 ```
@@ -146,8 +162,9 @@ adapter 在拆分任务前注入正式 wiki 选择：
 ```text
 读取已确认 Superpowers spec
 → 调用 wiki-researcher
+→ 写 schemaVersion 3 `.wiki-context.json`
 → 写 implementation plan
-→ plan 包含 Referenced Project Wiki
+→ plan 包含 Referenced Project Wiki 并链接 JSON sidecar
 ```
 
 plan 小节示例：
@@ -165,13 +182,13 @@ plan 小节示例：
 
 ### 5.3 `executing-plans`
 
-执行前读取 plan 中的 `Referenced Project Wiki`，并把它作为 selected project wiki context。
+执行前读取 plan 中的 `Referenced Project Wiki`，定位链接的 `.wiki-context.json`，并通过 plugin-root `wiki_context_render.py` 按当前 task / implementer role 渲染 selected project wiki constraints。
 
-执行阶段不重新选择 wiki 页面。
+执行阶段不重新选择 wiki 页面，也不执行用户项目内复制的 adapter 脚本。
 
 ### 5.4 `subagent-driven-development`
 
-分发 implementer / reviewer subagent 前，主 agent 应把 plan 的 `Referenced Project Wiki` 放进 subagent prompt。
+分发 implementer / reviewer subagent 前，主 agent 应读取 plan 的 `Referenced Project Wiki`，用 plugin-root `wiki_context_render.py` 按分配任务分别渲染 implementer / reviewer 约束块，并把渲染结果放进 subagent prompt。
 
 subagent 不应重新从 `.superpowers/wiki/` 选择规范，除非主 agent 判断 plan 引用明显不足并回到 planning 修正。
 

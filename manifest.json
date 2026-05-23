@@ -21,6 +21,7 @@
     "commands/shared-wiki-mcp.md",
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
+    "scripts/wiki_context_render.py",
     "scripts/wiki_common.py",
     "scripts/wiki_section.py",
     "scripts/wiki_read_section.py",

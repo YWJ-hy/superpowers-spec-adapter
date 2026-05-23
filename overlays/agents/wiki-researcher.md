@@ -52,7 +52,7 @@ maxWikiPages: 5
 
 Treat `task`, `phase`, and `wikiRoots` as the important fields. If older prompts provide `wikiRoot: .superpowers/wiki`, treat it as a single-root compatibility input. If `sharedWikiSource` is missing, use `auto`. If optional fields are missing, proceed with the information available and mention uncertainty in `caveats`.
 
-Normal adapter flow invokes this agent during `brainstorm` and `plan`. Use `debug` only from `systematic-debugging` after root-cause evidence has narrowed the investigation to a specific component, contract, workflow, or project convention. Use `implement` or `review` only for explicit fallback, audit, or when the main agent determines the plan's `Referenced Project Wiki` and linked `.wiki-context.md` are clearly insufficient.
+Normal adapter flow invokes this agent during `brainstorm` and `plan`. Use `debug` only from `systematic-debugging` after root-cause evidence has narrowed the investigation to a specific component, contract, workflow, or project convention. Use `implement` or `review` only for explicit fallback, audit, or when the main agent determines the plan's `Referenced Project Wiki` and linked `.wiki-context.json` are clearly insufficient.
 
 ## Shared Wiki Source Resolution
 
@@ -75,7 +75,7 @@ Do not mix local shared wiki and MCP shared wiki pages in the same selected resu
 3. If neither project nor selected shared source has an index, return `status: missing_wiki_root` and do not guess wiki paths.
 4. If one root/source is missing but the other is usable, continue and mention the missing root/source in `caveats`.
 5. Use the task, phase, plan summary, changed files, and focus to identify the most likely index branches.
-6. Follow links progressively inside each root/source: read directory index files, then per-document section indexes (`<stem>.index.md`). Each `<stem>.index.md` contains a title line, a document-level overview blockquote summarizing the page's topic and scope, and a section table. Preserve the title and overview as bounded `documentContext` for any selected section so section text is not detached from its page-level subject.
+6. Follow links progressively inside each root/source: read directory index files, then per-document section indexes (`<stem>.index.md`). Each `<stem>.index.md` contains a title line, a document-level overview blockquote summarizing the page's topic and scope, and a section table. Preserve the title and overview once as bounded page-level `documentContext` for each selected wiki page, then nest selected sections under that page so section text is not detached from its page-level subject without repeating the same context.
 7. Do not follow cross-root links or invent paths from one root/source into the other.
 8. **Per-document section index requirement**: For each leaf wiki page, check whether a companion `<stem>.index.md` exists. If it does NOT exist, skip that document entirely — it is not available for selection. Only documents with a companion section index participate in the selection process.
 9. **Phase-dependent reading depth**:
@@ -116,32 +116,43 @@ sharedWikiSource:
     ref: <only for github_mcp>
     commitSha: <only for github_mcp>
     shortSha: <only for github_mcp>
-selectedWikiPages:
+wikiPages:
   - path: .shared-superpowers/wiki/<path>.md
     root: shared # project | shared
     source: github_mcp # local | github_mcp
+    displayPath: .shared-superpowers/wiki/<path>.md
+    localPath: <path>.md # for local project/shared wiki; omit for github_mcp
     wikiPath: <path>.md # for github_mcp; omit or mirror path relative to root for local
     revision:
       ref: <for github_mcp>
       commitSha: <for github_mcp>
       shortSha: <for github_mcp>
-    section_name: <section marker ID from the document> # NEW — required when selecting a specific section
     documentContext:
       title: <document title from companion section index>
       overview: <bounded document-level overview from companion section index>
       scope: <optional explicit scope if present in the index overview>
       contextSource: <companion <stem>.index.md path or MCP wikiPath>
-    readDepth: index-only | full # NEW — index-only for brainstorm, full for plan/debug
-    relevance: direct | supporting | phase_only
-    confidence: high | medium | low
-    reason: <specific reason this wiki section applies>
-    relevanceTo: <coarse description of what task area this constrains — NOT specific task numbers>
-    hardConstraint: true | false
-    constraints:
-      - <concrete constraint distilled from this section — only when readDepth is full>
-    sourceAnchors:
-      - heading: <optional heading or anchor within the section>
-        excerpt: <short bounded excerpt>
+    sections:
+      - sectionId: <section marker ID from the document>
+        section_name: <same section marker ID; compatibility alias>
+        readDepth: index-only | full # index-only for brainstorm, full for plan/debug
+        relevance: direct | supporting | phase_only
+        confidence: high | medium | low
+        reason: <specific reason this wiki section applies>
+        relevanceTo: <coarse description of what task area this constrains — NOT specific task numbers>
+        hardConstraint: true | false
+        constraints:
+          implementation:
+            - <implementation constraint distilled from this section — only when readDepth is full>
+          test:
+            - <test or verification constraint distilled from this section>
+          review:
+            - <review-specific constraint distilled from this section>
+          general:
+            - <uncategorized preserved constraint; use this when category is unclear>
+        sourceAnchors:
+          - heading: <optional heading or anchor within the section>
+            excerpt: <short bounded excerpt>
 indexesRead:
   - path: .superpowers/wiki/index.md
     root: project
@@ -163,11 +174,11 @@ caveats:
 
 Always return root-prefixed `path` values so the main agent can distinguish project-owned and shared-owned pages, especially when both roots contain the same relative path.
 
-For `source: github_mcp`, `path` is a human-readable logical display path, not a local file path. The main agent must write `wikiPath` and `revision` into `.wiki-context.md` so execution can reread with `shared_wiki_read` if absolutely necessary.
+For `source: github_mcp`, `path` and `displayPath` are human-readable logical display paths, not local file paths. The main agent must write `wikiPath` and `revision` into `.wiki-context.json` so execution can reread with `shared_wiki_read` if absolutely necessary.
 
-Treat `readDepth` as a phase-driven label. Use `readDepth: index-only` during brainstorming or when the section index description alone is sufficient. Use `readDepth: full` during planning when the wiki section is a hard constraint for implementation, tests, API contracts, directory layout, naming, or review, and the main agent must distill it into the plan's linked `.wiki-context.md` file.
+Treat section `readDepth` as a phase-driven label. Use `readDepth: index-only` during brainstorming or when the section index description alone is sufficient. Use `readDepth: full` during planning when the wiki section is a hard constraint for implementation, tests, API contracts, directory layout, naming, or review, and the main agent must distill it into the plan's linked `.wiki-context.json` file.
 
-During `phase: plan`, include `section_name`, `documentContext`, `hardConstraint`, `constraints`, and `sourceAnchors` when you read the section full text. `documentContext` must come from the companion `<stem>.index.md` title/overview and stay bounded; do not summarize sibling sections or the full page into it. The main agent determines `appliesTo` (specific task numbers) after task decomposition — this agent outputs only `relevanceTo` (coarse description). The main agent, not this agent, writes `docs/superpowers/plans/<plan-stem>.wiki-context.md` and links it from the plan's `Referenced Project Wiki` section.
+During `phase: plan`, include page-level `documentContext` plus section-level `sectionId`, `section_name`, `hardConstraint`, categorized `constraints`, and `sourceAnchors` when you read the section full text. `documentContext` must come from the companion `<stem>.index.md` title/overview and stay bounded at the page node; do not summarize sibling sections or the full page into it. Every constraint from the selected section must appear in one of `implementation`, `test`, `review`, or `general`; use `general` when the category is unclear. The main agent determines `appliesTo` (specific task numbers) after task decomposition — this agent outputs only `relevanceTo` (coarse description). The main agent, not this agent, writes `docs/superpowers/plans/<plan-stem>.wiki-context.json` and links it from the plan's `Referenced Project Wiki` section.
 
 During `phase: debug`, `constraints` are project rules, contracts, or gotchas to verify; they are not confirmed root causes and are not plan constraints. `hardConstraint: true` only means the wiki section states a strong project rule, not that the bug root cause is confirmed. Include caveats when wiki context may be stale, incomplete, or needs verification against code, logs, tests, reproduction steps, or diagnostics.
 

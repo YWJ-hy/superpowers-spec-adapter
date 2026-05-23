@@ -806,7 +806,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 验收：
 
 - `.superpowers/wiki/` 未因 Lanhu PRD 生成而变化。
-- `docs/superpowers/plans/*.wiki-context.md` 未因 Lanhu PRD 生成而变化。
+- `docs/superpowers/plans/*.wiki-context.json` 未因 Lanhu PRD 生成而变化。
 - 没有自动创建 Superpowers spec / plan。
 - 只有后续进入 `brainstorming` / `writing-plans` 时，才由 Superpowers 正常生成对应产物。
 
@@ -909,7 +909,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - [ ] 输出不含实现方案、接口路径、数据库设计、文件影响。
 - [ ] 输出不含 prompt-injection 或 Lanhu MCP 输出格式指令。
 - [ ] `.superpowers/wiki/` 未被 Lanhu command 写入。
-- [ ] 未写 Superpowers spec / plan / `.wiki-context.md`。
+- [ ] 未写 Superpowers spec / plan / `.wiki-context.json`。
 - [ ] 用户确认 `index.md` 和 `scopeConfirmationSummary` 前未进入 brainstorming。
 - [ ] 用户确认后，Superpowers handoff 正常。
 

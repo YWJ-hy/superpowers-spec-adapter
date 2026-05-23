@@ -26,8 +26,8 @@ adapter 增强这些阶段：
 - 可选安装体验：如果用户已配置 lanhu-mcp，可用 `/lanhu-requirements` 先确认前端/后端角色，再路由到 `lanhu-frontend-requirements-analyst`、`lanhu-frontend-html-requirements-analyst` 或 `lanhu-backend-requirements-analyst` 生成 `.lanhu/MM-DD-需求名称/` 蓝湖原始需求证据包。该包是 Superpowers 的需求输入，不是 Superpowers spec，不生成最终验收标准、测试计划、技术方案或实施任务。显式 `pageId` 链接会先由主会话把 URL 当作 `rootScopeUrl`、当前页当作 `rootPageId`，只调用 `lanhu_get_prd_page_scope` 获取当前页及子树的轻量 page tree metadata，再结合用户描述选择 `selectedTargetPages`；主会话在派发前不得调用 `lanhu_get_prd_scoped_evidence` 或读取完整页面 evidence。每个选中页面固定派发一个 analyst，analyst 才使用固定 scoped Lanhu MCP 序列读取自己的页面 evidence。蓝湖图片、截图和 `designInfo.images` 默认只作为候选证据；analyst 仅在标注、箭头、周边说明、用户点名、关键 UI 事实缺失等信号命中时选择性分析图片区域，默认不把图片资产保存到 `.lanhu/`。
 - 蓝湖 frontend Markdown 证据包保留 XML-like 的 1:1 原始需求界面复刻，供 Superpowers/agent 稳定读取；frontend HTML 证据包使用 `index.html` 作为 evidence reader，并用 `prototype/index.html` 1:1 复刻蓝湖原始需求界面和真实控件。HTML 已有真实控件时，不再重复输出“控件类型”文案；HTML prototype 复刻的是 selected/evidenced 范围，不因为返回了图片资源就全量复刻整张图。蓝湖原始需求中的明确事实不得因模板主题装不下而丢失；analyst 可按源需求创建具体的源事实主题承接，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst；图片相关性、是否分析高成本图片区域或是否保存原图也应走同一确认门禁。`confirmationGate.status: clear` 且用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 Superpowers `brainstorming`。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
-- 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 `.wiki-context.md` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
-- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.md`。对 `hardConstraint: true` 的约束条目，执行阶段会强制回读原始 wiki section 全文（通过 `<!-- wiki-section:xxx -->` 标记提取），并附带来自伴随 `<stem>.index.md` 的有界 `documentContext`（标题 / 概览 / source metadata），注入 implementer 和 spec-reviewer prompt，确保约束不因摘要信息衰减或 section 脱离页面主语而被误用。
+- 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 schemaVersion 3 `.wiki-context.json` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。JSON 以 wiki page 为根节点，每个 page 只保留一份来自伴随 `<stem>.index.md` 的有界 `documentContext`，选中的 sections 作为子节点并保留 implementation / test / review / general 分类约束。
+- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.json`，并通过安装在 Superpowers plugin 内的 `wiki_context_render.py` 按 task / role 机械过滤和组装 implementer / reviewer 约束。对 `hardConstraint: true` 的 section，执行阶段会强制回读原始 wiki section 全文（通过 `<!-- wiki-section:xxx -->` 标记提取），并附带有界 `documentContext` 注入 implementer 和 spec-reviewer prompt，确保约束不因摘要信息衰减或 section 脱离页面主语而被误用。
 - Wiki 文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section:section-id -->` 标记包裹独立约束主题段落，每个叶子文档都必须有 `<stem>.index.md` 伴随索引；该索引包含文档级语义概览和 section 表格。`wiki-researcher` 通过读取 per-document index 快速判断文档和 section 相关性，未迁移到新格式的文档不参与 wiki-researcher 选择。用户可通过 `/migrate-wiki` command 将现有 wiki 迁移到 section-marker 格式。
 - 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki。wiki 只作为待验证线索，不替代 root cause evidence。
 - `update-wiki` 写入前读取目标 root 的 settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；默认更新已有页面跳过授权，创建新 wiki 文档询问用户授权；写入 shared wiki 前必须把内容中性化，不能保留当前系统特有标识。如团队使用 GitHub-backed shared-wiki MCP，则 shared wiki 写入通过 MCP validate patch + branch + PR，不直接改本地 shared wiki。
@@ -68,10 +68,10 @@ Superpowers 插件目录
 
 - `using-superpowers`：声明 adapter workflow boundary。standalone adapter command 和 adapter maintenance skill 的本地完成，不等于 Superpowers development-task completion；正常 `brainstorming`、`writing-plans`、`executing-plans`、`subagent-driven-development`、`systematic-debugging` 流程仍保留自己的 verification 和后续 `update-wiki` 机制。
 - `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先确认前端/后端 evidence role，再路由到 `lanhu-frontend-requirements-analyst`、`lanhu-frontend-html-requirements-analyst` 或 `lanhu-backend-requirements-analyst` 直接生成 `.lanhu/MM-DD-需求名称/` 蓝湖原始需求证据包；主会话只接收 status、confirmationGate、packageDir、indexPath、writtenFiles、sourceFactCoverage、openQuestions、caveats 等轻量摘要，`index.md` 是用户确认和后续读取的入口。如用户直接引用已确认的 `.lanhu/.../index.md` 或已存在证据包，则不默认重新读蓝湖，而是先读 `index.md`，再按其中索引读取同包内 `prd.md`、`prds/*.md`、`index.html` 或 `prototype/index.html` 等详细证据来源，作为 Superpowers spec 的需求输入。Lanhu 包不得被复制为 final spec、验收标准、测试计划、技术方案或 implementation plan。
-- `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目/共享 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.md`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
+- `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目/共享 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.json`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。
 - `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug`、`maxWikiPages: 2` 条件式查询 wiki。
-- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md`，不重新选择 wiki 页面。
-- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.md` 约束传给 implementer / reviewer subagent。
+- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.json`，用 plugin-root `wiki_context_render.py` 按当前 task 渲染 implementer 约束，不重新选择 wiki 页面。
+- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.json` 通过 plugin-root `wiki_context_render.py` 分别渲染为 implementer / reviewer 的 task-specific 约束块，再传给 subagent。
 - `using-git-worktrees`：创建 worktree 时把原始分支、原始 worktree 和原始 HEAD 记录到新 worktree 的 private git-dir metadata。
 - `finishing-a-development-branch`：metadata 有效时，提供明确合并回创建 worktree 前原始分支的收尾选项。
 
@@ -92,8 +92,8 @@ Superpowers 插件目录
 | 5 | 初始化 starter wiki | `/init-wiki` | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
 | 6 | 可选蓝湖原始需求证据包 | `/lanhu-requirements <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；如 URL 带 pageId，主会话先读取 URL 当前页及子树的轻量 page tree metadata，并结合用户描述选择目标页面；每个目标页面由 analyst 直接生成 `.lanhu/MM-DD-需求名称/` 或 `pages/<page-slug>/` evidence package 并只向主会话返回路径摘要和确认门禁；图片默认只按标注/箭头/缺失关键事实等信号选择性分析，不保存图片资产；默认 Markdown-only，前端 html 模式生成 `index.html` evidence reader 和 `prototype/index.html` 1:1 原始需求界面复刻；阻塞确认点清零且用户确认 `index.md` 后作为 Superpowers 需求输入 |
 | 7 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
-| 8 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目/共享 wiki 页面，生成 `.wiki-context.md`，并在 plan 中写入轻量 `Referenced Project Wiki` |
-| 9 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.md` |
+| 8 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目/共享 wiki 页面，生成 `.wiki-context.json`，并在 plan 中写入轻量 `Referenced Project Wiki` |
+| 9 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki` 和链接的 `.wiki-context.json` |
 | 9.5 | worktree 收尾 | `finishing-a-development-branch` | 使用 Superpowers worktree 开发后 | metadata 有效时，可明确合并回创建 worktree 前的原始分支 |
 | 10 | 修 bug 与复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug；必要时在证据收窄后低噪音查 wiki，修复验证后再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
 | 11 | 任务后更新 wiki | `update-wiki` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
@@ -110,9 +110,9 @@ Superpowers 插件目录
 → adapter 轻量披露相关项目 wiki 页面
 → Superpowers 写并确认本次 spec
 → Superpowers writing-plans
-→ adapter 正式选择项目/共享 wiki，生成 .wiki-context.md，并在 plan 写入轻量 Referenced Project Wiki
+→ adapter 正式选择项目/共享 wiki，生成 .wiki-context.json，并在 plan 写入轻量 Referenced Project Wiki
 → Superpowers 直接读当前源码验证精确影响文件和任务步骤
-→ Superpowers executing-plans / subagent-driven-development 按 plan 和 .wiki-context.md 执行
+→ Superpowers executing-plans / subagent-driven-development 按 plan 和 .wiki-context.json 执行
 → 遇到 bug 时先用 Superpowers systematic-debugging 复现、收集证据并收窄失败边界
 → 如果怀疑项目特定契约 / gotcha / 跨层边界，才条件式用 wiki-researcher 查少量 wiki，并继续用代码、日志、测试或复现验证
 → 修复后需要防复发分析时使用 break-loop
@@ -329,7 +329,7 @@ maxWikiPages: 5
 writing-plans 默认把详细约束写入与 plan 同名的 sidecar 文件；如果 shared wiki 页面来自 GitHub-backed MCP，sidecar 还要记录 source-aware metadata：
 
 ```text
-docs/superpowers/plans/<plan-stem>.wiki-context.md
+docs/superpowers/plans/<plan-stem>.wiki-context.json
 ```
 
 plan 必须包含轻量入口：
@@ -337,25 +337,25 @@ plan 必须包含轻量入口：
 ```markdown
 ## Referenced Project Wiki
 
-Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.md`
+Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.json`
 
 - `.superpowers/wiki/domain/user.md` — applies to Tasks 1, 2, and 4; hard constraint: use `account_id` as the stable identity key.
 ```
 
-`.wiki-context.md` 应包含每个选中 wiki 页的路径、source、`section_name`、来自伴随 `<stem>.index.md` 的有界 `documentContext`、适用任务、具体实现 / 测试 / review 约束、硬约束标记、必要原文锚点和 caveats。`documentContext` 只用于保留页面级主语和适用范围，不能包含 sibling sections 或整页正文；对于 `source: github_mcp`，还要记录 `wikiPath` 和 `revision`，并把 `.shared-superpowers/wiki/<path>.md` 视为逻辑展示路径而不是本地文件路径。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
+`.wiki-context.json` 是 schemaVersion 3 的 source of truth，应使用 page-rooted `wikiPages` 结构：每个 page 包含路径、root、source、`displayPath`、本地 `localPath` 或 MCP `wikiPath` / `revision`、来自伴随 `<stem>.index.md` 的有界 `documentContext`，以及嵌套 `sections`。每个 section 包含 `sectionId` / `section_name`、适用任务、hard constraint 标记、必要原文锚点、caveats、section-level `reread` metadata，以及 `implementation` / `test` / `review` / `general` 分类约束；无法可靠分类但不能丢失的约束放入 `general`。`documentContext` 只用于保留页面级主语和适用范围，不能包含 sibling sections 或整页正文；对于 `source: github_mcp`，`.shared-superpowers/wiki/<path>.md` 是逻辑展示路径而不是本地文件路径。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
 
 
 ### 5.3 执行阶段
 
-`executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`，再读取其中链接的 `.wiki-context.md`。硬约束 section 的 forced reread 应注入有界 document context 加选中 section 全文，而不是补读整页 wiki。
+`executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`，定位其中链接的 `.wiki-context.json`，再用 plugin-root `wiki_context_render.py` 按 task / role 渲染约束块。硬约束 section 的 forced reread 应注入有界 document context 加选中 section 全文，而不是补读整页 wiki。
 
 执行阶段不应默认：
 
 - 重新从项目/共享 wiki root 选择 wiki 页面。
-- 临时在执行阶段重新解释 wiki 约束，或绕过 planning 生成的 `.wiki-context.md`。
+- 临时在执行阶段重新解释 wiki 约束，或绕过 planning 生成的 `.wiki-context.json`。
 - 绕过 plan 中已经确认的 wiki 约束。
 
-如果 plan 缺少 `Referenced Project Wiki`、链接的 `.wiki-context.md` 缺失，或 context 明显不足，应提示回到 planning 阶段补齐。
+如果 plan 缺少 `Referenced Project Wiki`、链接的 `.wiki-context.json` 缺失，或 context 明显不足，应提示回到 planning 阶段补齐。
 
 ### 5.4 bug 调试中的 wiki 边界
 
@@ -375,9 +375,9 @@ maxWikiPages: 2
 
 只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时才应调用；明显局部错误、泛型语言错误、宽泛“搜 wiki”、或 root cause evidence 前不应调用。
 
-如果 bug 发生在执行某个 Superpowers plan 的过程中，应先读取当前 plan 的 `Referenced Project Wiki` 和链接的 `.wiki-context.md`。没有当前 plan 上下文时，不默认搜索旧 plan，也不扫描全 wiki。
+如果 bug 发生在执行某个 Superpowers plan 的过程中，应先读取当前 plan 的 `Referenced Project Wiki` 和链接的 `.wiki-context.json`。没有当前 plan 上下文时，不默认搜索旧 plan，也不扫描全 wiki。
 
-wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-derived idea 都必须继续用代码、日志、测试、复现或诊断验证；wiki 缺失、无相关页面或与运行时证据冲突时，不阻塞调试，并以当前运行时证据为准。调试阶段不生成 `.wiki-context.md`，不更新 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/`；修复验证后如有复盘价值，再走 `break-loop`，只有 durable knowledge 才交给 `update-wiki`。
+wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-derived idea 都必须继续用代码、日志、测试、复现或诊断验证；wiki 缺失、无相关页面或与运行时证据冲突时，不阻塞调试，并以当前运行时证据为准。调试阶段不生成 `.wiki-context.json`，不更新 `.superpowers/wiki/` 或 `.shared-superpowers/wiki/`；修复验证后如有复盘价值，再走 `break-loop`，只有 durable knowledge 才交给 `update-wiki`。
 
 ### 5.5 worktree 原始分支收尾
 
@@ -437,7 +437,7 @@ wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-d
 | 导入已有 wiki | `/import-wiki` | 有已有wiki 目录时在 Claude Code 中执行 |
 | 初次生成 starter wiki | `/init-wiki` | 在 Claude Code 中执行 |
 | 设计阶段参考项目 wiki | Superpowers `brainstorming` + `wiki-researcher` | 自动轻量披露相关项目 wiki 页面 |
-| 计划阶段固化项目 wiki | Superpowers `writing-plans` + `Referenced Project Wiki` + `.wiki-context.md` | 自动选择 wiki、生成详细约束产物，并在 plan 中写入轻量入口 |
+| 计划阶段固化项目 wiki | Superpowers `writing-plans` + `Referenced Project Wiki` + `.wiki-context.json` | 自动选择 wiki、生成详细约束产物，并在 plan 中写入轻量入口 |
 | bug 调试辅助 | Superpowers `systematic-debugging` + `wiki-researcher` | Phase 1 证据收窄后才条件式查少量 wiki，wiki 线索必须继续验证 |
 | 沉淀长期知识 | `update-wiki` skill | 由 agent 在任务后自动审查是否需要执行 |
 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者使用 |
