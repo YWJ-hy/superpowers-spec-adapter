@@ -9,10 +9,10 @@ TARGET_INPUT="$(cd "${TARGET_INPUT}" && pwd)"
 LANHU_FRONTEND_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md"
 LANHU_FRONTEND_HTML_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-html-requirements-analyst.md"
 LANHU_BACKEND_AGENT="${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md"
-LANHU_COMMAND="${TARGET_INPUT}/commands/lanhu-requirements.md"
+LANHU_SKILL="${TARGET_INPUT}/skills/lanhu-requirements/SKILL.md"
 BRAINSTORMING_SKILL="${TARGET_INPUT}/skills/brainstorming/SKILL.md"
 
-for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; do
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
   if [[ ! -f "$file" ]]; then
     printf 'Expected installed Lanhu URL-root selection target: %s\n' "$file" >&2
     exit 1
@@ -37,7 +37,7 @@ forbid_in_file() {
   fi
 }
 
-for orchestrator in "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; do
+for orchestrator in "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
   for required in \
     'rootScopeUrl' \
     'rootPageId' \
@@ -66,7 +66,7 @@ for required in \
   'after per-page evidence packages' \
   'must not replace them'
 do
-  require_in_file "$LANHU_COMMAND" "$required"
+  require_in_file "$LANHU_SKILL" "$required"
 done
 
 for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT"; do

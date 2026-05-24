@@ -86,17 +86,17 @@ npm run build
    - `shared_wiki_validate_patch`
    - `shared_wiki_create_patch_pr`
 
-### 3. `/shared-wiki-mcp` command 集成路径
+### 3. `shared-wiki-mcp` skill 集成路径
 
 待测目标：
 
 - 安装 adapter 后，在 Claude Code 中触发：
 
 ```text
-/shared-wiki-mcp
+`shared-wiki-mcp` skill
 ```
 
-- 确认 command 文档会引导 agent：
+- 确认 skill 文档会引导 agent：
   - 先调用 `shared_wiki_status`
   - 再读取 tree/read/search
   - 写入前先做 durable knowledge、语义去重、shared ownership、中立化和授权判断
@@ -131,8 +131,8 @@ npm run build
 
 - 原有 adapter smoke tests 通过。
 - 新增 deterministic MCP smoke tests 通过：
-  - `tests/shared-wiki-mcp-policy-smoke.sh`
-  - `tests/shared-wiki-mcp-pr-smoke.sh`
+  - `tests`shared-wiki-mcp` skill-policy-smoke.sh`
+  - `tests`shared-wiki-mcp` skill-pr-smoke.sh`
 
 ### 6. 完整 release-check
 
@@ -145,7 +145,7 @@ npm run build
 期望：
 
 - install / verify / doctor / self-test / export-manifest 全链路通过。
-- 新增 `/shared-wiki-mcp` command 已被安装和 verify 覆盖。
+- 新增 `shared-wiki-mcp` skill 已被安装和 verify 覆盖。
 
 ## 本轮已通过的测试记录
 
@@ -154,9 +154,9 @@ npm run build
 ```bash
 npm test --prefix mcp/shared-wiki
 npm run build --prefix mcp/shared-wiki
-bash tests/shared-wiki-mcp-copyable-smoke.sh
-bash tests/shared-wiki-mcp-policy-smoke.sh
-bash tests/shared-wiki-mcp-pr-smoke.sh
+bash tests`shared-wiki-mcp` skill-copyable-smoke.sh
+bash tests`shared-wiki-mcp` skill-policy-smoke.sh
+bash tests`shared-wiki-mcp` skill-pr-smoke.sh
 ./manage.sh install
 ./manage.sh verify
 ```

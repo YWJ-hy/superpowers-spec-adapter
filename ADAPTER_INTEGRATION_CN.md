@@ -32,13 +32,13 @@ superpowers/
 ├── skills/break-loop/SKILL.md
 ├── skills/wiki-progressive-disclosure/SKILL.md
 ├── skills/update-wiki/SKILL.md
-├── commands/import-wiki.md
-├── commands/init-wiki.md
+├── skills/import-wiki/SKILL.md
+├── skills/init-wiki/SKILL.md
 ├── scripts/update-wiki.py
 ├── scripts/wiki-context.py
 ├── scripts/wiki_common.py
 ├── scripts/wiki_import.py
-├── scripts/init-wiki.py
+├── scripts`init-wiki` skill.py
 ├── scripts/wiki_update_check.py
 ├── scripts/wiki_select_target.py
 └── scripts/wiki_apply_update.py
@@ -196,17 +196,17 @@ subagent 不应重新从 `.superpowers/wiki/` 选择规范，除非主 agent 判
 
 ## 6. command / skill 能力
 
-### `/init-wiki`
+### `init-wiki` skill
 
 用于首次从当前项目 inventory 辅助 agent 生成轻量 starter wiki。底层脚本只输出机械 inventory，不直接写 wiki 内容。
 
 底层脚本：
 
 ```bash
-python3 "$TARGET_DIR/scripts/init-wiki.py" . "optional focus" --json
+python3 "$TARGET_DIR/scripts`init-wiki` skill.py" . "optional focus" --json
 ```
 
-### `/import-wiki`
+### `import-wiki` skill
 
 用于一次性结构导入已有规范目录或文件，不做语义融合。
 
@@ -240,7 +240,7 @@ python3 "$TARGET_DIR/scripts/wiki_update_check.py" --json
 python3 "$TARGET_DIR/scripts/update-wiki.py" --authorized-update
 ```
 
-`/init-wiki`、`/import-wiki` 和 `/lanhu-requirements` 是独立 adapter command，完成后不触发 Superpowers completion / review / verification；`/lanhu-requirements` 完成本地写入也不等于 Superpowers-ready，如果 analyst 返回 `status: need_confirmation`，必须先把紧凑阻塞问题交给用户确认并回传同一角色 analyst 修复需求包；只有命令明确 handoff、`confirmationGate.status: clear` 且用户确认 `index.md` 后，才进入下一步 Superpowers workflow。`update-wiki` 是自动触发 skill，不保留 slash command 入口；它是 adapter 维护和 durable-knowledge review，本地 wiki 校验不等于 Superpowers 实现验证。
+`init-wiki` skill、`import-wiki` skill 和 `lanhu-requirements` skill 是独立 adapter skill，完成后不触发 Superpowers completion / review / verification；`lanhu-requirements` skill 完成本地写入也不等于 Superpowers-ready，如果 analyst 返回 `status: need_confirmation`，必须先把紧凑阻塞问题交给用户确认并回传同一角色 analyst 修复需求包；只有 skill 明确 handoff、`confirmationGate.status: clear` 且用户确认 `index.md` 后，才进入下一步 Superpowers workflow。`update-wiki` 是自动触发 skill；它是 adapter 维护和 durable-knowledge review，本地 wiki 校验不等于 Superpowers 实现验证。
 
 ---
 
@@ -283,5 +283,5 @@ python3 "$TARGET_DIR/scripts/update-wiki.py" --authorized-update
 - `brainstorming` patch 会调用 `wiki-researcher` 获取轻量 wiki context。
 - `writing-plans` patch 会要求 `Referenced Project Wiki`。
 - `executing-plans` 和 `subagent-driven-development` 只消费 plan 引用，不重新选择 wiki 页面。
-- `/import-wiki`、`/init-wiki` 仍作为独立 command 工作，`update-wiki` 作为 skill 安装并能在任务后审查 durable knowledge。
+- `import-wiki` skill、`init-wiki` skill 仍作为独立 skill 工作，`update-wiki` 作为 skill 安装并能在任务后审查 durable knowledge。
 - `verify`、`self-test`、`release-check` 通过。

@@ -5,7 +5,7 @@
     "description": "Pluggable overlay that adds wiki-researcher-driven project wiki selection, bug retrospective handoff, and update-wiki workflow to Superpowers without making Trellis a runtime dependency."
   },
   "target": {
-    "repoRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.99wnhJJ4n5",
+    "repoRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.UuS6ih29ev",
     "superpowersPath": "/Users/yewenjie/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0",
     "exists": true
   },
@@ -19,23 +19,25 @@
       "skills/break-loop/SKILL.md",
       "skills/wiki-progressive-disclosure/SKILL.md",
       "skills/update-wiki/SKILL.md",
-      "commands/import-wiki.md",
-      "commands/init-wiki.md",
-      "commands/lanhu-requirements.md",
-      "commands/publish-shared-wiki.md",
-      "commands/shared-wiki-mcp.md",
+      "skills/import-wiki/SKILL.md",
+      "skills/init-wiki/SKILL.md",
+      "skills/lanhu-requirements/SKILL.md",
+      "skills/migrate-wiki/SKILL.md",
+      "skills/publish-shared-wiki/SKILL.md",
+      "skills/shared-wiki-mcp/SKILL.md",
       "scripts/update-wiki.py",
       "scripts/wiki-context.py",
+      "scripts/wiki_context_render.py",
       "scripts/wiki_common.py",
+      "scripts/wiki_section.py",
+      "scripts/wiki_read_section.py",
+      "scripts/wiki_generate_section_index.py",
       "scripts/lanhu_settings.py",
       "scripts/wiki_import.py",
       "scripts/init-wiki.py",
       "scripts/wiki_update_check.py",
       "scripts/wiki_select_target.py",
       "scripts/wiki_apply_update.py",
-      "scripts/wiki_section.py",
-      "scripts/wiki_read_section.py",
-      "scripts/wiki_generate_section_index.py",
       "scripts/wiki_migrate_helper.py"
     ],
     "missingFiles": []
@@ -53,10 +55,10 @@
     "skills/finishing-a-development-branch/SKILL.md": true
   },
   "wikiState": {
-    "wikiRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.99wnhJJ4n5/.superpowers/wiki",
+    "wikiRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.UuS6ih29ev/.superpowers/wiki",
     "exists": true,
     "entryIndexExists": true,
-    "ignoreFileExists": true,
+    "ignoreFileExists": false,
     "defaultIgnoredDirectories": [
       "draft",
       "archive",
@@ -70,13 +72,11 @@
     ],
     "rawView": {
       "indexFiles": [
-        "backend/api/index.md",
-        "backend/index.md",
         "frontend/examples/index.md",
         "frontend/index.md",
         "guides/index.md",
         "imported/index.md",
-        "imported-command-path-smoke/index.md",
+        "imported-skill-path-smoke/index.md",
         "index.md",
         "platform/api/index.md",
         "platform/index.md",
@@ -86,20 +86,13 @@
         "updates/index.md"
       ],
       "leafFiles": [
-        "backend/api/contract.md",
-        "backend/data-access.md",
-        "backend/error-handling.md",
         "frontend/component-guidelines.md",
-        "frontend/component.md",
-        "frontend/data-fetching.md",
         "frontend/examples/example.md",
         "frontend/hook-guidelines.md",
-        "frontend/state-management.md",
         "frontend/type-safety.md",
         "guides/debugging.md",
-        "guides/release-readiness.md",
         "imported/external-import-self-test.md",
-        "imported-command-path-smoke/path-smoke.md",
+        "imported-skill-path-smoke/path-smoke.md",
         "platform/api/contract.md",
         "shared/deep/rule.md",
         "unindexed/secret.md",
@@ -107,57 +100,12 @@
       ],
       "tree": [
         {
-          "path": "backend",
-          "type": "dir",
-          "depth": 1
-        },
-        {
-          "path": "backend/api",
-          "type": "dir",
-          "depth": 2
-        },
-        {
-          "path": "backend/api/contract.md",
-          "type": "file",
-          "depth": 3
-        },
-        {
-          "path": "backend/api/index.md",
-          "type": "file",
-          "depth": 3
-        },
-        {
-          "path": "backend/data-access.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "backend/error-handling.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "backend/index.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
           "path": "frontend",
           "type": "dir",
           "depth": 1
         },
         {
           "path": "frontend/component-guidelines.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "frontend/component.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "frontend/data-fetching.md",
           "type": "file",
           "depth": 2
         },
@@ -187,11 +135,6 @@
           "depth": 2
         },
         {
-          "path": "frontend/state-management.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
           "path": "frontend/type-safety.md",
           "type": "file",
           "depth": 2
@@ -212,11 +155,6 @@
           "depth": 2
         },
         {
-          "path": "guides/release-readiness.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
           "path": "imported",
           "type": "dir",
           "depth": 1
@@ -232,17 +170,17 @@
           "depth": 2
         },
         {
-          "path": "imported-command-path-smoke",
+          "path": "imported-skill-path-smoke",
           "type": "dir",
           "depth": 1
         },
         {
-          "path": "imported-command-path-smoke/index.md",
+          "path": "imported-skill-path-smoke/index.md",
           "type": "file",
           "depth": 2
         },
         {
-          "path": "imported-command-path-smoke/path-smoke.md",
+          "path": "imported-skill-path-smoke/path-smoke.md",
           "type": "file",
           "depth": 2
         },
@@ -335,12 +273,10 @@
     },
     "effectiveView": {
       "indexFiles": [
-        "backend/api/index.md",
-        "backend/index.md",
         "frontend/index.md",
         "guides/index.md",
         "imported/index.md",
-        "imported-command-path-smoke/index.md",
+        "imported-skill-path-smoke/index.md",
         "index.md",
         "platform/api/index.md",
         "platform/index.md",
@@ -350,60 +286,18 @@
         "updates/index.md"
       ],
       "leafFiles": [
-        "backend/api/contract.md",
-        "backend/data-access.md",
-        "backend/error-handling.md",
         "frontend/component-guidelines.md",
-        "frontend/component.md",
-        "frontend/data-fetching.md",
         "frontend/hook-guidelines.md",
-        "frontend/state-management.md",
         "frontend/type-safety.md",
         "guides/debugging.md",
-        "guides/release-readiness.md",
         "imported/external-import-self-test.md",
-        "imported-command-path-smoke/path-smoke.md",
+        "imported-skill-path-smoke/path-smoke.md",
         "platform/api/contract.md",
         "shared/deep/rule.md",
         "unindexed/secret.md",
         "updates/adapter-self-test.md"
       ],
       "tree": [
-        {
-          "path": "backend",
-          "type": "dir",
-          "depth": 1
-        },
-        {
-          "path": "backend/api",
-          "type": "dir",
-          "depth": 2
-        },
-        {
-          "path": "backend/api/contract.md",
-          "type": "file",
-          "depth": 3
-        },
-        {
-          "path": "backend/api/index.md",
-          "type": "file",
-          "depth": 3
-        },
-        {
-          "path": "backend/data-access.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "backend/error-handling.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "backend/index.md",
-          "type": "file",
-          "depth": 2
-        },
         {
           "path": "frontend",
           "type": "dir",
@@ -415,27 +309,12 @@
           "depth": 2
         },
         {
-          "path": "frontend/component.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "frontend/data-fetching.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
           "path": "frontend/hook-guidelines.md",
           "type": "file",
           "depth": 2
         },
         {
           "path": "frontend/index.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
-          "path": "frontend/state-management.md",
           "type": "file",
           "depth": 2
         },
@@ -460,11 +339,6 @@
           "depth": 2
         },
         {
-          "path": "guides/release-readiness.md",
-          "type": "file",
-          "depth": 2
-        },
-        {
           "path": "imported",
           "type": "dir",
           "depth": 1
@@ -480,17 +354,17 @@
           "depth": 2
         },
         {
-          "path": "imported-command-path-smoke",
+          "path": "imported-skill-path-smoke",
           "type": "dir",
           "depth": 1
         },
         {
-          "path": "imported-command-path-smoke/index.md",
+          "path": "imported-skill-path-smoke/index.md",
           "type": "file",
           "depth": 2
         },
         {
-          "path": "imported-command-path-smoke/path-smoke.md",
+          "path": "imported-skill-path-smoke/path-smoke.md",
           "type": "file",
           "depth": 2
         },

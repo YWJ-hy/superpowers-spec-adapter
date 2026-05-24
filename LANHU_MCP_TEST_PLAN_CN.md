@@ -4,7 +4,7 @@
 
 ## 0. 测试目标
 
-- 验证 `/lanhu-requirements` 必须先确认 `role: frontend | backend`，角色缺失或歧义时不读取蓝湖。
+- 验证 `lanhu-requirements` skill 必须先确认 `role: frontend | backend`，角色缺失或歧义时不读取蓝湖。
 - 验证 Lanhu MCP 可用时，前端 / 后端专用 analyst 能从真实蓝湖 URL 生成 `.lanhu/MM-DD-需求名称/` 需求包。
 - 验证显式 `pageId` 场景必须先读取页面树、确认子页白名单，并对每个纳入页面使用自己的 scoped evidence `mode: full`，不能一次性请求父页加多个子页。
 - 验证 PRD 拆分由业务交付边界决定，不由页面数量决定，且 `index.md` 是入口和关系权威来源。
@@ -83,7 +83,7 @@ python3 lib/sync_role_prd.py sync
 
 预期：
 
-- `commands/lanhu-requirements.md` 已安装。
+- `skills/lanhu-requirements/SKILL.md` 已安装。
 - `agents/lanhu-frontend-requirements-analyst.md` 已安装。
 - `agents/lanhu-backend-requirements-analyst.md` 已安装。
 - native `brainstorming` / `using-superpowers` patch 中包含 Lanhu confirmation gate 与 handoff 边界。
@@ -121,7 +121,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 ```text
 用例编号：
 使用 URL：
-入口：/lanhu-requirements ... 或 brainstorming 中贴 Lanhu URL
+入口：`lanhu-requirements` skill ... 或 brainstorming 中贴 Lanhu URL
 角色：frontend / backend / 缺失 / 歧义
 是否显式 pageId：是 / 否
 是否有子页：是 / 否
@@ -149,7 +149,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2>
+`lanhu-requirements` skill <L2>
 ```
 
 预期：
@@ -163,8 +163,8 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2> 前后端都要
-/lanhu-requirements <L2> fullstack
+`lanhu-requirements` skill <L2> 前后端都要
+`lanhu-requirements` skill <L2> fullstack
 ```
 
 预期：
@@ -178,7 +178,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2> 前端 测试前端需求
+`lanhu-requirements` skill <L2> 前端 测试前端需求
 ```
 
 预期：
@@ -193,7 +193,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2> 后端 测试后端需求
+`lanhu-requirements` skill <L2> 后端 测试后端需求
 ```
 
 预期：
@@ -208,8 +208,8 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements --role frontend <L2> fe-role-test
-/lanhu-requirements --role backend <L2> be-role-test
+`lanhu-requirements` skill --role frontend <L2> fe-role-test
+`lanhu-requirements` skill --role backend <L2> be-role-test
 ```
 
 预期：
@@ -226,7 +226,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2> 前端
+`lanhu-requirements` skill <L2> 前端
 ```
 
 预期：
@@ -243,7 +243,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <失效或部分不可访问 URL> 前端
+`lanhu-requirements` skill <失效或部分不可访问 URL> 前端
 ```
 
 预期：
@@ -259,7 +259,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2> 前端 pageid-no-child-fe
+`lanhu-requirements` skill <L2> 前端 pageid-no-child-fe
 ```
 
 预期：
@@ -276,7 +276,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L3> 前端 pageid-with-children-fe
+`lanhu-requirements` skill <L3> 前端 pageid-with-children-fe
 ```
 
 预期：
@@ -310,7 +310,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L3> 后端 pageid-exclude-children-be
+`lanhu-requirements` skill <L3> 后端 pageid-exclude-children-be
 ```
 
 当询问是否纳入子页时，回答：
@@ -330,7 +330,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <构造 pageId 不存在的 URL> 前端 invalid-pageid
+`lanhu-requirements` skill <构造 pageId 不存在的 URL> 前端 invalid-pageid
 ```
 
 预期：
@@ -394,7 +394,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2> 前端 single-prd-fe
+`lanhu-requirements` skill <L2> 前端 single-prd-fe
 ```
 
 预期文件：
@@ -417,7 +417,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L5> 前端 multi-prd-fe
+`lanhu-requirements` skill <L5> 前端 multi-prd-fe
 ```
 
 预期文件：
@@ -443,7 +443,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L3 或 L5> 后端 tree-split-be
+`lanhu-requirements` skill <L3 或 L5> 后端 tree-split-be
 ```
 
 预期：
@@ -457,8 +457,8 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 连续两次使用同名 hint：
 
 ```text
-/lanhu-requirements <L2> 前端 duplicate-name
-/lanhu-requirements <L2> 前端 duplicate-name
+`lanhu-requirements` skill <L2> 前端 duplicate-name
+`lanhu-requirements` skill <L2> 前端 duplicate-name
 ```
 
 预期：
@@ -595,7 +595,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L4> 前端 delta-old-page-fe
+`lanhu-requirements` skill <L4> 前端 delta-old-page-fe
 ```
 
 预期：
@@ -611,7 +611,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L4> 后端 no-full-scope-be
+`lanhu-requirements` skill <L4> 后端 no-full-scope-be
 ```
 
 预期：
@@ -634,7 +634,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 流程：
 
-1. 执行 `/lanhu-requirements <L4> 前端 scope-correction-fe`。
+1. 执行 ``lanhu-requirements` skill <L4> 前端 scope-correction-fe`。
 2. analyst 返回 `status: ok`，主会话展示 `scopeConfirmationSummary`。
 3. 用户指出某个 `现有上下文` 实际是本期 `差量调整`。
 
@@ -652,7 +652,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L6> 前端 blocking-gate-fe
+`lanhu-requirements` skill <L6> 前端 blocking-gate-fe
 ```
 
 预期：
@@ -758,12 +758,12 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 ## 12. Superpowers handoff 测试
 
-### TC-H01：`/lanhu-requirements` 完成后停在用户确认
+### TC-H01：`lanhu-requirements` skill 完成后停在用户确认
 
 入口：
 
 ```text
-/lanhu-requirements <L2> 前端 handoff-fe
+`lanhu-requirements` skill <L2> 前端 handoff-fe
 ```
 
 预期：
@@ -817,8 +817,8 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <L2> 前端 same-url-fe
-/lanhu-requirements <L2> 后端 same-url-be
+`lanhu-requirements` skill <L2> 前端 same-url-fe
+`lanhu-requirements` skill <L2> 后端 same-url-be
 ```
 
 预期：
@@ -844,7 +844,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 入口：
 
 ```text
-/lanhu-requirements <带 root pageId 且有子页的 Lanhu URL> 前端 预估报价新增报价类型
+`lanhu-requirements` skill <带 root pageId 且有子页的 Lanhu URL> 前端 预估报价新增报价类型
 用户说明：只分析子页“手术报价”、“门诊报价”、“简易住院”，当前页“预估报价”为现有功能无需分析。
 ```
 
@@ -922,7 +922,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 5. 用 L6 跑第 10 章，验证 confirmation gate 和 resolve confirmation。
 6. 用 L5 跑 TC-O02、TC-O03，验证多 PRD 拆分。
 7. 用 L7 跑第 11 章，验证 prompt-injection 和输出净化。
-8. 跑第 12 章，验证 `/lanhu-requirements` 与 `brainstorming` handoff。
+8. 跑第 12 章，验证 `lanhu-requirements` skill 与 `brainstorming` handoff。
 9. 最后再次执行：
 
 ```bash

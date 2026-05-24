@@ -69,7 +69,7 @@ Classify the bug into the strongest matching category.
 | **A. Missing Wiki Guidance** | No durable guidance existed for how to implement safely | New behavior without a checklist or project rule |
 | **B. Cross-Layer Contract** | The interface between layers was unclear or violated | API, CLI, file, event, or config shape differed across layers |
 | **C. Change Propagation Failure** | One place changed but dependent places were missed | Signature, path, state, schema, or convention changed without updating callers |
-| **D. Test Coverage Gap** | Existing checks missed the integrated behavior | Unit passed, installed command or end-to-end path failed |
+| **D. Test Coverage Gap** | Existing checks missed the integrated behavior | Unit passed, installed skill or end-to-end path failed |
 | **E. Implicit Assumption** | Code relied on an undocumented assumption | Timing, default value, environment, ordering, units, or ownership was assumed |
 
 ### 3. Why Fixes Failed
@@ -94,7 +94,7 @@ Identify what would prevent this class of bug from recurring.
 | **Architecture** | Make the unsafe path impossible or harder | Centralize ownership, remove ambiguous state, use typed boundaries |
 | **Compile-time** | Let tooling catch the mistake earlier | Type signatures, schema checks, strict config validation |
 | **Runtime** | Detect or surface the issue at execution time | Assertions, logs, diagnostics, health checks |
-| **Test Coverage** | Verify the integrated behavior that failed | Smoke, regression, end-to-end, install-path, or command-path test |
+| **Test Coverage** | Verify the integrated behavior that failed | Smoke, regression, end-to-end, install-path, or skill-path test |
 | **Code Review** | Add a review prompt for known risk | Checklist item for cross-layer contract changes |
 
 ### 5. Systematic Expansion

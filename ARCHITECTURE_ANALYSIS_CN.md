@@ -30,17 +30,17 @@
 
 ### 3. Command 层
 
-- `overlays/commands/import-wiki.md`
-- `overlays/commands/init-wiki.md`
+- `overlays/skills/import-wiki/SKILL.md`
+- `overlays/skills/init-wiki/SKILL.md`
 
-这些是独立 adapter command，不串入 Superpowers completion verification。`update-wiki` 不再保留 command 入口。
+这些是独立 adapter skill，不串入 Superpowers completion verification。`update-wiki` 不再保留 command 入口。
 
 ### 4. Script 层
 
 - `overlays/scripts/wiki-context.py`
 - `overlays/scripts/wiki_common.py`
 - `overlays/scripts/wiki_import.py`
-- `overlays/scripts/init-wiki.py`
+- `overlays/scripts`init-wiki` skill.py`
 - `overlays/scripts/update-wiki.py`
 - `overlays/scripts/wiki_update_check.py`
 - `overlays/scripts/wiki_select_target.py`

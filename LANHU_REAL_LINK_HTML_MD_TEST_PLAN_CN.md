@@ -2,7 +2,7 @@
 
 ## 1. 测试目标
 
-使用真实蓝湖链接验证 `/lanhu-requirements` 在默认 Markdown-only 和前端 `html` 配置下的端到端输出质量，重点确认：
+使用真实蓝湖链接验证 `lanhu-requirements` skill 在默认 Markdown-only 和前端 `html` 配置下的端到端输出质量，重点确认：
 
 - `.lanhu/MM-DD-需求名称/` 证据包是否完整、清晰、可交给 Superpowers 后续 brainstorming 使用。
 - `index.md` 是否是稳定入口，并能清楚说明 PRD 文件关系、阅读顺序、范围判断和确认门禁状态。
@@ -87,11 +87,11 @@
 在 Claude Code 中进入目标项目后执行：
 
 ```text
-/lanhu-requirements <LANHU_URL> 前端 <测试需求名>
-/lanhu-requirements <LANHU_URL> 后端 <测试需求名>
+`lanhu-requirements` skill <LANHU_URL> 前端 <测试需求名>
+`lanhu-requirements` skill <LANHU_URL> 后端 <测试需求名>
 ```
 
-如果是 Superpowers brainstorming 中自动触发 Lanhu intake，也按同样标准验收，但本计划优先使用显式 `/lanhu-requirements`，便于观察输出路径和确认门禁。
+如果是 Superpowers brainstorming 中自动触发 Lanhu intake，也按同样标准验收，但本计划优先使用显式 `lanhu-requirements` skill，便于观察输出路径和确认门禁。
 
 ## 5. 核心测试用例
 
@@ -100,7 +100,7 @@
 输入：
 
 ```text
-/lanhu-requirements <LANHU_SINGLE_PAGE_URL> 前端 single-fe-md
+`lanhu-requirements` skill <LANHU_SINGLE_PAGE_URL> 前端 single-fe-md
 ```
 
 配置：不设置 `lanhu.frontend.output.format`。
@@ -157,7 +157,7 @@
 输入：
 
 ```text
-/lanhu-requirements <LANHU_SINGLE_PAGE_URL> 前端 single-fe-html
+`lanhu-requirements` skill <LANHU_SINGLE_PAGE_URL> 前端 single-fe-html
 ```
 
 配置：启用 `lanhu.frontend.output.format: html`。
@@ -195,7 +195,7 @@
 输入：
 
 ```text
-/lanhu-requirements <LANHU_SINGLE_PAGE_URL> 后端 single-be-md
+`lanhu-requirements` skill <LANHU_SINGLE_PAGE_URL> 后端 single-be-md
 ```
 
 配置：启用 `lanhu.frontend.output.format: html`。
@@ -226,7 +226,7 @@
 输入：
 
 ```text
-/lanhu-requirements <LANHU_PAGE_TREE_URL> 前端 tree-fe-html
+`lanhu-requirements` skill <LANHU_PAGE_TREE_URL> 前端 tree-fe-html
 ```
 
 配置：建议启用 `html`。
@@ -251,7 +251,7 @@
 输入：
 
 ```text
-/lanhu-requirements <LANHU_PAGE_TREE_URL> 前端 multi-page-fe-html
+`lanhu-requirements` skill <LANHU_PAGE_TREE_URL> 前端 multi-page-fe-html
 ```
 
 配置：启用 `lanhu.frontend.output.format: html`。
@@ -288,7 +288,7 @@
 输入：
 
 ```text
-/lanhu-requirements <LANHU_MULTI_DELIVERY_URL> 前端 multi-fe-html
+`lanhu-requirements` skill <LANHU_MULTI_DELIVERY_URL> 前端 multi-fe-html
 ```
 
 配置：建议启用 `html`。

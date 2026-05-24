@@ -19,7 +19,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Patch Superpowers `systematic-debugging` so it may conditionally use `wiki-researcher` after evidence narrows the suspected project contract or component, without making wiki lookup a default prerequisite
 - Let implementation and review consume plan `Referenced Project Wiki` and mechanically rendered `.wiki-context.json` constraints instead of reselecting wiki pages at execution time
 - Patch Superpowers `using-git-worktrees` and `finishing-a-development-branch` so worktree tasks can merge back to the branch that created them
-- Keep standalone adapter commands such as `/import-wiki`, `/init-wiki`, and `/lanhu-requirements` outside Superpowers completion/review/verification skills until they explicitly hand off to the next Superpowers workflow step
+- Keep standalone adapter skills such as `import-wiki`, `init-wiki`, and `lanhu-requirements` outside Superpowers completion/review/verification skills until they explicitly hand off to the next Superpowers workflow step
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
 - Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki
 - Reinstall the same overlay after upgrading `superpowers/`
@@ -109,13 +109,13 @@ Adjust `.shared-superpowers/settings.json` if needed, then use the local runner 
 python3 ./.shared-superpowers/scripts/run-hook.py sharedWikiSubmodule:sync
 ```
 
-To publish shared wiki changes and update the parent repository pointer, use the installed command:
+To publish shared wiki changes and update the parent repository pointer, use the installed `publish-shared-wiki` skill:
 
 ```text
-/publish-shared-wiki
+publish-shared-wiki skill
 ```
 
-The publish command confirms scope before commit/push and uses the project-local runner; it does not replace `update-wiki`, which still owns durable knowledge review.
+The `publish-shared-wiki` skill confirms scope before commit/push and uses the project-local runner; it does not replace `update-wiki`, which still owns durable knowledge review.
 
 ### Optional GitHub shared-wiki MCP workflow
 
@@ -127,17 +127,17 @@ mcp/shared-wiki/
 
 Copy that directory locally, run `npm install && npm run build`, configure `repoUrl` such as `https://github.com/YWJ-hy/shared-wiki.git` with the repository's default branch such as `master`, and add the built server to Claude Code MCP config. The MCP server exposes indexed read/search tools plus patch validation and branch+PR creation. It never merges PRs. Normal brainstorming, planning, and narrowed debugging still use `wiki-researcher` as the unified progressive disclosure path; when the MCP server is configured, it can serve as `wiki-researcher`'s GitHub-backed shared wiki source.
 
-Use the installed command when you explicitly want to inspect or submit shared wiki PRs through MCP:
+Use the installed `shared-wiki-mcp` skill when you explicitly want to inspect or submit shared wiki PRs through MCP:
 
 ```text
-/shared-wiki-mcp
+shared-wiki-mcp skill
 ```
 
 `update-wiki` still owns durable knowledge review, semantic duplicate checks, target ownership, and shared-wiki neutrality. The MCP server only performs indexed read/search, mechanical validation, and GitHub PR plumbing. Plan `.wiki-context.json` files should record MCP-sourced shared wiki pages with source metadata, `wikiPath`, and revision because `.shared-superpowers/wiki/<path>.md` is only a logical display path in that mode.
 
 ## Initialize starter wiki knowledge
 
-After bootstrapping the directory structure, use `/init-wiki` in Claude Code to initialize first-pass wiki content from a mechanical project inventory. The script behind this command reports languages, stack signals, top directories, sample files, and indexed wiki pages; the agent decides whether to write lightweight starter notes.
+After bootstrapping the directory structure, use `init-wiki` skill in Claude Code to initialize first-pass wiki content from a mechanical project inventory. The script behind this skill reports languages, stack signals, top directories, sample files, and indexed wiki pages; the agent decides whether to write lightweight starter notes.
 
 ```bash
 ./manage.sh init-wiki /path/to/project
@@ -148,18 +148,18 @@ Use this only to help the user initialize wiki knowledge. During ongoing develop
 
 ## Import existing wiki
 
-For normal use in Claude Code or similar tools, use the installed Superpowers command:
+For normal use in Claude Code or similar tools, use the installed `import-wiki` skill:
 
 ```text
-/import-wiki path/to/original-wiki-dir
-/import-wiki path/to/original-wiki-dir --target imported
+import-wiki skill path/to/original-wiki-dir
+import-wiki skill path/to/original-wiki-dir --target imported
 ```
 
-The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Shared imports must already be neutral/portable and are rejected when configured shared neutrality guards match system-specific identifiers. Because imports create wiki documents, `/import-wiki` honors the selected root's `wiki.updateAuthorization.createNewDocument` setting and asks by default before creating new files. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
+The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Shared imports must already be neutral/portable and are rejected when configured shared neutrality guards match system-specific identifiers. Because imports create wiki documents, `import-wiki` skill honors the selected root's `wiki.updateAuthorization.createNewDocument` setting and asks by default before creating new files. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
 
 ### Migrating wiki to section-marker format
 
-Use `/migrate-wiki` in Claude Code to migrate existing wiki documents to the two-layer index structure with `<!-- wiki-section:xxx -->` markers. The AI agent analyzes each document semantically, identifies independent constraint units, inserts section markers, and generates per-document `<stem>.index.md` companion files that include a document-level overview plus a section table.
+Use `migrate-wiki` skill in Claude Code to migrate existing wiki documents to the two-layer index structure with `<!-- wiki-section:xxx -->` markers. The AI agent analyzes each document semantically, identifies independent constraint units, inserts section markers, and generates per-document `<stem>.index.md` companion files that include a document-level overview plus a section table.
 
 The mechanical helper is also available via CLI:
 
@@ -173,7 +173,7 @@ Documents without a companion `<stem>.index.md` are invisible to `wiki-researche
 
 ## Optional Lanhu requirements intake
 
-If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `/lanhu-requirements` command confirms the evidence role and determines the matching `lanhu-frontend-requirements-analyst`, `lanhu-frontend-html-requirements-analyst`, or `lanhu-backend-requirements-analyst` according to role and output format.
+If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `lanhu-requirements` skill confirms the evidence role and determines the matching `lanhu-frontend-requirements-analyst`, `lanhu-frontend-html-requirements-analyst`, or `lanhu-backend-requirements-analyst` according to role and output format.
 
 The generated `.lanhu/` package is a **Lanhu original-requirement evidence package**, not a Superpowers spec. It preserves source-derived requirement facts, UI layout/control/interaction evidence, state/prompt facts, permission/visibility facts, and open questions. Superpowers uses it as requirements input and remains responsible for final spec structure, acceptance criteria, test strategy, technical solution, and implementation tasks.
 
@@ -184,13 +184,13 @@ For explicit `pageId` links, the URL is treated as `rootScopeUrl` and the curren
 Role selection is required before Lanhu analysis, but it can be preconfigured with `lanhu.role` in `.superpowers/settings.json`. Default Lanhu output is Markdown-only. To generate a frontend HTML evidence package with `index.html` plus `prototype/index.html`, set `lanhu.frontend.output.format` to `html` in the target project's `.superpowers/settings.json`. Backend remains Markdown-only, and text-only frontend requirements may fall back to `prd.md`.
 
 ```text
-/lanhu-requirements <Lanhu link> 前端 <optional requirement name>
-/lanhu-requirements <Lanhu link> 后端 <optional requirement name>
-/lanhu-requirements --role frontend <Lanhu link> <optional requirement name>
-/lanhu-requirements --role backend <Lanhu link> <optional requirement name>
+lanhu-requirements skill <Lanhu link> 前端 <optional requirement name>
+lanhu-requirements skill <Lanhu link> 后端 <optional requirement name>
+lanhu-requirements skill --role frontend <Lanhu link> <optional requirement name>
+lanhu-requirements skill --role backend <Lanhu link> <optional requirement name>
 ```
 
-If the role is missing or ambiguous and `lanhu.role` is not configured, the command asks whether to generate a 前端 Lanhu 原始需求证据包 or 后端相关 Lanhu 原始需求证据包 before reading or analyzing Lanhu. If both roles are needed, generate two separate evidence packages by running the command twice.
+If the role is missing or ambiguous and `lanhu.role` is not configured, the skill asks whether to generate a 前端 Lanhu 原始需求证据包 or 后端相关 Lanhu 原始需求证据包 before reading or analyzing Lanhu. If both roles are needed, generate two separate evidence packages by running the skill twice.
 
 Maintained source templates live in `role-prd/frontend.md`, `role-prd/backend.md`, and `role-prd/frontend_outputHtml.md`. These templates define fixed PRD evidence package structures and must-cover dimensions; AI may customize content organization and wording inside that structure, but must not change the package structure, section responsibilities, artifact boundaries, or the input shape that later Superpowers steps depend on. `./manage.sh install` generates self-contained Lanhu analyst agents from the shared skeleton and selected role template before installing; installed agents do not read the source files at runtime.
 
@@ -200,7 +200,7 @@ All explicit Lanhu original-requirement facts must be preserved. If a source fac
 
 For URL-rooted selection that resolves to multiple Lanhu target pages, page fan-out is only an evidence-fidelity strategy. The selected role-and-format analyst is called once per selected page and writes a complete page package under `.lanhu/MM-DD-<requirement-name>/pages/<page-slug>/`. The aggregate package root keeps only a global `index.md` for page package listing, reading order, cross-page relationships, root tree selection summary, selectedTargetPages, aggregated scope summary, and confirmation status. Compact page metadata, `.yaml`, or summary Markdown are not evidence sources and must not be expanded into final HTML by the main session.
 
-The user must resolve any analyst-classified blocking confirmation points, then review and confirm the `.lanhu/.../index.md` entry point before Superpowers continues. Until the confirmation gate is clear and `index.md` is confirmed, `/lanhu-requirements` is a standalone adapter requirements-intake command and should not trigger Superpowers completion, review, or verification skills. Missing implementation field names or technical data mappings are non-blocking implementation follow-up unless the product-level field/control meaning or behavior is unclear.
+The user must resolve any analyst-classified blocking confirmation points, then review and confirm the `.lanhu/.../index.md` entry point before Superpowers continues. Until the confirmation gate is clear and `index.md` is confirmed, `lanhu-requirements` skill is a standalone adapter requirements-intake skill and should not trigger Superpowers completion, review, or verification skills. Missing implementation field names or technical data mappings are non-blocking implementation follow-up unless the product-level field/control meaning or behavior is unclear.
 
 Lanhu output must not include final acceptance criteria, Given/When/Then, test cases, testing points, technical test plans, frontend components, backend API guesses, backend request/response field design, database column design, database impact guesses, implementation guesses, code architecture, affected file analysis, frontend/backend boundary inference, exception/risk inference, or Superpowers plan tasks. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
 
@@ -335,7 +335,7 @@ The self-test covers:
 - worktree origin metadata native skill patch smoke
 - `wiki_update_check.py` index and format validation
 - index-driven wiki graph traversal
-- import command path handling
+- import skill path handling
 - shared wiki submodule local runner and publish script smoke
 
 ## Compatibility

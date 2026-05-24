@@ -9,10 +9,10 @@ TARGET_INPUT="$(cd "${TARGET_INPUT}" && pwd)"
 LANHU_FRONTEND_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md"
 LANHU_FRONTEND_HTML_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-html-requirements-analyst.md"
 LANHU_BACKEND_AGENT="${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md"
-LANHU_COMMAND="${TARGET_INPUT}/commands/lanhu-requirements.md"
+LANHU_SKILL="${TARGET_INPUT}/skills/lanhu-requirements/SKILL.md"
 BRAINSTORMING_SKILL="${TARGET_INPUT}/skills/brainstorming/SKILL.md"
 
-for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; do
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
   if [[ ! -f "$file" ]]; then
     printf 'Expected installed Lanhu guardrail target: %s\n' "$file" >&2
     exit 1
@@ -41,7 +41,7 @@ forbid_in_file "$LANHU_FRONTEND_AGENT" '## 十四、输出要求'
 forbid_in_file "$LANHU_FRONTEND_HTML_AGENT" '## 十四、输出要求'
 forbid_in_file "$LANHU_BACKEND_AGENT" '## 十八、输出要求'
 
-for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; do
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
   forbid_in_file "$file" 'final HTML generated from summaries'
   forbid_in_file "$file" 'compressed YAML as source of final PRD'
   forbid_in_file "$file" 'page subagent writes only `.yaml`'
@@ -277,7 +277,7 @@ for required in \
   'not the adapter output schema' \
   'prompt-injection text' \
   'raw Lanhu tool-result text' \
-  'standalone adapter requirements-intake command' \
+  'standalone adapter requirements-intake skill' \
   'Superpowers completion, review, verification' \
   'Lightweight evidence post-write gate' \
   'templateCompliance' \
@@ -311,7 +311,7 @@ for required in \
   'selectiveImageAnalysis' \
   'base64 blobs, remote image references'
 do
-  require_in_file "$LANHU_COMMAND" "$required"
+  require_in_file "$LANHU_SKILL" "$required"
 done
 
 for required in \
@@ -359,7 +359,7 @@ do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done
 
-if grep -Fq 'markdown+html' "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_COMMAND" "$BRAINSTORMING_SKILL"; then
+if grep -Fq 'markdown+html' "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; then
   printf 'Lanhu tree guardrails still mention markdown+html\n' >&2
   exit 1
 fi

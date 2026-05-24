@@ -87,10 +87,10 @@ check_optional_integration_overlays() {
   local lanhu_frontend_agent="$TARGET_DIR/agents/lanhu-frontend-requirements-analyst.md"
   local lanhu_frontend_html_agent="$TARGET_DIR/agents/lanhu-frontend-html-requirements-analyst.md"
   local lanhu_backend_agent="$TARGET_DIR/agents/lanhu-backend-requirements-analyst.md"
-  local lanhu_command="$TARGET_DIR/commands/lanhu-requirements.md"
+  local lanhu_skill="$TARGET_DIR/skills/lanhu-requirements/SKILL.md"
   local lanhu_settings_script="$TARGET_DIR/scripts/lanhu_settings.py"
 
-  for required_file in "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_command" "$lanhu_settings_script"; do
+  for required_file in "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_skill" "$lanhu_settings_script"; do
     if [[ ! -f "$required_file" ]]; then
       printf 'Missing Lanhu integration file: %s\n' "$required_file" >&2
       exit 1
@@ -129,7 +129,7 @@ check_optional_integration_overlays() {
     'duplicatedFullPrdSectionsDetected' \
     'untraceableHtmlItemsDetected'
   do
-    if grep -Fq -- "$forbidden" "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_command" "$lanhu_settings_script"; then
+    if grep -Fq -- "$forbidden" "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_skill" "$lanhu_settings_script"; then
       printf 'Lanhu files still use deprecated text: %s\n' "$forbidden" >&2
       exit 1
     fi
@@ -253,7 +253,7 @@ check_optional_integration_overlays() {
     'structured source facts' \
     'persistedImages: false'
   do
-    if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_command"; then
+    if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_frontend_html_agent" "$lanhu_backend_agent" "$lanhu_skill"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
       exit 1
     fi
@@ -287,13 +287,13 @@ check_optional_integration_overlays() {
     '# 前端 Lanhu 原始需求证据包' \
     '# 后端相关 Lanhu 原始需求证据包'
   do
-    if ! grep -Fq "$required" "$lanhu_command"; then
+    if ! grep -Fq "$required" "$lanhu_skill"; then
       printf 'Missing Lanhu command guardrail: %s\n' "$required" >&2
       exit 1
     fi
   done
 
-  if grep -Fq 'Use the `lanhu-requirements-analyst` agent' "$lanhu_command" || grep -Fq 'validate the selected role output against the complete source template below' "$lanhu_command"; then
+  if grep -Fq 'Use the `lanhu-requirements-analyst` agent' "$lanhu_skill" || grep -Fq 'validate the selected role output against the complete source template below' "$lanhu_skill"; then
     printf 'Lanhu command still references old dual-role analyst or owns deep template validation wording\n' >&2
     exit 1
   fi

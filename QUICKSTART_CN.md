@@ -48,8 +48,8 @@
 安装后会写入：
 
 - `agents/wiki-researcher.md`
-- `commands/import-wiki.md`
-- `commands/init-wiki.md`
+- `skills/import-wiki/SKILL.md`
+- `skills/init-wiki/SKILL.md`
 - `skills/break-loop/SKILL.md`
 - `skills/wiki-progressive-disclosure/SKILL.md`
 - `skills/update-wiki/SKILL.md`
@@ -81,13 +81,13 @@
 在 Claude Code 中可使用：
 
 ```text
-/init-wiki
-/init-wiki payments and order workflow
-/import-wiki path/to/original-wiki-dir
-/import-wiki path/to/original-wiki-dir --target imported
+`init-wiki` skill
+`init-wiki` skill payments and order workflow
+`import-wiki` skill path/to/original-wiki-dir
+`import-wiki` skill path/to/original-wiki-dir --target imported
 ```
 
-`/init-wiki` 通过项目 inventory 辅助 agent 首次生成轻量 starter wiki；`/import-wiki` 用于一次性结构迁移已有规范，不做语义融合。两者都是独立 adapter command，完成后即可结束。
+`init-wiki` skill 通过项目 inventory 辅助 agent 首次生成轻量 starter wiki；`import-wiki` skill 用于一次性结构迁移已有规范，不做语义融合。两者都是独立 adapter skill，完成后即可结束。
 
 ---
 
