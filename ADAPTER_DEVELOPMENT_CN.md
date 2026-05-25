@@ -51,6 +51,11 @@ adapter 分为四层：
 
 开发时可以分别验证各层，但最终必须回到“用户入口层 + 安装后的 Superpowers 环境”确认。
 
+Multica 有两条分发/验收路径：
+
+- `build-multica-runtime` / `verify-multica-runtime` 生成并校验 Multica-native runtime bundle contract：它复用同一套 overlay、native skill patch 和脚本执行层，生成 Multica workflow definitions、role agents、gates、triggers、schemas、MCP examples、preflight contracts、SDD task graph、tool manifest、`issue-template-bindings.json`、`artifact-next-actions.json`、`artifact_next_action_suggest.py`、`gate-contracts.json`、`gate-transition-contract.json`、`gate_transition_validate.py`、`role-agent-contracts.json`、`role-task-contract.json`、`role_task_validate.py`、`artifact-contracts.json`、`artifact-store-contract.json` 和 `artifact_store_validate.py`。验证重点是 bundle 产物、source snapshot、tool manifest 与 `manifest.json.installedPaths` / root `manifest.json.toolScripts` 一致、generated gate/trigger/schema contract、trigger/gate/role/artifact/store catalog、离线 validator、SDD task graph 和跨 artifact 结构化一致性。`install-multica-runtime` 是 Phase 2 registration planner：它除了继续检查本地 verifier 外，还会用 exact help-output matching 探测官方 CLI，然后把 runtime layer 落到 documented Multica surfaces：runtime registration issue、issue metadata state、issue comments/attachments artifact references、issue assign/rerun fresh role tasks、issue runs/run-messages observation、autopilot schedule/webhook trigger substitutes，以及 agent/skill/project resource surface。probe 只有在 help output 精确匹配请求的 `multica ...` command 时才判定 supported，避免把父命令 help 误当成子命令支持；`--require-native-surfaces` 要求 exact native command 或 documented substitute 至少一条可用。
+- `multica-bootstrap` 是真实 Multica workspace skill-pack / compatibility smoke 入口：它生成 `superpowers-adapter` workspace skill pack，复用 adapter overlay、scripts 和 patched upstream Superpowers skill 文档，通过官方 `multica` CLI 计划或执行 skill import、Claude Code agent 创建/配置、skill attach、issue create 和 issue assign。dry-run smoke 验证 skill pack、命令计划和内置 issue template body；带 `--apply` 会创建/更新 Multica workspace 资源并触发真实 daemon task，属于外部可见动作，必须由用户明确授权。内置 issue templates 覆盖 `smoke`、`lanhu-intake`、`brainstorming`、`writing-plans`、`execute-plan`、`sdd-execution`、`systematic-debugging`、`break-loop`、`update-wiki`、`publish-shared-wiki` 和 `shared-wiki-mcp-pr`，但它们只生成真实 Multica issue body，不注册虚构 workflow/gate/schema API，也不在 adapter 本地模拟 daemon task。完整 Multica 产品验收不得以单个 `superpowers-adapter-orchestrator` 执行所有阶段为准；`multica-live-acceptance` 必须创建 A-H 可视化 stage issues，并将每个 stage assign 给对应 `superpowers-*` role agent 或 `superpowers-runtime-squad`，使 Multica issue runs 中能看到独立 role-agent runs；主链路必须覆盖 `superpowers-spec-document-reviewer`、`superpowers-plan-document-reviewer` 和 `superpowers-finisher`，不能只覆盖实现后的 reviewer fanout。
+
 当前兼容性边界：adapter 以 Superpowers 5.1.0 为适配基线；`./manage.sh install` 发现目标 Superpowers 版本更高时只警告、不拦截，并优先读取目标安装目录里的 `package.json` 版本。自动发现安装目标目前依赖 `superpowers@claude-plugins-official` 的安装记录；native skill patch 依赖上游 skill 标题和锚点文本稳定，所以升级 Superpowers 后要重点复核这些 patch 位置。
 
 Subagent 模型配置由 `adapter.config.json` 控制，默认 `{}` 表示不改变模型路由；完整可配置 id 维护在 `adapter.config.example.jsonc`。配置会在安装阶段投射到 adapter agent frontmatter 和 Superpowers 上游 prompt template。adapter agent frontmatter 允许非标准模型名但 install 必须 warning；Superpowers 上游 prompt template 会变成 Claude Code Task / Agent 的 `model` 参数；由于 Claude Code 当前只允许该字段使用 `sonnet` / `opus` / `haiku`，其它值会让安装后的 markdown 看似配置成功但在 Claude Code 运行时被忽略、回退或延后失败，所以 install 必须硬失败。修改 `lib/subagent_models.py`、`lib/subagent_model_patch.py`、安装脚本或相关 prompt template 匹配逻辑时，必须验证空配置 no-op、配置后可应用、清空配置可移除、adapter agent 非标准模型 warning、upstream 非标准模型 hard fail、Superpowers 上游模板变化时 install 能列出所有已配置但失败的 subagent。
@@ -226,6 +231,12 @@ writing-plans
 ./manage.sh doctor /path/to/project
 ./manage.sh self-test /path/to/project
 ./manage.sh release-check /path/to/project
+./manage.sh build-multica-runtime /path/to/superpowers . ./dist/multica-superpowers-runtime
+./manage.sh verify-multica-runtime ./dist/multica-superpowers-runtime
+./manage.sh install-multica-runtime ./dist/multica-superpowers-runtime --dry-run
+./manage.sh multica-bootstrap --superpowers-source /path/to/superpowers --target-repo /path/to/project --dry-run
+./manage.sh multica-bootstrap create-issue --target-repo /path/to/project --issue-template writing-plans --requirements-path /path/to/project/docs/prd.md --dry-run
+./manage.sh multica-live-acceptance --target-repo /path/to/disposable/project --case chain-a --requirements-path /path/to/project/docs/prd.md --plan-path /path/to/project/.superpowers/plans/feature.md --dry-run
 ```
 
 单个 smoke 测试示例：
@@ -236,9 +247,12 @@ bash tests/subagent-model-config-smoke.sh <installed-superpowers-target>
 bash tests/wiki-update-check-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/shared-wiki-submodule-smoke.sh
+bash tests/multica-runtime-build-smoke.sh <superpowers-source-or-installed-target>
+bash tests/multica-runtime-install-dry-run-smoke.sh <superpowers-source-or-installed-target>
+bash tests/multica-bootstrap-dry-run-smoke.sh <superpowers-source-or-installed-target>
 ```
 
-注意：这些测试需要传入安装后的 Superpowers target 和目标项目 root，不能只在 adapter 源码目录里假设路径成立。传入 Superpowers 源码目录只能作为开发期初筛；发布或完成前必须对 Claude Code 实际安装后的 Superpowers 插件目录运行安装和验证。
+注意：这些测试需要传入安装后的 Superpowers target 和目标项目 root，不能只在 adapter 源码目录里假设路径成立。传入 Superpowers 源码目录只能作为开发期初筛；发布或完成前必须对 Claude Code 实际安装后的 Superpowers 插件目录运行安装和验证。Multica runtime smoke 可以使用本地 Superpowers 源码目录或已安装 Superpowers target 作为构建来源；它验证 bundle 生成产物、source snapshot、tool manifest 防漏打包、generated gate/trigger/schema contract、role/gate/artifact/store catalog、WorkflowInvocation validator 和 artifact store validator，并通过 `self-test` 纳入 `release-check`。Multica runtime install dry-run smoke 验证 Phase 2 注册规划器会先跑本地 verifier、规划 CLI preflight，并把 workflow/gate/schema/artifact/gate-state/MCP runtime layer 绑定到 issue metadata、issue comment/attachment、issue assign/rerun、issue runs 和 autopilot trigger 等官方 surface，不触发外部 workspace 写操作。Multica bootstrap dry-run smoke 验证 workspace skill pack 生成、官方 CLI 命令计划、所有内置 issue template body 和关键缺参失败，不触发外部 workspace 写操作。Multica live acceptance dry-run smoke 验证 A-H 可视化链路会规划 role-agent/squad stage issue fanout、拒绝 `superpowers-adapter-orchestrator`、覆盖 observe/cancel/rerun 等命令计划；真实 `--apply` 验收必须另外在已登录、daemon 在线、Claude Code runtime 可用且 role agents/squad 已安装的 Multica workspace 中运行。
 
 ---
 

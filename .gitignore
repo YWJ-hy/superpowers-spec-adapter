@@ -3,3 +3,4 @@ __pycache__/
 adapter.config.json
 mcp/shared-wiki/node_modules/
 mcp/shared-wiki/dist/
+dist/
