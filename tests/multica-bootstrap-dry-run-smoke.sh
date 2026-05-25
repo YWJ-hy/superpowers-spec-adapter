@@ -50,8 +50,13 @@ if missing:
 root_text = (skill_root / 'SKILL.md').read_text(encoding='utf-8')
 if 'name: superpowers-adapter' not in root_text:
     raise SystemExit('Root SKILL.md missing skill frontmatter name')
-if 'Target repo:' not in json.dumps(result, ensure_ascii=False):
+serialized = json.dumps(result, ensure_ascii=False)
+if 'Target repo:' not in serialized:
     raise SystemExit('Dry-run output missing target repo smoke issue body')
+if 'User-facing language:' not in serialized:
+    raise SystemExit('Dry-run output missing user-facing language inference rule')
+if 'Infer the user\'s preferred language' not in root_text:
+    raise SystemExit('Root SKILL.md missing user-facing language inference rule')
 
 brainstorming = (skill_root / 'upstream-superpowers' / 'brainstorming.md').read_text(encoding='utf-8')
 if '<!-- superpower-adapter:native-skill:brainstorming-wiki-disclosure -->' not in brainstorming:
@@ -162,12 +167,32 @@ for template, (entrypoint, extra) in cases.items():
         'Target repo:',
         'Use the attached `superpowers-adapter` skill pack.',
         'Do not commit, push, create or merge PRs',
+        'User-facing language:',
+        "Infer the user's preferred language",
     ]
     missing = [fragment for fragment in expected if fragment not in body]
     if missing:
         raise SystemExit(f'Template {template} body missing {missing}:\n{body}')
     if template in {'publish-shared-wiki', 'shared-wiki-mcp-pr'} and 'Authorization gate:' not in body:
         raise SystemExit(f'Template {template} must keep an authorization gate without --allow-external-side-effects:\n{body}')
+
+custom_body_command = [
+    (root / 'manage.sh').as_posix(),
+    'multica-bootstrap',
+    'create-issue',
+    '--target-repo',
+    target_repo.as_posix(),
+    '--issue-body',
+    '# 自定义中文 issue\n\n请用中文回复。',
+    '--dry-run',
+    '--json',
+]
+completed = subprocess.run(custom_body_command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+if completed.returncode != 0:
+    raise SystemExit(f'Custom issue body dry-run failed:\nSTDOUT={completed.stdout}\nSTDERR={completed.stderr}')
+custom_body = issue_body(json.loads(completed.stdout))
+if 'User-facing language:' not in custom_body or "Infer the user's preferred language" not in custom_body:
+    raise SystemExit(f'Custom issue body must include language inference rule:\n{custom_body}')
 
 observe_command = [
     (root / 'manage.sh').as_posix(),

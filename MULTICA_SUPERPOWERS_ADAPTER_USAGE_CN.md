@@ -159,6 +159,22 @@ Safety:
 - 输入材料路径或链接要写清楚。
 - 需要用户确认的地方，不要默认授权 agent 直接继续。
 
+### 5.1 回复语言
+
+Agent 会从用户写的 issue 标题、正文和后续评论中推导用户偏好的语言。用户用中文描述，agent 给用户看的评论、问题、总结、review 结论和 handoff 应该用中文；用户用英文描述，则用英文。代码标识符、命令、路径、日志、schema 字段和引用证据保持原文。
+
+如果一个 issue 中中英文混用，agent 会优先使用最新用户评论中的主导语言。团队成员也可以在 issue 中显式写：
+
+```markdown
+Response language: 中文
+```
+
+或：
+
+```markdown
+Response language: English
+```
+
 ---
 
 ## 6. 常用 Issue template 怎么选

@@ -336,6 +336,14 @@ Upstream stages: {upstream}
 
 Use the attached `{SKILL_NAME}` skill pack.
 
+User-facing language:
+- Infer the user's preferred language only after first reading the assigned issue title, issue body, and latest user-authored comments.
+- Ignore template labels, code, logs, commands, file paths, and API identifiers for language detection.
+- Do not emit progress/status text before this language inference is complete.
+- Write all user-facing comments, questions, summaries, review findings, readiness reports, and handoffs in that inferred language unless the user explicitly asks for another language.
+- Keep code identifiers, commands, paths, logs, schemas, and quoted evidence in their original form.
+- If the language is mixed or unclear, use the latest user-authored instruction's dominant language.
+
 Inputs:
 {input_lines}
 

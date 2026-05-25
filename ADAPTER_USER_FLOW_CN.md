@@ -179,7 +179,7 @@ Superpowers 插件目录
   --dry-run
 ```
 
-默认 `--issue-template smoke` 是只读任务，只要求 agent 确认 target repo、skill pack 可见性和 project/shared wiki root 状态；不得编辑代码、commit、push 或创建 PR。后续可把同一真实 Multica 入口切到具体 Superpowers+adapter 流程：
+默认 `--issue-template smoke` 是只读任务，只要求 agent 确认 target repo、skill pack 可见性和 project/shared wiki root 状态；不得编辑代码、commit、push 或创建 PR。Multica agent 会从用户写的 issue 标题、正文和后续评论中推导用户偏好语言，用户可见的评论、问题、总结、review findings 和 handoff 应使用该语言；代码、命令、路径、日志和引用证据保持原文。后续可把同一真实 Multica 入口切到具体 Superpowers+adapter 流程：
 
 | issue template | 对应入口 | 典型输入 |
 |---|---|---|

@@ -331,6 +331,19 @@ Fresh context rule: {fresh_context}
 Role contract: `dist/agents/role-agent-contracts.json#{agent_id}`.
 
 Artifact boundary: read only the orchestrator-provided source artifacts, wiki context render, gate state, and task contract; write only the declared output artifact or review result. Do not advance workflow gates directly.
+
+User-facing language rule: Infer the user's preferred language only after first reading the assigned issue title, issue body, and latest user-authored comments. Ignore template labels, code, logs, commands, file paths, and API identifiers for language detection. Do not emit progress/status text before this language inference is complete. Write user-facing comments, questions, summaries, review findings, readiness reports, and handoffs in that inferred language unless the user explicitly asks for another language. Keep technical tokens and quoted evidence in their original form.
+'''
+
+
+def role_language_rule() -> str:
+    return '''
+
+## User-facing language
+
+Infer the user's preferred language only after first reading the assigned issue title, issue body, and latest user-authored comments. Ignore template labels, code, logs, commands, file paths, and API identifiers for language detection.
+
+Do not emit progress/status text before this language inference is complete. Write user-facing comments, questions, summaries, review findings, readiness reports, and handoffs in that inferred language unless the user explicitly asks for another language. Keep technical tokens and quoted evidence in their original form.
 '''
 
 
@@ -345,13 +358,13 @@ def write_role_agents(adapter_root: Path, superpowers_root: Path, dist: Path) ->
         records.append({'agentId': agent_id, 'source': 'multica-template', 'file': f'dist/agents/{agent_id}.md'})
 
     for agent_id, rel_path in ADAPTER_ROLE_AGENT_PATHS.items():
-        text = replace_runtime_root((adapter_root / rel_path).read_text(encoding='utf-8'))
+        text = replace_runtime_root((adapter_root / rel_path).read_text(encoding='utf-8')).rstrip() + role_language_rule()
         write_text(agents_dir / f'{agent_id}.md', text)
         records.append({'agentId': agent_id, 'source': rel_path.as_posix(), 'file': f'dist/agents/{agent_id}.md'})
 
     lanhu_by_id = {config.agent_name: render_lanhu_agent(adapter_root, config) for config in ROLE_CONFIGS}
     for agent_id in GENERATED_LANHU_AGENT_IDS:
-        text = replace_runtime_root(lanhu_by_id[agent_id])
+        text = replace_runtime_root(lanhu_by_id[agent_id]).rstrip() + role_language_rule()
         write_text(agents_dir / f'{agent_id}.md', text)
         records.append({'agentId': agent_id, 'source': 'sync_role_prd.render_agent', 'file': f'dist/agents/{agent_id}.md'})
 

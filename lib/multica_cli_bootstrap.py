@@ -251,6 +251,23 @@ def require_any_input(ctx: BootstrapContext, template_id: str, arg_names: tuple[
     raise BootstrapError(f'--issue-template {template_id} requires {message}')
 
 
+def user_facing_language_block() -> str:
+    return '''User-facing language:
+- Infer the user's preferred language only after first reading the assigned issue title, issue body, and latest user-authored comments.
+- Ignore template labels, code, logs, commands, file paths, and API identifiers for language detection.
+- Do not emit progress/status text before this language inference is complete.
+- Write all user-facing comments, questions, summaries, review findings, readiness reports, and handoffs in that inferred language unless the user explicitly asks for another language.
+- Keep code identifiers, commands, paths, logs, schemas, and quoted evidence in their original form.
+- If the language is mixed or unclear, use the latest user-authored instruction's dominant language.
+'''
+
+
+def ensure_user_facing_language_block(body: str) -> str:
+    if 'User-facing language:' in body or 'Response language:' in body:
+        return body
+    return body.rstrip() + '\n\n' + user_facing_language_block()
+
+
 def common_issue_header(ctx: BootstrapContext, spec: IssueTemplateSpec) -> str:
     return f'''# {spec.default_title}
 
@@ -259,7 +276,8 @@ Issue template: {spec.template_id}
 Entrypoint: {spec.entrypoint}
 
 Use the attached `{SKILL_NAME}` skill pack.
-'''
+
+{user_facing_language_block()}'''
 
 
 def common_do_not(ctx: BootstrapContext) -> str:
@@ -608,6 +626,10 @@ Adapter version: `{adapter_manifest.get('version')}`. Adapted Superpowers versio
 - The target project is the repo named in the issue body, normally `{target_text}`.
 - Supporting scripts live inside this skill pack under `scripts/`. When a copied Superpowers instruction mentions `{MULTICA_SKILL_ROOT_HINT}/scripts/<name>.py`, resolve that path from the task workspace where Multica injected this skill. Do not run `scripts/<name>.py` from the target repository unless that file is part of the injected skill pack.
 - Do not commit, push, open PRs, publish shared wiki changes, or perform other external side effects without explicit user authorization in the Multica issue.
+
+## User-facing language
+
+Infer the user's preferred language only after first reading the assigned issue title, issue body, and latest user-authored comments. Ignore template labels, code, logs, commands, file paths, and API identifiers for language detection. Do not emit progress/status text before this language inference is complete. Write user-facing comments, questions, summaries, review findings, readiness reports, and handoffs in that inferred language unless the user explicitly asks for another language. Keep technical tokens and quoted evidence in their original form.
 
 ## Normal Superpowers-compatible flow
 
@@ -971,6 +993,8 @@ Do not directly run adapter repository scripts. Adapter Python files are skill s
 
 Treat the Multica issue body as the routing surface. If it contains `Issue template: <id>`, follow the matching entrypoint from the attached skill pack instead of inventing a local workflow.
 
+Infer the user's preferred language only after first reading the assigned issue title, issue body, and latest user-authored comments. Ignore template labels, code, logs, commands, file paths, and API identifiers for language detection. Do not emit progress/status text before this language inference is complete. Write user-facing comments, questions, summaries, review findings, readiness reports, and handoffs in that inferred language unless the user explicitly asks for another language. Keep technical tokens and quoted evidence in their original form.
+
 Ask before commit, push, PR creation, shared wiki publish, deleting files, destructive git operations, or other external visible side effects.
 '''
 
@@ -1012,7 +1036,7 @@ def ensure_agent(ctx: BootstrapContext) -> None:
         if ctx.apply and not update_help:
             ctx.add_manual_step(f'Update agent instructions manually if needed: multica agent update {ctx.args.agent_name} ...')
             return
-        cmd = ['multica', 'agent', 'update', ctx.args.agent_name]
+        cmd = ['multica', 'agent', 'update', ctx.agent_id or ctx.args.agent_name]
         instructions_flag = first_supported_flag(update_help, ('--instructions', '--system-instructions', '--context')) if update_help else '--instructions'
         if instructions_flag:
             cmd.extend([instructions_flag, instructions])
@@ -1076,9 +1100,9 @@ def attach_skills(ctx: BootstrapContext) -> None:
 
 def issue_body_from_args(ctx: BootstrapContext) -> str:
     if ctx.args.issue_body_file:
-        return Path(ctx.args.issue_body_file).expanduser().resolve().read_text(encoding='utf-8')
+        return ensure_user_facing_language_block(Path(ctx.args.issue_body_file).expanduser().resolve().read_text(encoding='utf-8'))
     if ctx.args.issue_body:
-        return ctx.args.issue_body
+        return ensure_user_facing_language_block(ctx.args.issue_body)
     return render_issue_template_body(ctx)
 
 

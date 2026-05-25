@@ -94,6 +94,10 @@ for schema_name, required_field in {
     schema = json.loads((root / 'dist' / 'schemas' / schema_name).read_text(encoding='utf-8'))
     if required_field not in schema.get('required', []):
         raise SystemExit(f'{schema_name} missing required artifact field: {required_field}')
+for agent_file in ('superpowers-orchestrator.md', 'wiki-researcher.md', 'lanhu-frontend-requirements-analyst.md', 'spec-document-reviewer.md'):
+    agent_text = (root / 'dist' / 'agents' / agent_file).read_text(encoding='utf-8')
+    if "Infer the user's preferred language" not in agent_text:
+        raise SystemExit(f'Role agent missing user-facing language inference rule: {agent_file}')
 role_contracts = json.loads((root / 'dist' / 'agents' / 'role-agent-contracts.json').read_text(encoding='utf-8'))
 if role_contracts.get('freshContext') != 'required':
     raise SystemExit('Role agent contracts must require fresh context')

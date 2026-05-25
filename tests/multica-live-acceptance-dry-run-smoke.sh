@@ -82,7 +82,7 @@ if len(create_commands) < 30:
     raise SystemExit(f'Expected A-H stage issue creation fanout, got only {len(create_commands)} create commands')
 for command in create_commands:
     argv_text = '\n'.join(command.get('argv', []))
-    for required_text in ('Target repo:', 'Use the attached `superpowers-adapter` skill pack.', 'Do not assign this stage to `superpowers-adapter-orchestrator`'):
+    for required_text in ('Target repo:', 'Use the attached `superpowers-adapter` skill pack.', 'User-facing language:', "Infer the user's preferred language", 'Do not assign this stage to `superpowers-adapter-orchestrator`'):
         if required_text not in argv_text:
             raise SystemExit(f'Stage issue body missing {required_text!r}: {command}')
 checks = {check.get('id'): check for check in result.get('checks', [])}
