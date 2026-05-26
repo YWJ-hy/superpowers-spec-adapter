@@ -16,8 +16,9 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output
 - Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed schemaVersion 3 `.wiki-context.json` constraints with page-level bounded `documentContext` and nested sections
+- Install `agents/source-of-truth-verifier.md` and patch `writing-plans` so complete draft plans are checked against configured project source-of-truth before final plan review
 - Patch Superpowers `systematic-debugging` so it may conditionally use `wiki-researcher` after evidence narrows the suspected project contract or component, without making wiki lookup a default prerequisite
-- Let implementation and review consume plan `Referenced Project Wiki` and mechanically rendered `.wiki-context.json` constraints instead of reselecting wiki pages at execution time
+- Let implementation and review consume plan `Referenced Project Wiki`, mechanically rendered `.wiki-context.json` constraints, and task-specific `.source-truth-constraints.json` output instead of reselecting wiki pages or reading full planning reports at execution time
 - Patch Superpowers `using-git-worktrees` and `finishing-a-development-branch` so worktree tasks can merge back to the branch that created them
 - Keep standalone adapter skills such as `import-wiki`, `init-wiki`, and `lanhu-requirements` outside Superpowers completion/review/verification skills until they explicitly hand off to the next Superpowers workflow step
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
@@ -56,7 +57,7 @@ The generated bundle includes patched Superpowers-compatible workflow definition
 
 ### Bootstrap a real Multica workspace flow
 
-To exercise the real Multica execution surface, use `multica-bootstrap` for compatibility smoke/skill-pack setup, then use `multica-live-acceptance` for the product-level visual flow. `multica-bootstrap` prepares the workspace skill pack, imports it into Multica when `--apply` is used, and can still create a single smoke/template issue. Full Superpowers+adapter acceptance is not satisfied by one orchestrator issue: the visual flow must create stage issues assigned to `superpowers-*` role agents or `superpowers-runtime-squad`, so Multica UI/CLI shows independent runs for wiki research, brainstorming, planning, implementation, reviews, debugging, and wiki publishing readiness.
+To exercise the real Multica execution surface, use `multica-bootstrap` for compatibility smoke/skill-pack setup, then use `multica-live-acceptance` for the product-level visual flow. `multica-bootstrap` prepares the workspace skill pack, imports it into Multica when `--apply` is used, and can still create a single smoke/template issue. Full Superpowers+adapter acceptance is not satisfied by one orchestrator issue: the visual flow must create stage issues assigned to `superpowers-*` role agents or `superpowers-runtime-squad`, so Multica UI/CLI shows independent runs for wiki research, brainstorming, planning, source-of-truth verification, implementation, reviews, debugging, and wiki publishing readiness.
 
 Dry-run first:
 
@@ -145,6 +146,7 @@ To pin models, copy the relevant entries from `adapter.config.example.jsonc` int
   "subagentModels": {
     "agents": {
       "wiki-researcher": "sonnet",
+      "source-of-truth-verifier": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-frontend-html-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
@@ -325,6 +327,39 @@ maxWikiPages: 5
 ```
 
 It starts from existing project/shared root indexes, follows index links progressively within each root, and returns structured YAML selected wiki pages plus planning constraint hints with root-prefixed paths. In `phase: debug`, it should be called only after `systematic-debugging` has narrowed the failing boundary, and it returns project-reference hints to verify rather than root-cause evidence. It does not modify files.
+
+## Source-of-truth verification
+
+`writing-plans` is patched to use Scheme B for facts that should come from real project contracts: it writes a complete draft implementation plan first, then dispatches `source-of-truth-verifier`, revises/finalizes the plan from that result, and only then runs the normal plan document review. This verifier is independent from `plan-document-reviewer`: it checks concrete assumptions about interfaces, generated types, schemas, permissions, design tokens, and other configured truth sources; the plan reviewer checks whether the final plan consumed that result correctly.
+
+Configure the verifier in the target project `.superpowers/settings.json`:
+
+```json
+{
+  "sourceOfTruth": {
+    "heuristics": false,
+    "sources": [
+      {"paths": ["src/services/generated/**"], "role": "truth", "edit": "never"},
+      {"paths": ["openapi/**"], "role": "truth", "edit": "ask"},
+      {"paths": ["src/mocks/**", "**/*.fixture.ts"], "role": "evidence"},
+      {"paths": ["dist/**", "node_modules/**"], "role": "ignore"}
+    ]
+  }
+}
+```
+
+`heuristics` defaults to `false`, so calls/usages/mocks are not treated as truth unless explicitly configured. `paths` use gitignore-style syntax, including `**`, leading `/`, trailing `/`, `!` negation, and later-rule override. `truth` sources require `edit: never` or `edit: ask`; `evidence` and `ignore` do not use `edit`.
+
+The verifier writes two sidecars next to the plan:
+
+```text
+docs/superpowers/plans/<plan-stem>.source-truth-report.json
+docs/superpowers/plans/<plan-stem>.source-truth-constraints.json
+```
+
+The full report is planning/audit context only. Normal execution and SDD must not read or inject the full `*.source-truth-report.json`; they render task-specific constraints from `*.source-truth-constraints.json` with `source_truth_render.py` and pass only that small block to implementer/reviewer roles. If the verifier status is `blocked`, execution must return to planning instead of implementing around the conflict.
+
+In Multica, the verifier is also visible as `superpowers-source-of-truth-verifier`, and planning chains should show draft plan → verifier → final plan → plan document review.
 
 ## Referenced Project Wiki
 

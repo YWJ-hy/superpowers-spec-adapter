@@ -24,6 +24,7 @@ GENERATED_BY = 'superpower-adapter multica bootstrap'
 SKILL_NAME = 'superpowers-adapter'
 DEFAULT_AGENT_NAME = 'superpowers-superpowers-orchestrator'
 REMOVED_AGENT_NAME = 'superpowers-adapter-orchestrator'
+SOURCE_TRUTH_ROLE_AGENT_NAME = 'superpowers-source-of-truth-verifier'
 DEFAULT_PROVIDER = 'claude'
 MULTICA_SKILL_ROOT_HINT = f'.claude/skills/{SKILL_NAME}'
 ISSUE_ID_RE = re.compile(r'\b[A-Z][A-Z0-9]+-\d+\b')
@@ -384,15 +385,19 @@ Required behavior:
 1. Follow `upstream-superpowers/writing-plans.md` from the attached skill pack.
 2. Select only the wiki pages needed for the plan and record them as `Referenced Project Wiki`.
 3. Produce or update a schemaVersion 3 `.wiki-context.json` next to the plan when wiki context is used.
-4. Stop after producing the plan; do not implement until the user approves it.
+4. Write a complete draft plan with concrete API/service/type/schema/permission/design-token assumptions, then run visible role-agent `{SOURCE_TRUTH_ROLE_AGENT_NAME}` using `agents/source-of-truth-verifier.md` before final plan review.
+5. Produce `docs/superpowers/plans/<plan-stem>.source-truth-report.json` for planning/audit and `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json` for execution, then revise/finalize the plan before `plan-document-reviewer`.
+6. Stop after producing the final plan; do not implement until the user approves it. If source-truth status is `blocked`, do not hand off to execution.
 
 {common_do_not(ctx)}
 Expected output:
-- A plan path or issue comment containing the plan.
+- A plan path or issue comment containing the final plan.
 - The selected `Referenced Project Wiki` list and `.wiki-context.json` location when applicable.
+- A `Source-of-Truth Verification` section with status, constraints sidecar path, truth source count, blocking finding count, and short caveats.
+- The full source-truth report path only as planning/audit context, not as normal execution context.
 
 Handoff / next step:
-- Use `execute-plan` or `sdd-execution` after the user approves the plan.
+- Use `execute-plan` or `sdd-execution` after the user approves a final plan that is not blocked.
 '''
 
 
@@ -403,13 +408,15 @@ def render_execute_plan_issue_body(ctx: BootstrapContext) -> str:
 Inputs:
 {optional_input('Plan path', path_input(ctx, 'plan_path'))}
 {optional_input('Wiki context path', path_input(ctx, 'wiki_context_path'))}
+- Source-truth constraints path: optional `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json` from the plan's `Source-of-Truth Verification` section.
 
 Required behavior:
 1. Follow `upstream-superpowers/executing-plans.md` from the attached skill pack.
 2. Confirm the plan has been approved before editing target project files.
 3. Read only the plan-selected `Referenced Project Wiki` and the provided `.wiki-context.json`; do not broaden to the entire wiki.
-4. Implement the approved plan in the target repo and verify the touched behavior with appropriate local checks.
-5. If the work creates durable implementation knowledge, include an `update-wiki` handoff.
+4. If the plan links source-truth constraints, consume only task-specific renderer output from `source_truth_render.py`; do not read the full `*.source-truth-report.json` during normal execution.
+5. Implement the approved plan in the target repo and verify the touched behavior with appropriate local checks.
+6. If the work creates durable implementation knowledge, include an `update-wiki` handoff.
 
 {common_do_not(ctx)}
 Expected output:
@@ -427,13 +434,15 @@ def render_sdd_execution_issue_body(ctx: BootstrapContext) -> str:
 Inputs:
 {optional_input('Plan path', path_input(ctx, 'plan_path'))}
 {optional_input('Wiki context path', path_input(ctx, 'wiki_context_path'))}
+- Source-truth constraints path: optional `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json` from the plan's `Source-of-Truth Verification` section.
 
 Required behavior:
 1. Follow `upstream-superpowers/subagent-driven-development.md` from the attached skill pack.
 2. Confirm the plan has been approved before editing target project files.
 3. Run the implementer/reviewer loop as Claude Code task behavior described by the skill; do not create a local adapter state machine.
-4. Consume only the plan-selected wiki context and provided `.wiki-context.json`.
-5. Verify the completed behavior and report reviewer findings.
+4. Consume only the plan-selected wiki context, provided `.wiki-context.json`, and rendered task-specific source-truth constraints from `source_truth_render.py` when present.
+5. Do not make implementer/reviewer subagents read the full `*.source-truth-report.json`; do not read the full `*.source-truth-report.json` during normal execution because it is planning/audit context only.
+6. Verify the completed behavior and report reviewer findings.
 
 {common_do_not(ctx)}
 Expected output:
@@ -625,6 +634,8 @@ Adapter version: `{adapter_manifest.get('version')}`. Adapted Superpowers versio
 - Claude Code receives this skill pack as a workspace skill.
 - The target project is the repo named in the issue body, normally `{target_text}`.
 - Supporting scripts live inside this skill pack under `scripts/`. When a copied Superpowers instruction mentions `{MULTICA_SKILL_ROOT_HINT}/scripts/<name>.py`, resolve that path from the task workspace where Multica injected this skill. Do not run `scripts/<name>.py` from the target repository unless that file is part of the injected skill pack.
+- Planning must expose source-truth verification as a visible role-agent run named `{SOURCE_TRUTH_ROLE_AGENT_NAME}` between draft plan and final plan review.
+- Execution consumes source-truth output only through lightweight task-specific constraints rendered by `source_truth_render.py`; the full source-truth report is planning/audit context only.
 - Do not commit, push, open PRs, publish shared wiki changes, or perform other external side effects without explicit user authorization in the Multica issue.
 
 ## User-facing language
@@ -635,8 +646,8 @@ Infer the user's preferred language only after first reading the assigned issue 
 
 1. Optional Lanhu intake: use `skills/lanhu-requirements/SKILL.md` when the issue includes a Lanhu URL and the workspace has Claude Code MCP access.
 2. Brainstorming: follow `upstream-superpowers/brainstorming.md`; use `agents/wiki-researcher.md` for lightweight project/shared wiki disclosure.
-3. Planning: follow `upstream-superpowers/writing-plans.md`; produce a plan and schemaVersion 3 `.wiki-context.json` under the target repo.
-4. Execution: follow `upstream-superpowers/executing-plans.md` or `upstream-superpowers/subagent-driven-development.md`; consume only the plan-selected `Referenced Project Wiki` and rendered wiki-context constraints.
+3. Planning: follow `upstream-superpowers/writing-plans.md`; produce a draft plan, run `{SOURCE_TRUTH_ROLE_AGENT_NAME}` / `agents/source-of-truth-verifier.md`, revise the final plan, then run plan-document-reviewer. Produce schemaVersion 3 `.wiki-context.json` and lightweight `.source-truth-constraints.json` under the target repo when configured.
+4. Execution: follow `upstream-superpowers/executing-plans.md` or `upstream-superpowers/subagent-driven-development.md`; consume only the plan-selected `Referenced Project Wiki`, rendered wiki-context constraints, and rendered task-specific source-truth constraints. Do not read full source-truth reports during normal execution.
 5. Finishing: follow `upstream-superpowers/finishing-a-development-branch.md` and ask before visible side effects.
 6. Durable knowledge review: use `skills/update-wiki/SKILL.md` only when the completed work produced reusable implementation knowledge.
 
@@ -985,7 +996,11 @@ def import_skills(ctx: BootstrapContext) -> None:
 
 def agent_system_instructions(ctx: BootstrapContext) -> str:
     target_repo = ctx.target_repo.as_posix() if ctx.target_repo else '<target repo from issue body>'
+    role_note = ''
+    if ctx.args.agent_name == SOURCE_TRUTH_ROLE_AGENT_NAME:
+        role_note = '\nYou are the visible source-of-truth verifier role-agent. Follow `agents/source-of-truth-verifier.md`; verify draft plan assumptions against configured `sourceOfTruth` policy, write report/constraints artifacts, and do not implement or modify project source files.\n'
     return f'''Use the `{SKILL_NAME}` workspace skill pack when an issue asks for Superpowers, adapter, project wiki, shared wiki, Lanhu, update-wiki, or debugging-retrospective flows.
+{role_note}
 
 For target project work, operate in the target repo named by the issue body, normally `{target_repo}`. Do not treat the adapter repository as the business project unless the issue explicitly asks to maintain the adapter itself.
 
@@ -1023,12 +1038,21 @@ def agent_exists(ctx: BootstrapContext) -> bool:
     return exists
 
 
-def ensure_agent(ctx: BootstrapContext) -> None:
+def ensure_agent_named(ctx: BootstrapContext, agent_name: str, purpose_label: str) -> None:
+    original_agent_name = ctx.args.agent_name
+    ctx.args.agent_name = agent_name
+    try:
+        ensure_agent(ctx, purpose_label=purpose_label)
+    finally:
+        ctx.args.agent_name = original_agent_name
+
+
+def ensure_agent(ctx: BootstrapContext, purpose_label: str = 'compatibility agent') -> None:
     create_help = help_text(['agent', 'create'])
     update_help = help_text(['agent', 'update'])
     exists = agent_exists(ctx) if ctx.apply else False
     if exists and not ctx.args.update_agent:
-        ctx.add_check('multica-agent', 'passed', 'Multica agent already exists; leaving configuration unchanged.', agent=ctx.args.agent_name)
+        ctx.add_check('multica-agent', 'passed', f'Multica {purpose_label} already exists; leaving configuration unchanged.', agent=ctx.args.agent_name)
         return
 
     instructions = agent_system_instructions(ctx)
@@ -1040,8 +1064,8 @@ def ensure_agent(ctx: BootstrapContext) -> None:
         instructions_flag = first_supported_flag(update_help, ('--instructions', '--system-instructions', '--context')) if update_help else '--instructions'
         if instructions_flag:
             cmd.extend([instructions_flag, instructions])
-        planned_or_run(ctx, cmd, 'Update the existing Multica compatibility agent instructions.')
-        ctx.add_check('multica-agent', 'passed', 'Multica agent update was planned or executed.', agent=ctx.args.agent_name)
+        planned_or_run(ctx, cmd, f'Update the existing Multica {purpose_label} instructions.')
+        ctx.add_check('multica-agent', 'passed', f'Multica {purpose_label} update was planned or executed.', agent=ctx.args.agent_name)
         return
 
     if ctx.apply and not create_help:
@@ -1075,10 +1099,10 @@ def ensure_agent(ctx: BootstrapContext) -> None:
     if visibility_flag:
         cmd.extend([visibility_flag, 'workspace'])
 
-    completed = planned_or_run(ctx, cmd, 'Create the Multica Claude Code compatibility agent.')
+    completed = planned_or_run(ctx, cmd, f'Create the Multica Claude Code {purpose_label}.')
     if completed is not None:
         ctx.agent_id = parse_created_record_id(completed.stdout) or parse_created_record_id(completed.stderr)
-    ctx.add_check('multica-agent', 'passed', 'Multica agent creation was planned or executed.', agent=ctx.args.agent_name, agentId=ctx.agent_id)
+    ctx.add_check('multica-agent', 'passed', f'Multica {purpose_label} creation was planned or executed.', agent=ctx.args.agent_name, agentId=ctx.agent_id)
 
 
 def attach_skills(ctx: BootstrapContext) -> None:
@@ -1169,6 +1193,8 @@ def run_command(ctx: BootstrapContext) -> None:
         import_skills(ctx)
     if command in {'ensure-agent', 'bootstrap'}:
         ensure_agent(ctx)
+    if command == 'bootstrap':
+        ensure_agent_named(ctx, SOURCE_TRUTH_ROLE_AGENT_NAME, 'source-of-truth verifier role-agent')
     if command in {'attach-skills', 'bootstrap'}:
         attach_skills(ctx)
     if command in {'create-issue', 'bootstrap'}:

@@ -1707,6 +1707,7 @@ def write_preflight_artifacts(dist: Path) -> list[dict]:
 
 def sdd_task_graph() -> dict:
     wiki_render = f'{MULTICA_TOOLS_ROOT_EXPR}/scripts/wiki_context_render.py'
+    source_truth_render = f'{MULTICA_TOOLS_ROOT_EXPR}/scripts/source_truth_render.py'
     return {
         'schemaVersion': 1,
         'graphId': 'subagent-driven-development',
@@ -1723,22 +1724,23 @@ def sdd_task_graph() -> dict:
                 'nodeId': 'implementer',
                 'roleAgent': 'implementer',
                 'freshContext': 'required',
-                'inputArtifacts': ['implementation-plan', 'wiki-context', 'sdd-task-input'],
-                'toolDependencies': [wiki_render],
+                'inputArtifacts': ['implementation-plan', 'wiki-context', 'source-truth-constraints', 'sdd-task-input'],
+                'toolDependencies': [wiki_render, source_truth_render],
                 'outputArtifacts': ['sdd-task-output'],
             },
             {
                 'nodeId': 'spec-compliance-reviewer',
                 'roleAgent': 'spec-compliance-reviewer',
                 'freshContext': 'required',
-                'inputArtifacts': ['implementation-plan', 'wiki-context', 'sdd-task-output'],
+                'inputArtifacts': ['implementation-plan', 'wiki-context', 'source-truth-constraints', 'sdd-task-output'],
+                'toolDependencies': [source_truth_render],
                 'outputArtifacts': ['review-result'],
             },
             {
                 'nodeId': 'code-quality-reviewer',
                 'roleAgent': 'code-quality-reviewer',
                 'freshContext': 'required',
-                'inputArtifacts': ['implementation-plan', 'wiki-context', 'sdd-task-output', 'review-result'],
+                'inputArtifacts': ['implementation-plan', 'wiki-context', 'source-truth-constraints', 'sdd-task-output', 'review-result'],
                 'outputArtifacts': ['review-result'],
             },
             {
@@ -1746,7 +1748,7 @@ def sdd_task_graph() -> dict:
                 'roleAgent': 'code-reviewer',
                 'mode': 'final-code-reviewer whole-implementation',
                 'freshContext': 'required',
-                'inputArtifacts': ['implementation-plan', 'wiki-context', 'sdd-task-output', 'review-result'],
+                'inputArtifacts': ['implementation-plan', 'wiki-context', 'source-truth-constraints', 'sdd-task-output', 'review-result'],
                 'outputArtifacts': ['final-code-review-result'],
             },
         ],
@@ -1927,6 +1929,8 @@ preflightChecks:
     schema_generators = {
         'spec.schema.json': spec_schema,
         'implementation-plan.schema.json': implementation_plan_schema,
+        'source-truth-report.schema.json': source_truth_report_schema,
+        'source-truth-constraints.schema.json': source_truth_constraints_schema,
         'lanhu-evidence-package.schema.json': lanhu_evidence_package_schema,
         'update-wiki-candidate.schema.json': update_wiki_candidate_schema,
         'review-result.schema.json': review_result_schema,
@@ -2097,6 +2101,47 @@ def wiki_context_schema() -> dict:
                     },
                 },
             },
+        },
+        'additionalProperties': True,
+    }
+
+
+def source_truth_report_schema() -> dict:
+    return {
+        '$schema': 'https://json-schema.org/draft/2020-12/schema',
+        'title': 'superpower-adapter source-truth report',
+        'type': 'object',
+        'required': ['schemaVersion', 'kind', 'planPath', 'status', 'summary', 'assumptions', 'findings'],
+        'properties': {
+            'schemaVersion': {'const': 1},
+            'kind': {'const': 'superpower-adapter.source-truth-report'},
+            'planPath': {'type': 'string'},
+            'wikiContextPath': {'type': 'string'},
+            'settingsPath': {'type': 'string'},
+            'heuristicsEnabled': {'type': 'boolean'},
+            'status': {'type': 'string', 'enum': ['passed', 'needs_revision', 'blocked', 'not_configured']},
+            'summary': {'type': 'object'},
+            'assumptions': {'type': 'array'},
+            'findings': {'type': 'array'},
+            'caveats': {'type': 'array'},
+        },
+        'additionalProperties': True,
+    }
+
+
+def source_truth_constraints_schema() -> dict:
+    return {
+        '$schema': 'https://json-schema.org/draft/2020-12/schema',
+        'title': 'superpower-adapter source-truth constraints',
+        'type': 'object',
+        'required': ['schemaVersion', 'kind', 'planPath', 'status', 'taskConstraints'],
+        'properties': {
+            'schemaVersion': {'const': 1},
+            'kind': {'const': 'superpower-adapter.source-truth-constraints'},
+            'planPath': {'type': 'string'},
+            'status': {'type': 'string', 'enum': ['passed', 'needs_revision', 'blocked', 'not_configured']},
+            'taskConstraints': {'type': 'array', 'items': {'type': 'object'}},
+            'caveats': {'type': 'array'},
         },
         'additionalProperties': True,
     }

@@ -32,6 +32,23 @@ if [[ ! -f "${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md" ]]; th
   exit 1
 fi
 
+if [[ ! -f "${TARGET_INPUT}/agents/source-of-truth-verifier.md" ]]; then
+  printf 'Expected installed source-of-truth-verifier agent\n' >&2
+  exit 1
+fi
+for required in 'sourceOfTruth' 'heuristics' 'truth' 'evidence' 'ignore' 'source-truth-report.json' 'source-truth-constraints.json' 'planning/audit artifact only' 'source_truth_render.py'; do
+  if ! grep -Fq -- "$required" "${TARGET_INPUT}/agents/source-of-truth-verifier.md"; then
+    printf 'Expected installed source-of-truth-verifier text: %s\n' "$required" >&2
+    exit 1
+  fi
+ done
+
+for required_script in source_truth_common.py source_truth_settings.py source_truth_render.py; do
+  if [[ ! -f "${TARGET_INPUT}/scripts/${required_script}" ]]; then
+    printf 'Expected installed source-truth script: %s\n' "$required_script" >&2
+    exit 1
+  fi
+ done
 
 for standalone_skill in \
   init-wiki \
@@ -190,7 +207,14 @@ for required in \
   'documentContext' \
   'bounded `documentContext`' \
   'logical display path' \
-  'Do not copy MCP-sourced shared wiki pages into local `.shared-superpowers/wiki/`'
+  'Do not copy MCP-sourced shared wiki pages into local `.shared-superpowers/wiki/`' \
+  'source-of-truth-verifier' \
+  'Source-of-Truth Verification' \
+  'sourceOfTruth.sources' \
+  'sourceOfTruth.heuristics' \
+  'source-truth-report.json' \
+  'source-truth-constraints.json' \
+  'full report is not normal execution context'
 do
   if ! grep -Fq -- "$required" "$WRITING_SKILL"; then
     printf 'Expected writing-plans patch to contain source-aware wiki context requirement: %s\n' "$required" >&2
@@ -270,7 +294,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/executing-plans/SKILL
   exit 1
 fi
 
-for required in 'Do not reselect wiki pages from scratch' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true'; do
+for required in 'Do not reselect wiki pages from scratch' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
     printf 'Expected executing-plans patch to contain source-aware execution text: %s\n' "$required" >&2
     exit 1
@@ -287,7 +311,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/subagent-driven-devel
   exit 1
 fi
 
-for required in 'Do not make subagents reselect wiki pages' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true'; do
+for required in 'Do not make subagents reselect wiki pages' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
     printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
     exit 1

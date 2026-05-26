@@ -61,6 +61,7 @@ required_assignees = {
     'superpowers-brainstorming-agent',
     'superpowers-wiki-researcher',
     'superpowers-planning-agent',
+    'superpowers-source-of-truth-verifier',
     'superpowers-spec-document-reviewer',
     'superpowers-plan-document-reviewer',
     'superpowers-implementer',

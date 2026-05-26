@@ -37,7 +37,10 @@ required_files = [
     skill_root / 'skills' / 'update-wiki' / 'SKILL.md',
     skill_root / 'skills' / 'lanhu-requirements' / 'SKILL.md',
     skill_root / 'agents' / 'wiki-researcher.md',
+    skill_root / 'agents' / 'source-of-truth-verifier.md',
     skill_root / 'scripts' / 'wiki_context_render.py',
+    skill_root / 'scripts' / 'source_truth_render.py',
+    skill_root / 'scripts' / 'source_truth_settings.py',
     skill_root / 'scripts' / 'wiki_read_section.py',
     skill_root / 'upstream-superpowers' / 'brainstorming.md',
     skill_root / 'upstream-superpowers' / 'writing-plans.md',
@@ -57,12 +60,26 @@ if 'User-facing language:' not in serialized:
     raise SystemExit('Dry-run output missing user-facing language inference rule')
 if 'Infer the user\'s preferred language' not in root_text:
     raise SystemExit('Root SKILL.md missing user-facing language inference rule')
+if 'superpowers-source-of-truth-verifier' not in root_text:
+    raise SystemExit('Root SKILL.md missing visible source-truth verifier role-agent guidance')
+if 'source_truth_render.py' not in root_text:
+    raise SystemExit('Root SKILL.md missing source-truth renderer guidance')
 
 brainstorming = (skill_root / 'upstream-superpowers' / 'brainstorming.md').read_text(encoding='utf-8')
 if '<!-- superpower-adapter:native-skill:brainstorming-wiki-disclosure -->' not in brainstorming:
     raise SystemExit('Patched brainstorming upstream skill missing adapter native patch')
 if '.claude/skills/superpowers-adapter/scripts/lanhu_settings.py' not in brainstorming:
     raise SystemExit('Patched brainstorming skill did not rewrite adapter plugin root to Multica skill root')
+writing_plans = (skill_root / 'upstream-superpowers' / 'writing-plans.md').read_text(encoding='utf-8')
+for required in ('source-of-truth-verifier', 'source-truth-report.json', 'source-truth-constraints.json', 'Source-of-Truth Verification'):
+    if required not in writing_plans:
+        raise SystemExit(f'Patched writing-plans skill missing source-truth text: {required}')
+execute_plan = (skill_root / 'upstream-superpowers' / 'executing-plans.md').read_text(encoding='utf-8')
+sdd = (skill_root / 'upstream-superpowers' / 'subagent-driven-development.md').read_text(encoding='utf-8')
+for text, label in ((execute_plan, 'execute-plan'), (sdd, 'sdd')):
+    for required in ('source_truth_render.py', 'source-truth-constraints.json', 'source-truth-report.json'):
+        if required not in text:
+            raise SystemExit(f'Patched {label} skill missing source-truth execution text: {required}')
 
 commands = result.get('commands', [])
 if not commands:
@@ -77,6 +94,7 @@ expected_fragments = [
     'multica skill create',
     'multica skill files upsert',
     'multica agent create',
+    'superpowers-source-of-truth-verifier',
     'multica agent skills set',
     'multica issue create',
     'multica issue assign',
@@ -173,6 +191,14 @@ for template, (entrypoint, extra) in cases.items():
     missing = [fragment for fragment in expected if fragment not in body]
     if missing:
         raise SystemExit(f'Template {template} body missing {missing}:\n{body}')
+    if template == 'writing-plans':
+        for required in ('superpowers-source-of-truth-verifier', 'source-truth-report.json', 'source-truth-constraints.json', 'Source-of-Truth Verification'):
+            if required not in body:
+                raise SystemExit(f'writing-plans issue body missing source-truth requirement {required!r}:\n{body}')
+    if template in {'execute-plan', 'sdd-execution'}:
+        for required in ('Source-truth constraints path', 'source_truth_render.py', 'do not read the full `*.source-truth-report.json`'):
+            if required not in body:
+                raise SystemExit(f'{template} issue body missing constraints-only execution guidance {required!r}:\n{body}')
     if template in {'publish-shared-wiki', 'shared-wiki-mcp-pr'} and 'Authorization gate:' not in body:
         raise SystemExit(f'Template {template} must keep an authorization gate without --allow-external-side-effects:\n{body}')
 

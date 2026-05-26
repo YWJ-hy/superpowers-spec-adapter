@@ -75,7 +75,7 @@ class WorkflowSpec:
 UPSTREAM_WORKFLOWS = (
     WorkflowSpec('using-superpowers', 'superpowers-native-skill', Path('skills/using-superpowers/SKILL.md'), (), ('superpowers-orchestrator',), 'workflow-runtime'),
     WorkflowSpec('brainstorming', 'superpowers-native-skill', Path('skills/brainstorming/SKILL.md'), ('design-approval',), ('superpowers-orchestrator', 'brainstorming-agent', 'wiki-researcher', 'spec-document-reviewer'), 'brainstorming', output_artifacts=('spec',)),
-    WorkflowSpec('writing-plans', 'superpowers-native-skill', Path('skills/writing-plans/SKILL.md'), ('spec-approval',), ('superpowers-orchestrator', 'planning-agent', 'wiki-researcher', 'plan-document-reviewer'), 'planning', required_artifacts=('approved-spec',), output_artifacts=('implementation-plan', 'wiki-context')),
+    WorkflowSpec('writing-plans', 'superpowers-native-skill', Path('skills/writing-plans/SKILL.md'), ('spec-approval',), ('superpowers-orchestrator', 'planning-agent', 'wiki-researcher', 'source-of-truth-verifier', 'plan-document-reviewer'), 'planning', required_artifacts=('approved-spec',), output_artifacts=('implementation-plan', 'wiki-context', 'source-truth-report', 'source-truth-constraints')),
     WorkflowSpec('executing-plans', 'superpowers-native-skill', Path('skills/executing-plans/SKILL.md'), (), ('superpowers-orchestrator', 'implementer', 'wiki-curator'), 'inline-sequential', required_artifacts=('implementation-plan', 'wiki-context')),
     WorkflowSpec('subagent-driven-development', 'superpowers-native-skill', Path('skills/subagent-driven-development/SKILL.md'), (), ('superpowers-orchestrator', 'implementer', 'spec-compliance-reviewer', 'code-quality-reviewer', 'code-reviewer'), 'multica-sdd-task-graph', required_artifacts=('implementation-plan', 'wiki-context')),
     WorkflowSpec('systematic-debugging', 'superpowers-native-skill', Path('skills/systematic-debugging/SKILL.md'), (), ('superpowers-orchestrator', 'debugger', 'wiki-researcher'), 'debug', required_artifacts=('failure-evidence',)),
@@ -112,6 +112,7 @@ UPSTREAM_ROLE_PROMPTS = {
 
 ADAPTER_ROLE_AGENT_PATHS = {
     'wiki-researcher': Path('overlays/agents/wiki-researcher.md'),
+    'source-of-truth-verifier': Path('overlays/agents/source-of-truth-verifier.md'),
 }
 
 GENERATED_LANHU_AGENT_IDS = (
@@ -159,10 +160,10 @@ ROLE_AGENT_CONTRACTS = {
     },
     'planning-agent': {
         'roleKind': 'workflow-role',
-        'inputArtifacts': ('approved-spec', 'wiki-selection'),
-        'outputArtifacts': ('implementation-plan', 'wiki-context'),
+        'inputArtifacts': ('approved-spec', 'wiki-selection', 'source-truth-report', 'source-truth-constraints'),
+        'outputArtifacts': ('implementation-plan', 'wiki-context', 'source-truth-report', 'source-truth-constraints'),
         'allowedCapabilities': ('local-filesystem', 'artifact-store', 'task-isolation'),
-        'toolAccess': ('read-target-repo', 'wiki-context-render-preview'),
+        'toolAccess': ('read-target-repo', 'wiki-context-render-preview', 'source-truth-render-preview'),
         'mayAdvanceGates': False,
         'mayPerformExternalSideEffects': False,
     },
@@ -175,12 +176,21 @@ ROLE_AGENT_CONTRACTS = {
         'mayAdvanceGates': False,
         'mayPerformExternalSideEffects': False,
     },
+    'source-of-truth-verifier': {
+        'roleKind': 'verification-role',
+        'inputArtifacts': ('implementation-plan', 'wiki-context', 'source-truth-settings'),
+        'outputArtifacts': ('source-truth-report', 'source-truth-constraints'),
+        'allowedCapabilities': ('local-filesystem', 'artifact-store', 'task-isolation'),
+        'toolAccess': ('read-target-repo', 'source-truth-settings', 'source-truth-render-preview'),
+        'mayAdvanceGates': False,
+        'mayPerformExternalSideEffects': False,
+    },
     'implementer': {
         'roleKind': 'implementation-role',
-        'inputArtifacts': ('implementation-plan', 'wiki-context', 'sdd-task-input'),
+        'inputArtifacts': ('implementation-plan', 'wiki-context', 'source-truth-constraints', 'sdd-task-input'),
         'outputArtifacts': ('sdd-task-output', 'patch-summary', 'verification-result'),
         'allowedCapabilities': ('local-filesystem', 'shell-git', 'artifact-store', 'task-isolation'),
-        'toolAccess': ('read-write-target-repo', 'shell-git', 'wiki-context-render'),
+        'toolAccess': ('read-write-target-repo', 'shell-git', 'wiki-context-render', 'source-truth-render'),
         'mayAdvanceGates': False,
         'mayPerformExternalSideEffects': False,
     },
@@ -495,6 +505,8 @@ SCHEMAS = (
     'spec.schema.json',
     'implementation-plan.schema.json',
     'wiki-context-v3.schema.json',
+    'source-truth-report.schema.json',
+    'source-truth-constraints.schema.json',
     'lanhu-evidence-package.schema.json',
     'update-wiki-candidate.schema.json',
     'review-result.schema.json',
@@ -521,6 +533,8 @@ ARTIFACT_CONTRACTS = (
     {'artifactType': 'approved-spec', 'schemaFile': 'spec.schema.json', 'producedBy': ('brainstorming',), 'consumedBy': ('writing-plans',), 'requiredForWorkflows': ('writing-plans',)},
     {'artifactType': 'implementation-plan', 'schemaFile': 'implementation-plan.schema.json', 'producedBy': ('writing-plans',), 'consumedBy': ('executing-plans', 'subagent-driven-development', 'plan-document-reviewer'), 'requiredForWorkflows': ('executing-plans', 'subagent-driven-development')},
     {'artifactType': 'wiki-context', 'schemaFile': 'wiki-context-v3.schema.json', 'producedBy': ('writing-plans',), 'consumedBy': ('executing-plans', 'subagent-driven-development'), 'requiredForWorkflows': ('executing-plans', 'subagent-driven-development')},
+    {'artifactType': 'source-truth-report', 'schemaFile': 'source-truth-report.schema.json', 'producedBy': ('writing-plans', 'source-of-truth-verifier'), 'consumedBy': ('writing-plans', 'plan-document-reviewer'), 'requiredForWorkflows': ()},
+    {'artifactType': 'source-truth-constraints', 'schemaFile': 'source-truth-constraints.schema.json', 'producedBy': ('writing-plans', 'source-of-truth-verifier'), 'consumedBy': ('executing-plans', 'subagent-driven-development', 'spec-compliance-reviewer'), 'requiredForWorkflows': ()},
     {'artifactType': 'lanhu-evidence-package', 'schemaFile': 'lanhu-evidence-package.schema.json', 'producedBy': ('lanhu-requirements',), 'consumedBy': ('brainstorming',), 'requiredForWorkflows': ()},
     {'artifactType': 'failure-evidence', 'schemaFile': '', 'producedBy': ('issue-template',), 'consumedBy': ('systematic-debugging', 'break-loop'), 'requiredForWorkflows': ('systematic-debugging',)},
     {'artifactType': 'update-wiki-candidate', 'schemaFile': 'update-wiki-candidate.schema.json', 'producedBy': ('break-loop', 'executing-plans', 'subagent-driven-development'), 'consumedBy': ('update-wiki',), 'requiredForWorkflows': ()},
@@ -656,7 +670,7 @@ ARTIFACT_NEXT_ACTIONS = (
         'fromArtifactTypes': ('implementation-plan', 'wiki-context'),
         'requiredSatisfiedGates': (),
         'suggestedWorkflowId': 'subagent-driven-development',
-        'reason': 'A reviewed plan with wiki context can be executed by the SDD task graph.',
+        'reason': 'A reviewed plan with wiki context and lightweight source-truth constraints when configured can be executed by the SDD task graph.',
     },
     {
         'actionId': 'final-review-to-finishing',
@@ -757,6 +771,8 @@ SCRIPT_EXECUTABLES = (
     'update-wiki.py',
     'wiki-context.py',
     'wiki_context_render.py',
+    'source_truth_settings.py',
+    'source_truth_render.py',
     'wiki_import.py',
     'init-wiki.py',
     'wiki_update_check.py',

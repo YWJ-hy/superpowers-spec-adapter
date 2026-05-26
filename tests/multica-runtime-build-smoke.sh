@@ -80,6 +80,10 @@ if manifest.get('artifactStoreContract', {}).get('storeId') != artifact_store.ge
     raise SystemExit('Runtime manifest artifactStoreContract mismatch')
 if artifacts_by_type.get('implementation-plan', {}).get('schemaFile') != 'implementation-plan.schema.json':
     raise SystemExit('Implementation plan artifact must bind to implementation-plan schema')
+if artifacts_by_type.get('source-truth-report', {}).get('schemaFile') != 'source-truth-report.schema.json':
+    raise SystemExit('Source-truth report artifact must bind to source-truth-report schema')
+if artifacts_by_type.get('source-truth-constraints', {}).get('schemaFile') != 'source-truth-constraints.schema.json':
+    raise SystemExit('Source-truth constraints artifact must bind to source-truth-constraints schema')
 if 'subagent-driven-development' not in artifacts_by_type.get('wiki-context', {}).get('requiredForWorkflows', []):
     raise SystemExit('Wiki context artifact must be required for SDD workflow')
 if manifest.get('artifactContracts') != artifact_contracts.get('contracts'):
@@ -87,6 +91,8 @@ if manifest.get('artifactContracts') != artifact_contracts.get('contracts'):
 for schema_name, required_field in {
     'spec.schema.json': 'decisions',
     'implementation-plan.schema.json': 'referencedProjectWiki',
+    'source-truth-report.schema.json': 'summary',
+    'source-truth-constraints.schema.json': 'taskConstraints',
     'lanhu-evidence-package.schema.json': 'confirmationGate',
     'update-wiki-candidate.schema.json': 'candidates',
     'review-result.schema.json': 'findings',
@@ -104,8 +110,15 @@ if role_contracts.get('freshContext') != 'required':
 roles_by_id = {item.get('agentId'): item for item in role_contracts.get('contracts', [])}
 if roles_by_id.get('implementer', {}).get('mayAdvanceGates') is not False:
     raise SystemExit('Implementer must not advance gates')
+source_truth_role = roles_by_id.get('source-of-truth-verifier', {})
+if source_truth_role.get('mayPerformExternalSideEffects') is not False or source_truth_role.get('mayAdvanceGates') is not False:
+    raise SystemExit('Source-of-truth verifier must not advance gates or perform external side effects')
+if 'source-truth-constraints' not in roles_by_id.get('implementer', {}).get('inputArtifacts', []):
+    raise SystemExit('Implementer role contract must accept source-truth constraints')
 if 'wiki-context-render' not in roles_by_id.get('implementer', {}).get('toolAccess', []):
     raise SystemExit('Implementer role contract must allow wiki context render')
+if 'source-truth-render' not in roles_by_id.get('implementer', {}).get('toolAccess', []):
+    raise SystemExit('Implementer role contract must allow source-truth render')
 if roles_by_id.get('shared-wiki-publisher', {}).get('mayPerformExternalSideEffects') is not True:
     raise SystemExit('Shared wiki publisher must be the explicit external-side-effect role')
 role_task = json.loads((root / 'dist' / 'preflight' / 'role-task-contract.json').read_text(encoding='utf-8'))
@@ -202,6 +215,8 @@ if graph.get('workflowId') != 'subagent-driven-development':
     raise SystemExit('SDD task graph workflowId mismatch')
 if 'wiki_context_render.py' not in json.dumps(graph, ensure_ascii=False):
     raise SystemExit('SDD task graph missing wiki_context_render.py reference')
+if 'source_truth_render.py' not in json.dumps(graph, ensure_ascii=False):
+    raise SystemExit('SDD task graph missing source_truth_render.py reference')
 nodes = {node.get('nodeId'): node for node in graph.get('nodes', [])}
 for node_id in ('implementer', 'spec-compliance-reviewer', 'code-quality-reviewer', 'code-reviewer-final'):
     if node_id not in nodes:
@@ -216,8 +231,10 @@ for rel in sorted(tool_paths):
         raise SystemExit(f'Tool manifest references missing file: {rel}')
 required_snapshots = [
     root / 'source' / 'superpower-adapter' / 'overlays' / 'agents' / 'wiki-researcher.md',
+    root / 'source' / 'superpower-adapter' / 'overlays' / 'agents' / 'source-of-truth-verifier.md',
     root / 'source' / 'superpower-adapter' / 'overlays' / 'skills' / 'update-wiki' / 'SKILL.md',
     root / 'source' / 'superpower-adapter' / 'overlays' / 'scripts' / 'wiki_context_render.py',
+    root / 'source' / 'superpower-adapter' / 'overlays' / 'scripts' / 'source_truth_render.py',
     root / 'source' / 'superpowers' / 'skills' / 'writing-plans' / 'SKILL.md',
 ]
 missing_snapshots = [path.as_posix() for path in required_snapshots if not path.exists()]
@@ -235,6 +252,10 @@ if grep -R -Eq 'python3 (overlays/scripts|superpowers/scripts|scripts/wiki[_-])'
 fi
 if ! grep -R -Fq '${MULTICA_SUPERPOWERS_RUNTIME_ROOT}/tools/scripts/wiki_context_render.py' "$RUNTIME_ROOT/dist/workflows"; then
   printf 'Missing Multica runtime-root wiki_context_render.py reference\n' >&2
+  exit 1
+fi
+if ! grep -R -Fq '${MULTICA_SUPERPOWERS_RUNTIME_ROOT}/tools/scripts/source_truth_render.py' "$RUNTIME_ROOT/dist"; then
+  printf 'Missing Multica runtime-root source_truth_render.py reference\n' >&2
   exit 1
 fi
 

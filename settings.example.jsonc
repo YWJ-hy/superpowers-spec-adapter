@@ -40,6 +40,40 @@
     }
   },
 
+  // 项目本地 source-of-truth 配置。仅从 .superpowers/settings.json 读取。
+  // writing-plans 写出完整 draft plan 后，source-of-truth-verifier 会按这里的规则
+  // 校验接口、类型、schema、权限、设计 token 或其它真实源假设。
+  "sourceOfTruth": {
+    // 默认 false。未显式开启时，verifier 不用路径命名启发式猜测真实源。
+    "heuristics": false,
+
+    // paths 使用 gitignore-style 语法：支持 **、前导 /、尾随 /、! 否定；后出现规则覆盖前面规则。
+    "sources": [
+      {
+        // truth 表示当前实现事实的权威来源。edit: never 时，plan 不得让实现 agent 修改这些文件。
+        "paths": ["src/services/generated/**", "src/types/generated/**"],
+        "role": "truth",
+        "edit": "never"
+      },
+      {
+        // edit: ask 表示如果需求需要修改真实源，必须先询问用户是否把该真实源改动纳入任务。
+        "paths": ["/openapi/**", "!openapi/legacy/**"],
+        "role": "truth",
+        "edit": "ask"
+      },
+      {
+        // evidence 只能作为线索，不能单独证明事实成立；常见于 mocks、fixtures、已有调用示例。
+        "paths": ["src/mocks/**", "**/*.mock.ts", "**/*.fixture.ts"],
+        "role": "evidence"
+      },
+      {
+        // ignore 不参与校验。
+        "paths": ["dist/", "node_modules/"],
+        "role": "ignore"
+      }
+    ]
+  },
+
   // 项目本地 Lanhu 配置。仅从 .superpowers/settings.json 读取。
   // Lanhu MCP 仍然是可选能力；配置缺失时默认只输出 Markdown。
   "lanhu": {

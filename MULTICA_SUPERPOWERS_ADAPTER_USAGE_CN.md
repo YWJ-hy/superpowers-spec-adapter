@@ -49,8 +49,9 @@
 | `superpowers-wiki-researcher` | 查找和选择相关 project/shared wiki |
 | `superpowers-brainstorming-agent` | 需求讨论、方案探索、产出 spec 草稿 |
 | `superpowers-spec-document-reviewer` | 审查 spec 文档是否清晰、完整、可执行 |
-| `superpowers-planning-agent` | 根据已确认 spec 写 implementation plan |
-| `superpowers-plan-document-reviewer` | 审查 plan 是否可执行、任务拆分是否合理 |
+| `superpowers-planning-agent` | 根据已确认 spec 写 draft/final implementation plan |
+| `superpowers-source-of-truth-verifier` | 在 draft plan 后校验接口、类型、schema、权限、设计 token 等配置化真实源假设 |
+| `superpowers-plan-document-reviewer` | 审查 final plan 是否可执行、任务拆分是否合理，并确认 source-truth 结果被正确消费 |
 | `superpowers-implementer` | 按已批准 plan 实现 |
 | `superpowers-spec-compliance-reviewer` | 检查实现是否符合 spec |
 | `superpowers-code-quality-reviewer` | 检查代码质量、维护性和局部设计问题 |
@@ -184,7 +185,7 @@ Response language: English
 | 只确认 Multica + skill pack 能跑 | `smoke` | `superpowers-superpowers-orchestrator` 或管理员指定的 smoke agent |
 | 从蓝湖整理原始需求 | `lanhu-intake` | 对应 Lanhu analyst |
 | 讨论需求、形成 spec | `brainstorming` | `superpowers-brainstorming-agent` 或 `superpowers-runtime-squad` |
-| 根据 spec 写 plan | `writing-plans` | `superpowers-planning-agent` |
+| 根据 spec 写 plan | `writing-plans` | `superpowers-planning-agent`，中途可见 `superpowers-source-of-truth-verifier` |
 | 审查 spec | `spec-document-review` | `superpowers-spec-document-reviewer` |
 | 审查 plan | `plan-document-review` | `superpowers-plan-document-reviewer` |
 | 执行已批准 plan | `execute-plan` | `superpowers-implementer` |
@@ -253,7 +254,9 @@ Safety:
   -> superpowers-wiki-researcher
   -> superpowers-brainstorming-agent
   -> superpowers-spec-document-reviewer
-  -> superpowers-planning-agent
+  -> superpowers-planning-agent (draft plan)
+  -> superpowers-source-of-truth-verifier
+  -> superpowers-planning-agent (final plan revision)
   -> superpowers-plan-document-reviewer
   -> superpowers-implementer
   -> superpowers-spec-compliance-reviewer
@@ -272,8 +275,9 @@ Safety:
 | Wiki research | 查相关项目/共享 wiki | 确认它选的 wiki 是否相关 |
 | Brainstorming | 讨论需求、提出 spec | 回答开放问题，确认方向 |
 | Spec review | 检查 spec 是否清晰 | 按评论补充或确认 spec |
-| Planning | 写 implementation plan，固化 wiki context | 审批 plan，确认任务拆分 |
-| Plan review | 检查 plan 可执行性 | 根据建议修改/确认 plan |
+| Planning | 写 draft plan，固化 wiki context；verifier 后修订 final plan | 审批 plan，确认任务拆分 |
+| Source-truth verification | 校验 draft plan 中的真实源假设，输出 report/constraints sidecar | 处理 blocked 或 `edit: ask` 的确认问题 |
+| Plan review | 检查 final plan 可执行性和 source-truth 结果消费是否正确 | 根据建议修改/确认 plan |
 | Implementation | 按 plan 实现 | 等待结果，不要中途改输入范围 |
 | Spec compliance review | 检查实现是否满足 spec | 如果失败，让 implementer 修复 |
 | Code quality review | 检查代码质量 | 判断是否接受重构建议 |
@@ -362,6 +366,7 @@ Issue template: execute-plan
 Inputs:
 - Plan: /path/to/project/.superpowers/plans/order-export.md
 - Wiki context: /path/to/project/.superpowers/plans/order-export.wiki-context.json
+- Source-truth constraints: /path/to/project/.superpowers/plans/order-export.source-truth-constraints.json（如 plan 有该 sidecar）
 - Approval: 用户已确认该 plan 可以执行。
 
 Expected output:
@@ -373,6 +378,8 @@ Safety:
 - 不要 commit / push / 创建 PR。
 - 如果需要扩大实现范围，请先评论说明并等待确认。
 ```
+
+如果执行 issue 包含 `Source-truth constraints`，agent 只应消费 `.source-truth-constraints.json` 的 task-specific 渲染结果；完整 `.source-truth-report.json` 是 planning/audit 资料，不是 implementer/reviewer 默认上下文。
 
 触发后通常应该继续创建或进入 review 阶段：
 
@@ -579,6 +586,7 @@ wiki-researcher
 brainstorming-agent
 spec-document-reviewer
 planning-agent
+source-of-truth-verifier
 plan-document-reviewer
 implementer
 reviewers
@@ -624,8 +632,8 @@ Authorization:
 ```text
 1. 创建 brainstorming issue → superpowers-runtime-squad
 2. 确认 spec
-3. 创建 writing-plans issue → superpowers-planning-agent
-4. 确认 plan
+3. 创建 writing-plans issue → superpowers-planning-agent，期间可见 source-of-truth-verifier
+4. 确认 final plan 和 source-truth 状态
 5. 创建 execute-plan / sdd-execution issue → implementer / squad
 6. 跑 spec compliance review、code quality review、final code review
 7. finisher 做收尾 readiness

@@ -80,6 +80,55 @@ PY
   )
 }
 
+check_source_truth_overlays() {
+  local verifier_agent="$TARGET_DIR/agents/source-of-truth-verifier.md"
+  local settings_script="$TARGET_DIR/scripts/source_truth_settings.py"
+  local render_script="$TARGET_DIR/scripts/source_truth_render.py"
+  local common_script="$TARGET_DIR/scripts/source_truth_common.py"
+  for required_file in "$verifier_agent" "$settings_script" "$render_script" "$common_script"; do
+    if [[ ! -f "$required_file" ]]; then
+      printf 'Missing source-truth integration file: %s\n' "$required_file" >&2
+      exit 1
+    fi
+  done
+  for required in \
+    'source-of-truth verifier' \
+    'sourceOfTruth' \
+    'heuristics' \
+    'truth' \
+    'evidence' \
+    'ignore' \
+    'source-truth-report.json' \
+    'source-truth-constraints.json' \
+    'planning/audit artifact only' \
+    'source_truth_render.py'
+  do
+    if ! grep -Fq "$required" "$verifier_agent"; then
+      printf 'Missing source-truth verifier agent requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  for required in 'DEFAULT_HEURISTICS = False' 'ROLE_VALUES = {"truth", "evidence", "ignore"}' 'EDIT_VALUES = {"never", "ask"}' 'match_gitignore_patterns' 'classify_path'; do
+    if ! grep -Fq "$required" "$common_script"; then
+      printf 'Missing source-truth settings implementation detail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  for required in 'Inspect sourceOfTruth settings' '--show-policy' '--classify'; do
+    if ! grep -Fq -- "$required" "$settings_script"; then
+      printf 'Missing source-truth settings CLI detail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  for required in 'superpower-adapter.source-truth-constraints' 'ROLE_CATEGORIES' 'implementer' 'reviewer' '--validate-only' '--strict' 'Source-of-Truth Constraints'; do
+    if ! grep -Fq -- "$required" "$render_script"; then
+      printf 'Missing source-truth render implementation detail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  printf 'Source-truth overlay checks OK\n'
+}
+
 check_optional_integration_overlays() {
   python3 "$SCRIPT_DIR/lib/sync_role_prd.py" check "$SCRIPT_DIR"
   python3 "$SCRIPT_DIR/lib/sync_role_prd.py" check "$SCRIPT_DIR" --target-root "$TARGET_DIR"
@@ -594,7 +643,14 @@ check_native_skill_residuals() {
     'source: github_mcp' \
     'wikiPath' \
     'revision.commitSha' \
-    'wiki_context_render.py'
+    'wiki_context_render.py' \
+    'source-of-truth-verifier' \
+    'Source-of-Truth Verification' \
+    'sourceOfTruth.sources' \
+    'sourceOfTruth.heuristics' \
+    'source-truth-report.json' \
+    'source-truth-constraints.json' \
+    'full report is not normal execution context'
   do
     if ! grep -Fq "$required" "$writing_skill"; then
       printf 'Missing source-aware planning requirement: %s\n' "$required" >&2
@@ -619,14 +675,14 @@ check_native_skill_residuals() {
     fi
   done
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context'; do
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context'; do
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
     if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1
@@ -678,6 +734,7 @@ PY
   python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
   python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
   python3 "$SUBAGENT_MODEL_PATCHER" verify "$TARGET_DIR"
+  check_source_truth_overlays
   check_optional_integration_overlays
   check_native_skill_residuals
 }
