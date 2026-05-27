@@ -675,7 +675,7 @@ check_native_skill_residuals() {
     fi
   done
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1

@@ -20,6 +20,12 @@ from adapter_manifest import installed_paths, load_manifest
 from multica_runtime_spec import UPSTREAM_WORKFLOWS
 from native_skill_patch import PATCHES, find_anchor, strip_block
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 GENERATED_BY = 'superpower-adapter multica bootstrap'
 SKILL_NAME = 'superpowers-adapter'
 DEFAULT_AGENT_NAME = 'superpowers-superpowers-orchestrator'
@@ -706,7 +712,7 @@ def prepare_skill_pack(ctx: BootstrapContext) -> None:
 
 
 def run_process(argv: list[str], *, check: bool = False) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(argv, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
+    return subprocess.run(argv, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check)
 
 
 def planned_or_run(ctx: BootstrapContext, argv: list[str], purpose: str, *, capture_issue_id: bool = False) -> subprocess.CompletedProcess[str] | None:

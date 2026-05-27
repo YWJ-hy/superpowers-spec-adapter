@@ -82,4 +82,14 @@ describe('shared wiki read section document context', () => {
     expect(result.content).toContain('Use tenant-scoped API keys');
     expect(result.documentContext?.caveats).toContain('companion section index not found');
   });
+
+  it('rejects index pages and companion indexes as section sources', async () => {
+    const { repoUrl } = await createRemoteRepo(true);
+    const cacheDir = mkdtempSync(path.join(tmpdir(), 'shared-wiki-section-cache-'));
+    mkdirSync(cacheDir, { recursive: true });
+    const sharedConfig = config(repoUrl, cacheDir);
+
+    await expect(readSectionTool(sharedConfig, { path: 'index.md', section: 'auth-contract' })).rejects.toThrow(/index page/);
+    await expect(readSectionTool(sharedConfig, { path: 'api.index.md', section: 'auth-contract' })).rejects.toThrow(/companion section index/);
+  });
 });

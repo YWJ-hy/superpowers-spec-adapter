@@ -1,12 +1,21 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import type { SharedWikiConfig } from '../config.js';
+import { companionIndexPath } from './documentContext.js';
 import { absoluteWikiFilePath, displayPath, normalizeWikiRelativePath, wikiRootPath } from './paths.js';
 
 export type WikiNode = {
   path: string;
   displayPath: string;
   title: string;
+  kind: 'index' | 'leaf';
+  readStrategy: 'index' | 'companion_index_then_section' | 'missing_companion_index';
+  companionIndex?: {
+    path: string;
+    displayPath: string;
+    exists: boolean;
+    readable: boolean;
+  };
 };
 
 type ResolvedReference =
@@ -28,7 +37,7 @@ export function indexedFiles(config: SharedWikiConfig): Set<string> {
     const absolute = absoluteWikiFilePath(config, current);
     if (!existsSync(absolute)) continue;
     visited.add(current);
-    if (!isIndexPage(current)) continue;
+    if (!isDirectoryIndexPath(current)) continue;
     const content = readFileSync(absolute, 'utf8');
     for (const target of extractWikiReferences(content)) {
       const resolved = resolveReference(config, current, target, ignoredDirectories);
@@ -38,12 +47,16 @@ export function indexedFiles(config: SharedWikiConfig): Set<string> {
   return visited;
 }
 
+export function indexedWikiNodes(config: SharedWikiConfig): WikiNode[] {
+  const indexed = indexedFiles(config);
+  return [...indexed]
+    .filter((wikiPath) => !isCompanionIndexPath(wikiPath))
+    .sort()
+    .map((wikiPath) => wikiNode(config, wikiPath));
+}
+
 export function tree(config: SharedWikiConfig): WikiNode[] {
-  return [...indexedFiles(config)].sort().map((wikiPath) => ({
-    path: wikiPath,
-    displayPath: displayPath(config, wikiPath),
-    title: firstHeading(absoluteWikiFilePath(config, wikiPath)) ?? wikiPath,
-  }));
+  return indexedWikiNodes(config);
 }
 
 export function validateIndexGraph(config: SharedWikiConfig): string[] {
@@ -55,7 +68,7 @@ export function validateIndexGraph(config: SharedWikiConfig): string[] {
 
   const ignoredDirectories = loadIgnoredDirectories(config);
   for (const wikiPath of indexedFiles(config)) {
-    if (!isIndexPage(wikiPath)) continue;
+    if (!isDirectoryIndexPath(wikiPath)) continue;
     const absolute = absoluteWikiFilePath(config, wikiPath);
     const content = readFileSync(absolute, 'utf8');
     for (const target of extractWikiReferences(content)) {
@@ -70,6 +83,15 @@ export function validateIndexGraph(config: SharedWikiConfig): string[] {
       }
     }
   }
+
+  for (const wikiPath of indexedFiles(config)) {
+    if (!isLeafDocumentPath(wikiPath)) continue;
+    const indexPath = companionIndexPath(wikiPath);
+    if (!existsSync(absoluteWikiFilePath(config, indexPath))) {
+      errors.push(`${wikiPath} is missing companion section index: ${indexPath}`);
+    }
+  }
+
   return errors;
 }
 
@@ -79,6 +101,58 @@ export function allMarkdownFiles(config: SharedWikiConfig): string[] {
   const results: string[] = [];
   walk(root, root, results);
   return results.sort();
+}
+
+export function isDirectoryIndexPath(wikiPath: string): boolean {
+  return path.posix.basename(wikiPath) === 'index.md';
+}
+
+export function isCompanionIndexPath(wikiPath: string): boolean {
+  const base = path.posix.basename(wikiPath);
+  return base.endsWith('.index.md') && base !== 'index.md';
+}
+
+export function isLeafDocumentPath(wikiPath: string): boolean {
+  return wikiPath.endsWith('.md') && !isDirectoryIndexPath(wikiPath) && !isCompanionIndexPath(wikiPath);
+}
+
+export function companionLeafPath(indexPath: string): string | null {
+  if (!isCompanionIndexPath(indexPath)) return null;
+  const normalized = normalizeWikiRelativePath(indexPath);
+  return normalized.replace(/\.index\.md$/, '.md');
+}
+
+export function isCompanionIndexForIndexedLeaf(config: SharedWikiConfig, wikiPath: string): boolean {
+  const leafPath = companionLeafPath(wikiPath);
+  return leafPath !== null && indexedFiles(config).has(leafPath);
+}
+
+function wikiNode(config: SharedWikiConfig, wikiPath: string): WikiNode {
+  if (isDirectoryIndexPath(wikiPath)) {
+    return {
+      path: wikiPath,
+      displayPath: displayPath(config, wikiPath),
+      title: firstHeading(absoluteWikiFilePath(config, wikiPath)) ?? wikiPath,
+      kind: 'index',
+      readStrategy: 'index',
+    };
+  }
+
+  const indexPath = companionIndexPath(wikiPath);
+  const exists = existsSync(absoluteWikiFilePath(config, indexPath));
+  return {
+    path: wikiPath,
+    displayPath: displayPath(config, wikiPath),
+    title: firstHeading(absoluteWikiFilePath(config, wikiPath)) ?? wikiPath,
+    kind: 'leaf',
+    readStrategy: exists ? 'companion_index_then_section' : 'missing_companion_index',
+    companionIndex: {
+      path: indexPath,
+      displayPath: displayPath(config, indexPath),
+      exists,
+      readable: exists,
+    },
+  };
 }
 
 function walk(root: string, current: string, results: string[]): void {
@@ -92,10 +166,6 @@ function walk(root: string, current: string, results: string[]): void {
       results.push(path.relative(root, absolute).replaceAll('\\', '/'));
     }
   }
-}
-
-function isIndexPage(wikiPath: string): boolean {
-  return path.posix.basename(wikiPath) === 'index.md';
 }
 
 function extractWikiReferences(content: string): string[] {

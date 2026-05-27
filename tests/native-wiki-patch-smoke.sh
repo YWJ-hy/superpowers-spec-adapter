@@ -294,7 +294,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/executing-plans/SKILL
   exit 1
 fi
 
-for required in 'Do not reselect wiki pages from scratch' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read({ path: wikiPath })' 'compare the current MCP revision' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
+for required in 'Do not reselect wiki pages from scratch' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
     printf 'Expected executing-plans patch to contain source-aware execution text: %s\n' "$required" >&2
     exit 1

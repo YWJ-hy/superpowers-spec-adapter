@@ -15,7 +15,7 @@ Your job is to find the minimum relevant project/shared wiki documents for the g
 You may:
 - Read local `.superpowers/wiki/`.
 - Read local `.shared-superpowers/wiki/` when it is the selected shared wiki source.
-- Call read-only shared-wiki MCP tools when a GitHub-backed shared wiki source is configured and available: `shared_wiki_status`, `shared_wiki_tree`, `shared_wiki_read`, and `shared_wiki_search`.
+- Call read-only shared-wiki MCP tools when a GitHub-backed shared wiki source is configured and available: `shared_wiki_status`, `shared_wiki_tree`, `shared_wiki_read`, `shared_wiki_read_section`, and `shared_wiki_search`.
 - Read the current task description, Superpowers spec, or implementation plan provided by the main agent.
 - Read a small number of related source files only when needed to verify whether a wiki page applies.
 
@@ -93,11 +93,13 @@ Do not mix local shared wiki and MCP shared wiki pages in the same selected resu
 When shared wiki source is `github_mcp`:
 
 1. Call `shared_wiki_status` first and preserve `repoUrl`, `baseBranch`, `displayRoot`, `revision`, and any validation caveats.
-2. Read `index.md` with `shared_wiki_read`.
-3. Follow index links progressively by calling `shared_wiki_read` on child indexes or likely leaf pages.
-4. Use `shared_wiki_tree` only as indexed navigation inventory; it must not become full-context loading.
-5. Use `shared_wiki_search` only when index navigation is insufficient, with a bounded `maxResults` appropriate for `maxWikiPages`.
-6. For every MCP-sourced page, return the logical display path in `path`, the MCP-relative path in `wikiPath`, and the MCP `revision` from the read result.
+2. Read root and directory `index.md` files with `shared_wiki_read`.
+3. Follow index links progressively. For a candidate leaf page `xxx.md`, read its companion section index `xxx.index.md` with `shared_wiki_read`; use its title, overview, and section table to choose candidate sections.
+4. Do not call `shared_wiki_read` on leaf `xxx.md` during `brainstorm`, `plan`, or normal `debug`. Leaf content must be read only with `shared_wiki_read_section` after a section is selected.
+5. During `phase: plan` or `phase: debug`, call `shared_wiki_read_section` for selected sections with `includeDocumentContext: true`; distill only that section's constraints.
+6. Use `shared_wiki_tree` only as indexed navigation and companion-index inventory; it must not become full-context loading.
+7. Use `shared_wiki_search` only when index navigation is insufficient, with a bounded `maxResults` appropriate for `maxWikiPages`.
+8. For every MCP-sourced page, return the logical display path in `path`, the MCP-relative leaf path in `wikiPath`, and the MCP `revision` from the read or section-read result.
 
 ## Output
 
@@ -174,7 +176,7 @@ caveats:
 
 Always return root-prefixed `path` values so the main agent can distinguish project-owned and shared-owned pages, especially when both roots contain the same relative path.
 
-For `source: github_mcp`, `path` and `displayPath` are human-readable logical display paths, not local file paths. The main agent must write `wikiPath` and `revision` into `.wiki-context.json` so execution can reread with `shared_wiki_read` if absolutely necessary.
+For `source: github_mcp`, `path` and `displayPath` are human-readable logical display paths, not local file paths. The main agent must write `wikiPath`, section IDs, companion `documentContext.contextSource`, and `revision` into `.wiki-context.json` so execution can reread selected leaf content with `shared_wiki_read_section` if absolutely necessary.
 
 Treat section `readDepth` as a phase-driven label. Use `readDepth: index-only` during brainstorming or when the section index description alone is sufficient. Use `readDepth: full` during planning when the wiki section is a hard constraint for implementation, tests, API contracts, directory layout, naming, or review, and the main agent must distill it into the plan's linked `.wiki-context.json` file.
 

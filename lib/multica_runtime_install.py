@@ -18,6 +18,12 @@ from multica_runtime_spec import EXPECTED_ROLE_AGENTS, EXPECTED_WORKFLOWS, GATES
 
 ISSUE_ID_RE = re.compile(r'\b[A-Z][A-Z0-9]+-\d+\b')
 UUID_RE = re.compile(r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b')
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 NATIVE_SURFACE_SUBSTITUTES = {
     'runtime-install': ('issue-metadata-state-substitute', 'issue-comment-artifact-substitute'),
     'workflow-registration': ('issue-metadata-state-substitute', 'issue-comment-artifact-substitute'),
@@ -32,6 +38,23 @@ NATIVE_SURFACE_SUBSTITUTES = {
 
 class InstallError(SystemExit):
     pass
+
+
+def compact_output_text(value: str, limit: int = 12000) -> str:
+    if len(value) <= limit:
+        return value
+    omitted = len(value) - limit
+    return f'{value[:limit]}\n...[truncated {omitted} chars]'
+
+
+def compact_output_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return compact_output_text(value)
+    if isinstance(value, list):
+        return [compact_output_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: compact_output_value(item) for key, item in value.items()}
+    return value
 
 
 @dataclass
@@ -97,10 +120,10 @@ class RuntimeInstallContext:
             'runtimeId': self.runtime_id,
             'roleAgentIds': self.role_agent_ids,
             'squadId': self.squad_id,
-            'checks': [check.as_dict() for check in self.checks],
-            'commands': self.commands,
-            'liveSurfaces': self.live_surfaces,
-            'manualSteps': self.manual_steps,
+            'checks': compact_output_value([check.as_dict() for check in self.checks]),
+            'commands': compact_output_value(self.commands),
+            'liveSurfaces': compact_output_value(self.live_surfaces),
+            'manualSteps': compact_output_value(self.manual_steps),
         }
 
 
@@ -158,7 +181,7 @@ def parse_created_id(text: str) -> str | None:
 
 
 def run_process(argv: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(argv, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return subprocess.run(argv, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def help_result(command: list[str]) -> subprocess.CompletedProcess[str] | None:

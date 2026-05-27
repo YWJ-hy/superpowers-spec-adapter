@@ -30,6 +30,15 @@ cat > "$WORK/guide.md" <<'MD'
 
 Reusable shared rule.
 MD
+cat > "$WORK/guide.index.md" <<'MD'
+# Guide Sections
+
+> Shared guide rules used by smoke tests.
+
+| section | 描述 | 约束强度 |
+|---|---|---|
+| guide-rule | Guide rule | hard |
+MD
 mkdir -p "$WORK/.shared-superpowers"
 cat > "$WORK/.shared-superpowers/settings.json" <<'JSON'
 {

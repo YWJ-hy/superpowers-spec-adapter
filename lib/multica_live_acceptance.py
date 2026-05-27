@@ -16,6 +16,12 @@ from pathlib import Path
 from typing import Any
 
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 ISSUE_ID_RE = re.compile(r'\b[A-Z][A-Z0-9]+-\d+\b')
 UUID_RE = re.compile(r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b')
 SKILL_NAME = 'superpowers-adapter'
@@ -427,7 +433,7 @@ def parse_issue_id(text: str) -> str | None:
 
 
 def run_process(argv: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(argv, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return subprocess.run(argv, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def is_transient_multica_error(completed: subprocess.CompletedProcess[str]) -> bool:

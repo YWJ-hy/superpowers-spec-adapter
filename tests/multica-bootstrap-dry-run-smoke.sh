@@ -9,6 +9,11 @@ if [[ -d "$SUPERPOWERS_SOURCE" ]]; then
 fi
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+BASH_EXE="$(command -v bash)"
+if command -v cygpath >/dev/null 2>&1; then
+  BASH_EXE="$(cygpath -am "$BASH_EXE")"
+fi
+export BASH_EXE
 TARGET_REPO="$TMP/target-repo"
 SKILL_PACK_DIR="$TMP/skill-pack"
 mkdir -p "$TARGET_REPO/.superpowers/wiki" "$TARGET_REPO/.shared-superpowers/wiki"
@@ -111,6 +116,7 @@ PY
 python3 - <<'PY' "$ROOT" "$TARGET_REPO" "$TMP"
 from pathlib import Path
 import json
+import os
 import subprocess
 import sys
 
@@ -144,9 +150,12 @@ cases = {
     'shared-wiki-mcp-pr': ('skills/shared-wiki-mcp/SKILL.md', ['--shared-wiki-topic', 'portable API contracts']),
 }
 
+def manage_command(*args):
+    return [os.environ.get('BASH_EXE', 'bash'), (root / 'manage.sh').as_posix(), *args]
+
+
 def run_template(template, extra):
-    command = [
-        (root / 'manage.sh').as_posix(),
+    command = manage_command(
         'multica-bootstrap',
         'create-issue',
         '--target-repo',
@@ -156,8 +165,8 @@ def run_template(template, extra):
         '--dry-run',
         '--json',
         *extra,
-    ]
-    completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    )
+    completed = subprocess.run(command, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if completed.returncode != 0:
         raise SystemExit(f'Template {template} dry-run failed:\nSTDOUT={completed.stdout}\nSTDERR={completed.stderr}')
     return json.loads(completed.stdout)
@@ -202,8 +211,7 @@ for template, (entrypoint, extra) in cases.items():
     if template in {'publish-shared-wiki', 'shared-wiki-mcp-pr'} and 'Authorization gate:' not in body:
         raise SystemExit(f'Template {template} must keep an authorization gate without --allow-external-side-effects:\n{body}')
 
-custom_body_command = [
-    (root / 'manage.sh').as_posix(),
+custom_body_command = manage_command(
     'multica-bootstrap',
     'create-issue',
     '--target-repo',
@@ -212,16 +220,15 @@ custom_body_command = [
     '# 自定义中文 issue\n\n请用中文回复。',
     '--dry-run',
     '--json',
-]
-completed = subprocess.run(custom_body_command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+)
+completed = subprocess.run(custom_body_command, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 if completed.returncode != 0:
     raise SystemExit(f'Custom issue body dry-run failed:\nSTDOUT={completed.stdout}\nSTDERR={completed.stderr}')
 custom_body = issue_body(json.loads(completed.stdout))
 if 'User-facing language:' not in custom_body or "Infer the user's preferred language" not in custom_body:
     raise SystemExit(f'Custom issue body must include language inference rule:\n{custom_body}')
 
-observe_command = [
-    (root / 'manage.sh').as_posix(),
+observe_command = manage_command(
     'multica-bootstrap',
     'bootstrap',
     '--superpowers-source',
@@ -237,8 +244,8 @@ observe_command = [
     '1',
     '--dry-run',
     '--json',
-]
-completed = subprocess.run(observe_command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+)
+completed = subprocess.run(observe_command, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 if completed.returncode != 0:
     raise SystemExit(f'Observe bootstrap dry-run failed:\nSTDOUT={completed.stdout}\nSTDERR={completed.stderr}')
 observe_result = json.loads(completed.stdout)
@@ -253,8 +260,7 @@ negative_cases = [
     ('lanhu-intake', []),
 ]
 for template, extra in negative_cases:
-    command = [
-        (root / 'manage.sh').as_posix(),
+    command = manage_command(
         'multica-bootstrap',
         'create-issue',
         '--target-repo',
@@ -264,15 +270,14 @@ for template, extra in negative_cases:
         '--dry-run',
         '--json',
         *extra,
-    ]
-    completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    )
+    completed = subprocess.run(command, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if completed.returncode == 0:
         raise SystemExit(f'Template {template} should fail without required inputs')
     if 'requires' not in completed.stdout:
         raise SystemExit(f'Template {template} failure should explain required inputs:\n{completed.stdout}\n{completed.stderr}')
 
-removed_agent_command = [
-    (root / 'manage.sh').as_posix(),
+removed_agent_command = manage_command(
     'multica-bootstrap',
     'create-issue',
     '--target-repo',
@@ -281,8 +286,8 @@ removed_agent_command = [
     'superpowers-adapter-orchestrator',
     '--dry-run',
     '--json',
-]
-completed = subprocess.run(removed_agent_command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+)
+completed = subprocess.run(removed_agent_command, text=True, encoding='utf-8', errors='replace', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 if completed.returncode == 0:
     raise SystemExit('superpowers-adapter-orchestrator should be rejected by multica-bootstrap')
 if 'has been removed' not in completed.stdout:

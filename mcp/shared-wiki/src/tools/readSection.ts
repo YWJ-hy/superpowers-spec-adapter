@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import type { SharedWikiConfig } from '../config.js';
 import { currentHeadRevision, prepareBase } from '../git.js';
 import { companionIndexPath, extractDocumentContextFromIndex } from '../wiki/documentContext.js';
-import { indexedFiles } from '../wiki/indexGraph.js';
+import { indexedFiles, isCompanionIndexPath, isDirectoryIndexPath, isLeafDocumentPath } from '../wiki/indexGraph.js';
 import { absoluteWikiFilePath, displayPath, normalizeWikiRelativePath } from '../wiki/paths.js';
 import { extractSection, listSectionIds } from '../wiki/sections.js';
 
@@ -10,6 +10,15 @@ export async function readSectionTool(config: SharedWikiConfig, input: { path: s
   await prepareBase(config);
   const revision = await currentHeadRevision(config);
   const wikiPath = normalizeWikiRelativePath(input.path);
+  if (isDirectoryIndexPath(wikiPath)) {
+    throw new Error(`Cannot read a wiki section from an index page: ${wikiPath}`);
+  }
+  if (isCompanionIndexPath(wikiPath)) {
+    throw new Error(`Cannot read a wiki section from a companion section index: ${wikiPath}`);
+  }
+  if (!isLeafDocumentPath(wikiPath)) {
+    throw new Error(`Unsupported shared wiki section source: ${wikiPath}`);
+  }
   if (!indexedFiles(config).has(wikiPath)) {
     throw new Error(`Wiki page is not indexed: ${input.path}`);
   }

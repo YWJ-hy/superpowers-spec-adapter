@@ -457,6 +457,12 @@ import shutil
 import sys
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
@@ -532,11 +538,14 @@ def main(argv: list[str]) -> int:
     else:
         add(mechanical_checks, 'python3-available', 'blocked', 'python3 is not available.')
 
+    shell_path = shutil.which('sh')
     shell = Path('/bin/sh')
-    if shell.is_file() and os.access(shell, os.X_OK):
+    if shell_path:
+        add(mechanical_checks, 'shell-available', 'passed', 'sh is available.', executable=shell_path)
+    elif shell.is_file() and os.access(shell, os.X_OK):
         add(mechanical_checks, 'shell-available', 'passed', '/bin/sh is executable.', executable=str(shell))
     else:
-        add(mechanical_checks, 'shell-available', 'blocked', '/bin/sh is not executable.', executable=str(shell))
+        add(mechanical_checks, 'shell-available', 'blocked', 'sh is not available.', executable=str(shell))
 
     if shutil.which('git'):
         add(mechanical_checks, 'git-available', 'passed', 'git is available.', executable=shutil.which('git'))
@@ -577,6 +586,12 @@ from datetime import datetime, timezone
 import json
 import sys
 from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
 
 
 CATEGORIES = ('artifactChecks', 'capabilityChecks', 'gateChecks', 'mcpChecks', 'illegalTransitionChecks')
@@ -857,6 +872,12 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
@@ -942,6 +963,12 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
@@ -999,6 +1026,12 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
 
 
 def load_json(path: Path) -> dict:
@@ -1070,6 +1103,12 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
 
 
 def load_json(path: Path) -> dict:
@@ -1144,6 +1183,12 @@ import hashlib
 import json
 import sys
 from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
 
 
 def load_json(path: Path) -> dict:
@@ -1265,6 +1310,12 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
@@ -1370,6 +1421,12 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
@@ -1473,6 +1530,12 @@ from datetime import datetime, timezone
 import json
 import sys
 from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
 
 
 def load_json(path: Path) -> dict:

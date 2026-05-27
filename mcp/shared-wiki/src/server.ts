@@ -19,19 +19,22 @@ export function createServer(config: SharedWikiConfig): McpServer {
   }, async () => toResult(await statusTool(config)));
 
   server.registerTool('shared_wiki_tree', {
-    description: 'Return the index-driven shared wiki tree.',
+    description: 'Return the index-driven shared wiki tree with leaf companion section-index metadata.',
     inputSchema: z.object({}),
     annotations: { readOnlyHint: true, idempotentHint: true },
   }, async () => toResult(await treeTool(config)));
 
   server.registerTool('shared_wiki_read', {
-    description: 'Read one indexed shared wiki markdown page.',
-    inputSchema: z.object({ path: z.string().min(1) }),
+    description: 'Read an indexed root/directory index or companion section index. Full leaf documents are blocked by default; use shared_wiki_read_section for leaf content.',
+    inputSchema: z.object({
+      path: z.string().min(1),
+      allowLeafDocumentRead: z.boolean().optional(),
+    }),
     annotations: { readOnlyHint: true, idempotentHint: true },
   }, async (input) => toResult(await readTool(config, input)));
 
   server.registerTool('shared_wiki_read_section', {
-    description: 'Read a specific marked section from an indexed shared wiki page, optionally with bounded document context from its companion section index.',
+    description: 'Read a specific marked section from an indexed leaf shared wiki page, optionally with bounded document context from its companion section index.',
     inputSchema: z.object({
       path: z.string().min(1),
       section: z.string().min(1),

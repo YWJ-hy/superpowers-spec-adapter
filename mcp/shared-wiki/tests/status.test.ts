@@ -22,13 +22,16 @@ function config(repoUrl: string, cacheDir: string): SharedWikiConfig {
   };
 }
 
-async function createRemoteRepo(): Promise<{ repoUrl: string; commitSha: string }> {
+async function createRemoteRepo(withCompanionIndex = true): Promise<{ repoUrl: string; commitSha: string }> {
   const repoUrl = mkdtempSync(path.join(tmpdir(), 'shared-wiki-remote-'));
   await spawnFile('git', ['init', '-b', 'main'], { cwd: repoUrl });
   await spawnFile('git', ['config', 'user.email', 'test@example.com'], { cwd: repoUrl });
   await spawnFile('git', ['config', 'user.name', 'Test User'], { cwd: repoUrl });
   writeFileSync(path.join(repoUrl, 'index.md'), '# Index\n\n- [API](api.md)\n');
   writeFileSync(path.join(repoUrl, 'api.md'), '# API\n\nReusable API contract.\n');
+  if (withCompanionIndex) {
+    writeFileSync(path.join(repoUrl, 'api.index.md'), '# API Sections\n\n> Shared API contract sections.\n\n| section | 描述 | 约束强度 |\n|---|---|---|\n| auth-contract | Auth Contract | hard |\n');
+  }
   await spawnFile('git', ['add', '.'], { cwd: repoUrl });
   await spawnFile('git', ['commit', '-m', 'Initial shared wiki'], { cwd: repoUrl });
   const output = await spawnFile('git', ['rev-parse', 'HEAD'], { cwd: repoUrl });
@@ -46,17 +49,41 @@ describe('shared wiki tool revisions', () => {
     expect(status.revision?.ref).toBe('origin/main');
     expect(status.revision?.commitSha).toBe(commitSha);
     expect(status.revision?.shortSha).toBe(commitSha.slice(0, 12));
+    expect(status.validation.errors).toEqual([]);
 
     const tree = await treeTool(sharedConfig);
     expect(tree.revision.commitSha).toBe(commitSha);
-    expect(tree.files.map((file) => file.path)).toContain('api.md');
+    const apiNode = tree.files.find((file) => file.path === 'api.md');
+    expect(apiNode?.kind).toBe('leaf');
+    expect(apiNode?.readStrategy).toBe('companion_index_then_section');
+    expect(apiNode?.companionIndex?.path).toBe('api.index.md');
 
-    const read = await readTool(sharedConfig, { path: 'api.md' });
-    expect(read.revision.commitSha).toBe(commitSha);
-    expect(read.content).toContain('Reusable API contract');
+    const indexRead = await readTool(sharedConfig, { path: 'index.md' });
+    expect(indexRead.revision.commitSha).toBe(commitSha);
+    expect(indexRead.content).toContain('[API](api.md)');
+
+    const companionRead = await readTool(sharedConfig, { path: 'api.index.md' });
+    expect(companionRead.revision.commitSha).toBe(commitSha);
+    expect(companionRead.content).toContain('API Sections');
+
+    await expect(readTool(sharedConfig, { path: 'api.md' })).rejects.toThrow(/shared_wiki_read_section/);
+
+    const leafRead = await readTool(sharedConfig, { path: 'api.md', allowLeafDocumentRead: true });
+    expect(leafRead.revision.commitSha).toBe(commitSha);
+    expect(leafRead.content).toContain('Reusable API contract');
 
     const search = await searchTool(sharedConfig, { query: 'contract' });
     expect(search.revision.commitSha).toBe(commitSha);
     expect(search.results[0]?.path).toBe('api.md');
+  });
+
+  it('reports indexed leaf pages missing companion section indexes in status validation', async () => {
+    const { repoUrl } = await createRemoteRepo(false);
+    const cacheDir = mkdtempSync(path.join(tmpdir(), 'shared-wiki-cache-'));
+    mkdirSync(cacheDir, { recursive: true });
+
+    const status = await statusTool(config(repoUrl, cacheDir));
+
+    expect(status.validation.errors).toContain('api.md is missing companion section index: api.index.md');
   });
 });

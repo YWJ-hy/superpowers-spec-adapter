@@ -30,6 +30,15 @@ cat > "$WORK/guide.md" <<'MD'
 
 Reusable shared rule.
 MD
+cat > "$WORK/guide.index.md" <<'MD'
+# Guide Sections
+
+> Shared guide rules used by smoke tests.
+
+| section | 描述 | 约束强度 |
+|---|---|---|
+| guide-rule | Guide rule | hard |
+MD
 git -C "$WORK" add .
 git -C "$WORK" commit -m "Seed shared wiki" >/dev/null
 git -C "$WORK" branch -M main
