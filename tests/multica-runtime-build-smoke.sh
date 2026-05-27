@@ -229,6 +229,15 @@ if ('spec-compliance-reviewer', 'implementer', 'review-failed') not in edges:
 for rel in sorted(tool_paths):
     if not (root / 'dist' / 'tools' / rel).is_file():
         raise SystemExit(f'Tool manifest references missing file: {rel}')
+contract = root / 'dist' / 'tools' / 'contracts' / 'wiki-context-v3.example.jsonc'
+if not contract.is_file():
+    raise SystemExit('Missing wiki context example contract in runtime tools/contracts')
+if 'contracts/wiki-context-v3.example.jsonc' in tool_paths:
+    raise SystemExit('Wiki context example contract must not be listed as a runnable tool script')
+planning_agent = (root / 'dist' / 'agents' / 'planning-agent.md').read_text(encoding='utf-8')
+for required in ('wiki-context-v3.example.jsonc', '--validate-only --strict', 'Do not inspect wiki_context_render.py to infer the sidecar format'):
+    if required not in planning_agent:
+        raise SystemExit(f'Planning agent missing wiki context contract instruction: {required}')
 required_snapshots = [
     root / 'source' / 'superpower-adapter' / 'overlays' / 'agents' / 'wiki-researcher.md',
     root / 'source' / 'superpower-adapter' / 'overlays' / 'agents' / 'source-of-truth-verifier.md',

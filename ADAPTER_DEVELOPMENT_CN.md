@@ -120,7 +120,7 @@ Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section
 - 支持嵌套 section（父 section 包含子 section）
 - 每个叶子文档都必须有伴随的 `<stem>.index.md`，短文档和单一主题文档也不能跳过
 - `<stem>.index.md` 必须包含文档级语义概览和 section 表格；`wiki_generate_section_index.py` 只负责刷新表格并保留已有概览
-- planning 中选中的 wiki context 必须写入 schemaVersion 3 `.wiki-context.json`；JSON 使用 page-rooted `wikiPages`，每个 page 只携带一份来自 `<stem>.index.md` 的有界 `documentContext`（标题 / 概览 / source metadata），sections 作为子节点保留 `relevanceTo`、hard constraint、reread、source anchors、caveats 和 implementation / test / review / general 分类约束；`appliesTo` 仅作为 legacy/optional metadata，不用于执行期路由；不得为了恢复上下文而注入 sibling sections 或整页正文
+- planning 中选中的 wiki context 必须参考安装后的 `contracts/wiki-context-v3.example.jsonc` 写入 schemaVersion 3 `.wiki-context.json`，然后用 plugin-root `wiki_context_render.py --validate-only --strict` 校验；JSON 使用 page-rooted `wikiPages`，每个 page 只携带一份来自 `<stem>.index.md` 的有界 `documentContext`（标题 / 概览 / source metadata），sections 作为子节点保留 `relevanceTo`、hard constraint、reread、source anchors、caveats 和 implementation / test / review / general 分类约束；`appliesTo` 仅作为 legacy/optional metadata，不用于执行期路由；不得为了恢复上下文而注入 sibling sections 或整页正文
 - `wiki-researcher` 只选择有 `<stem>.index.md` 的文档；未迁移的文档不参与选择
 - 用户通过 `migrate-wiki` skill 将现有 wiki 迁移到 section-marker 格式
 
@@ -210,7 +210,7 @@ writing-plans
 ```
 
 4. 确认 agent 实际走的是文档指定的分析、wiki-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `wiki-progressive-disclosure`。
-5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.json`；sidecar 应使用 schemaVersion 3 page-rooted `wikiPages`，每个 page 只保留一份有界 `documentContext`，sections 保留 `relevanceTo`、分类约束、hard constraint、reread 和 anchors；planning 阶段必须渲染 selected wiki constraints 并吸收到 plan/task 文本中；执行阶段必须通过 plugin-root `wiki_context_render.py` 按 role 渲染 selected constraints，不按 task string 过滤 wiki 约束，并通过 `--reread-list` 只重读选中 hard section 的 document context + section body，不注入 sibling sections 或整页正文。
+5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.json`；planning agent 应先读安装后的 `contracts/wiki-context-v3.example.jsonc` 作为 sidecar authoring contract，不应读取 `wiki_context_render.py` 源码来反推格式；sidecar 应使用 schemaVersion 3 page-rooted `wikiPages`，每个 page 只保留一份有界 `documentContext`，sections 保留 `relevanceTo`、分类约束、hard constraint、reread 和 anchors；planning 阶段必须用 plugin-root `wiki_context_render.py --validate-only --strict` 校验 sidecar，并把 selected wiki constraints 吸收到 plan/task 文本中；执行阶段必须通过 plugin-root `wiki_context_render.py` 按 role 渲染 selected constraints，不按 task string 过滤 wiki 约束，并通过 `--reread-list` 只重读选中 hard section 的 document context + section body，不注入 sibling sections 或整页正文。
 6. 如果修改 source-truth 流程，确认 `writing-plans` 是 draft plan → `source-of-truth-verifier` → final plan → `plan-document-reviewer` 顺序；执行阶段只通过 plugin-root `source_truth_render.py` 消费 `.source-truth-constraints.json`，不读取完整 `.source-truth-report.json`。还要运行 `tests/source-truth-settings-smoke.sh`、`tests/source-truth-render-smoke.sh`、native patch smoke 和 Multica bootstrap/live/runtime smoke。
 7. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和 resolved `maxWikiPages`（默认 2，可配置或 unlimited），wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.json`、不运行 `update-wiki`。
 

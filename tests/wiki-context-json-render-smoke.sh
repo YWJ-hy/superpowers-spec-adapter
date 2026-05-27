@@ -150,6 +150,51 @@ assert_not_contains() {
   fi
 }
 
+EXAMPLE="${TARGET_INPUT}/contracts/wiki-context-v3.example.jsonc"
+if [[ ! -f "$EXAMPLE" ]]; then
+  printf 'Missing wiki context example contract: %s\n' "$EXAMPLE" >&2
+  exit 1
+fi
+EXAMPLE_TEXT="$(python3 - <<'PY' "$EXAMPLE"
+from pathlib import Path
+import sys
+print(Path(sys.argv[1]).read_text(encoding='utf-8'))
+PY
+)"
+assert_contains "example contract" 'AI-facing authoring contract' "$EXAMPLE_TEXT"
+assert_contains "example contract" 'Do not inspect scripts/wiki_context_render.py to infer this format' "$EXAMPLE_TEXT"
+assert_contains "example contract" '--validate-only --strict' "$EXAMPLE_TEXT"
+
+EXAMPLE_JSON="$TMP/wiki-context-v3.example.json"
+python3 - <<'PY' "$EXAMPLE" "$EXAMPLE_JSON"
+from pathlib import Path
+import sys
+src, dst = map(Path, sys.argv[1:3])
+lines = []
+for line in src.read_text(encoding='utf-8').splitlines():
+    if '//' in line:
+        line = line.split('//', 1)[0]
+    lines.append(line.rstrip())
+dst.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+PY
+python3 "$SCRIPT" "$EXAMPLE_JSON" --validate-only --strict >/dev/null
+EXAMPLE_OUT="$(python3 "$SCRIPT" "$EXAMPLE_JSON" --role implementer --strict)"
+assert_contains "example implementer render" 'Use updateByPath(path, value)' "$EXAMPLE_OUT"
+assert_contains "example implementer render" 'abcdef1234567890' "$EXAMPLE_OUT"
+EXAMPLE_REVIEW_OUT="$(python3 "$SCRIPT" "$EXAMPLE_JSON" --role reviewer --strict)"
+assert_contains "example reviewer render" 'Reject direct props.model mutation' "$EXAMPLE_REVIEW_OUT"
+EXAMPLE_REREAD_OUT="$(python3 "$SCRIPT" "$EXAMPLE_JSON" --reread-list --strict)"
+assert_contains "example reread list" 'contract-review' "$EXAMPLE_REREAD_OUT"
+EXAMPLE_CONTEXT_COUNT="$(python3 - <<'PY' "$EXAMPLE_OUT"
+import sys
+print(sys.argv[1].count('Project-private hook rules'))
+PY
+)"
+if [[ "$EXAMPLE_CONTEXT_COUNT" != "1" ]]; then
+  printf 'Expected example documentContext overview once, got %s\n%s\n' "$EXAMPLE_CONTEXT_COUNT" "$EXAMPLE_OUT" >&2
+  exit 1
+fi
+
 OUT="$(python3 "$SCRIPT" "$CONTEXT" --role implementer --strict)"
 assert_contains "implementer render" 'Hook Guidelines' "$OUT"
 assert_contains "implementer render" 'Shared Frontend Contracts' "$OUT"

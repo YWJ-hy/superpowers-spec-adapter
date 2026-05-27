@@ -200,6 +200,9 @@ fi
 
 for required in \
   'sharedWikiSource: auto' \
+  'wiki-context-v3.example.jsonc' \
+  '--validate-only --strict' \
+  'Do not inspect `scripts/wiki_context_render.py` to infer the JSON format' \
   'schemaVersion: 3' \
   'source: github_mcp' \
   'wikiPath' \

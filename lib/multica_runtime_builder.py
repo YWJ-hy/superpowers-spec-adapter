@@ -397,7 +397,7 @@ def template_role_body(agent_id: str) -> str:
     bodies = {
         'superpowers-orchestrator': '''\nResponsibilities:\n- Normalize every trigger into a WorkflowInvocation.\n- Run preflight for artifacts, gates, capabilities, MCP requirements, and illegal transitions.\n- Create fresh role tasks and collect output artifacts.\n- Ask for explicit authorization before commit, push, PR creation, or shared wiki publication.\n\nMust not:\n- Replace specialized role agents with one long context.\n- Let intent routing bypass Superpowers-compatible gates.\n''',
         'brainstorming-agent': '''\nResponsibilities:\n- Clarify the user need and produce the Superpowers spec artifact.\n- Use wiki-researcher only for lightweight brainstorm-phase disclosure.\n- Keep Lanhu packages as requirement evidence, not final spec or plan constraints.\n''',
-        'planning-agent': '''\nResponsibilities:\n- Read an approved spec and write an implementation plan.\n- Invoke wiki-researcher in plan phase before task decomposition.\n- Produce schemaVersion 3 .wiki-context.json plus a lightweight Referenced Project Wiki section.\n''',
+        'planning-agent': '''\nResponsibilities:\n- Read an approved spec and write an implementation plan.\n- Invoke wiki-researcher in plan phase before task decomposition.\n- Read ${MULTICA_SUPERPOWERS_RUNTIME_ROOT}/tools/contracts/wiki-context-v3.example.jsonc as the authoring contract before producing schemaVersion 3 .wiki-context.json.\n- Validate .wiki-context.json with wiki_context_render.py --validate-only --strict, then write a lightweight Referenced Project Wiki section.\n- Do not inspect wiki_context_render.py to infer the sidecar format.\n''',
         'debugger': '''\nResponsibilities:\n- Follow systematic-debugging. Phase 1 gathers evidence before proposing fixes.\n- Use wiki-researcher only after evidence narrows to a concrete project contract or component.\n- Verify root cause with code, logs, tests, or reproduction.\n''',
         'break-loop-analyst': '''\nResponsibilities:\n- Review a verified bug fix for root cause, failed paths, and prevention.\n- Hand possible durable candidates to update-wiki; do not edit wiki directly.\n''',
         'wiki-curator': '''\nResponsibilities:\n- Decide whether knowledge is durable, reusable, non-duplicate, and project/shared-owned.\n- Enforce shared neutrality and root-specific authorization settings.\n- Use scripts only for mechanical page, section, index, and validation operations.\n''',
@@ -410,9 +410,12 @@ def template_role_body(agent_id: str) -> str:
 def write_tool_layer(adapter_root: Path, dist: Path, validator_records: list[dict]) -> list[dict]:
     script_records = []
     for rel in installed_paths(adapter_root):
+        src = adapter_root / 'overlays' / rel
+        if rel.startswith('contracts/'):
+            copy_file(src, dist / 'tools' / rel)
+            continue
         if not rel.startswith('scripts/'):
             continue
-        src = adapter_root / 'overlays' / rel
         name = Path(rel).name
         dst = dist / 'tools' / 'scripts' / name
         copy_file(src, dst, executable=name.endswith('.py'))
@@ -2139,14 +2142,50 @@ def workflow_invocation_schema() -> dict:
 
 
 def wiki_context_schema() -> dict:
+    constraints_schema = {
+        'type': 'object',
+        'properties': {
+            'implementation': {'type': 'array'},
+            'test': {'type': 'array'},
+            'review': {'type': 'array'},
+            'general': {'type': 'array'},
+        },
+        'additionalProperties': False,
+    }
+    section_schema = {
+        'type': 'object',
+        'required': ['constraints'],
+        'anyOf': [
+            {'required': ['sectionId']},
+            {'required': ['section_name']},
+        ],
+        'properties': {
+            'sectionId': {'type': 'string'},
+            'section_name': {'type': 'string'},
+            'readDepth': {'type': 'string'},
+            'relevance': {'type': 'string'},
+            'confidence': {'type': 'string'},
+            'reason': {'type': 'string'},
+            'relevanceTo': {'type': 'string'},
+            'hardConstraint': {'type': 'boolean'},
+            'constraints': constraints_schema,
+            'reread': {'type': 'object'},
+            'sourceAnchors': {'type': 'array'},
+            'appliesTo': {'type': 'array'},
+            'caveats': {'type': 'array'},
+        },
+        'not': {'required': ['documentContext']},
+        'additionalProperties': True,
+    }
     return {
         '$schema': 'https://json-schema.org/draft/2020-12/schema',
         'title': 'superpower-adapter wiki context v3',
         'type': 'object',
-        'required': ['schemaVersion', 'wikiPages'],
+        'required': ['schemaVersion', 'kind', 'wikiPages'],
         'properties': {
             'schemaVersion': {'const': 3},
-            'kind': {'type': 'string'},
+            'kind': {'const': 'superpower-adapter.wiki-context'},
+            'generatedBy': {'type': 'string'},
             'planPath': {'type': 'string'},
             'wikiPages': {
                 'type': 'array',
@@ -2159,11 +2198,25 @@ def wiki_context_schema() -> dict:
                         'displayPath': {'type': 'string'},
                         'localPath': {'type': 'string'},
                         'wikiPath': {'type': 'string'},
-                        'documentContext': {'type': 'object'},
-                        'sections': {'type': 'array'},
+                        'revision': {'type': 'object'},
+                        'documentContext': {
+                            'type': 'object',
+                            'properties': {
+                                'title': {'type': 'string'},
+                                'overview': {'type': 'string'},
+                                'scope': {'type': 'string'},
+                                'contextSource': {'type': 'string'},
+                                'caveats': {'type': 'array'},
+                            },
+                            'additionalProperties': True,
+                        },
+                        'sections': {'type': 'array', 'items': section_schema},
+                        'caveats': {'type': 'array'},
                     },
+                    'additionalProperties': True,
                 },
             },
+            'caveats': {'type': 'array'},
         },
         'additionalProperties': True,
     }
