@@ -94,7 +94,7 @@ planSummary: <可选摘要>
 changedFiles:
   - <可选相关文件>
 focus: <可选关注范围>
-maxWikiPages: 5
+maxWikiPages: <positive integer or unlimited>
 ```
 
 它的输出形态：

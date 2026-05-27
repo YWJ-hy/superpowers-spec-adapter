@@ -5,6 +5,19 @@
   //
   // Actual settings files must be standard JSON. Remove comments after copying.
   "wiki": {
+    // Project-local wiki research page caps. Read only from .superpowers/settings.json.
+    // Defaults when omitted: brainstorm=3, plan=5, debug=2, implement/review=unlimited.
+    // Values may be positive integers, null, or "unlimited" / "none" / "no_limit".
+    "research": {
+      "maxWikiPages": {
+        "brainstorm": 3,
+        "plan": 5,
+        "debug": 2,
+        "implement": null,
+        "review": "unlimited"
+      }
+    },
+
     "updateAuthorization": {
       // Controls edits to existing wiki pages and existing index files.
       // Default when omitted: "skip".

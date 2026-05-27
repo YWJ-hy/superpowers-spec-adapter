@@ -1796,7 +1796,7 @@ def sdd_task_graph() -> dict:
                 'roleAgent': 'spec-compliance-reviewer',
                 'freshContext': 'required',
                 'inputArtifacts': ['implementation-plan', 'wiki-context', 'source-truth-constraints', 'sdd-task-output'],
-                'toolDependencies': [source_truth_render],
+                'toolDependencies': [wiki_render, source_truth_render],
                 'outputArtifacts': ['review-result'],
             },
             {

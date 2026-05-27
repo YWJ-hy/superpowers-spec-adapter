@@ -190,6 +190,7 @@ PY
     "$target_dir/scripts/update-wiki.py" \
     "$target_dir/scripts/wiki-context.py" \
     "$target_dir/scripts/wiki_context_render.py" \
+    "$target_dir/scripts/wiki_settings.py" \
     "$target_dir/scripts/source_truth_settings.py" \
     "$target_dir/scripts/source_truth_render.py" \
     "$target_dir/scripts/wiki_import.py" \

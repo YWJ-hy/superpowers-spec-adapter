@@ -308,7 +308,7 @@ Progressive wiki reading still follows these rules:
 2. Follow each root index to narrower indexes or per-document section indexes
 3. During brainstorming, stay index-only and do not read section full text
 4. During planning, read only candidate section full text and write schemaVersion 3 `.wiki-context.json` with one bounded `documentContext` per wiki page and nested selected sections
-5. During implementation and review, use plan `Referenced Project Wiki` and render task/role-specific constraints from linked `.wiki-context.json`; hard-constraint rereads inject document context plus the selected section body only
+5. During implementation and review, use plan `Referenced Project Wiki` and render selected role constraints from linked `.wiki-context.json`; hard-constraint rereads inject document context plus the selected section body only
 6. Avoid full-tree wiki loading unless explicitly requested, and do not inject sibling sections or full pages just to recover section context
 
 No SessionStart hook is installed. Wiki reading is triggered on demand by `wiki-researcher` during Superpowers `brainstorming` and `writing-plans`.
@@ -323,7 +323,7 @@ phase: brainstorm | plan | debug | implement | review
 wikiRoots:
   - .superpowers/wiki
   - .shared-superpowers/wiki
-maxWikiPages: 5
+maxWikiPages: <positive integer or unlimited>
 ```
 
 It starts from existing project/shared root indexes, follows index links progressively within each root, and returns structured YAML selected wiki pages plus planning constraint hints with root-prefixed paths. In `phase: debug`, it should be called only after `systematic-debugging` has narrowed the failing boundary, and it returns project-reference hints to verify rather than root-cause evidence. It does not modify files.
@@ -375,7 +375,7 @@ Detailed constraints are written to a plan sidecar file such as:
 docs/superpowers/plans/<plan-stem>.wiki-context.json
 ```
 
-Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 3 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested `sections`, and categorized implementation/test/review/general constraints. Use `wiki_context_render.py` to render task/role-specific constraint blocks; forced hard-constraint rereads use the page context with the selected section body, not sibling sections or whole pages.
+Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 3 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. Use `wiki_context_render.py` to render selected role constraint blocks without task-string filtering; forced hard-constraint rereads use the page context with the selected section body, not sibling sections or whole pages.
 
 
 ## Worktree origin tracking
@@ -388,7 +388,7 @@ That metadata is not written to `plan.md`, `spec.md`, `.superpowers/`, or the re
 
 For bugs, keep Superpowers `systematic-debugging` as the fix workflow. The adapter patch does not make wiki lookup an upfront debugging prerequisite: complete Phase 1 first, narrow the failing boundary with evidence, then use `wiki-researcher` only when a project-specific contract, known gotcha, cross-layer boundary, or workflow convention may clarify what to verify.
 
-Debug wiki lookup uses `phase: debug` and should stay small, normally `maxWikiPages: 2`. If the bug happens while executing a Superpowers plan, read that plan's `Referenced Project Wiki` and linked `.wiki-context.json` first instead of reselecting wiki pages; without a current plan context, do not search old plans by default. Missing or irrelevant wiki does not block debugging, and wiki context is not root-cause evidence. Verify every wiki-derived idea against code, logs, tests, reproduction steps, or diagnostics.
+Debug wiki lookup uses `phase: debug` and should stay small, defaulting to `maxWikiPages: 2` unless `.superpowers/settings.json` overrides `wiki.research.maxWikiPages.debug` or sets it to unlimited. If the bug happens while executing a Superpowers plan, read that plan's `Referenced Project Wiki` and linked `.wiki-context.json` first instead of reselecting wiki pages; without a current plan context, do not search old plans by default. Missing or irrelevant wiki does not block debugging, and wiki context is not root-cause evidence. Verify every wiki-derived idea against code, logs, tests, reproduction steps, or diagnostics.
 
 During `systematic-debugging`, do not write `.wiki-context.json`, update `.superpowers/wiki/` or `.shared-superpowers/wiki/`, or run `update-wiki`. After the bug is fixed and verified, use the installed `break-loop` skill when the work needs a deeper retrospective: root cause category, failed attempts, prevention mechanisms, similar risks, and durable knowledge candidates.
 

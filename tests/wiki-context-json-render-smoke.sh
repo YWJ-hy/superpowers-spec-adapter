@@ -36,11 +36,11 @@ cat > "$CONTEXT" <<'JSON'
         {
           "sectionId": "path-based-update",
           "section_name": "path-based-update",
-          "appliesTo": ["Task 1"],
           "readDepth": "full",
           "relevance": "direct",
           "confidence": "high",
           "reason": "Field updates are in scope.",
+          "relevanceTo": "form field updates and adapter state writes",
           "hardConstraint": true,
           "constraints": {
             "implementation": ["Use updateByPath(path, value) for all field updates."],
@@ -62,11 +62,11 @@ cat > "$CONTEXT" <<'JSON'
         {
           "sectionId": "deep-path",
           "section_name": "deep-path",
-          "appliesTo": ["Task 2"],
           "readDepth": "full",
           "relevance": "supporting",
           "confidence": "medium",
-          "reason": "Nested paths are nearby but not Task 1.",
+          "reason": "Nested paths are nearby selected context.",
+          "relevanceTo": "nested object paths",
           "hardConstraint": false,
           "constraints": {
             "implementation": ["Use dot-notation for nested object paths."],
@@ -104,6 +104,7 @@ cat > "$CONTEXT" <<'JSON'
           "relevance": "direct",
           "confidence": "high",
           "reason": "Task touches shared contract shape.",
+          "relevanceTo": "shared contract payload naming",
           "hardConstraint": true,
           "constraints": {
             "implementation": ["Keep shared payload names portable."],
@@ -149,17 +150,20 @@ assert_not_contains() {
   fi
 }
 
-OUT="$(python3 "$SCRIPT" "$CONTEXT" --task "Task 1" --role implementer --strict)"
+OUT="$(python3 "$SCRIPT" "$CONTEXT" --role implementer --strict)"
 assert_contains "implementer render" 'Hook Guidelines' "$OUT"
 assert_contains "implementer render" 'Shared Frontend Contracts' "$OUT"
 assert_contains "implementer render" 'Use updateByPath(path, value)' "$OUT"
 assert_contains "implementer render" 'Verify nested path updates preserve change tracking' "$OUT"
 assert_contains "implementer render" 'Keep path strings stable' "$OUT"
+assert_contains "implementer render" 'Use dot-notation for nested object paths' "$OUT"
+assert_contains "implementer render" 'Keep shared payload names portable' "$OUT"
+assert_contains "implementer render" 'Relevance to: form field updates and adapter state writes' "$OUT"
 assert_contains "implementer render" 'Hard constraint: `true`' "$OUT"
 assert_contains "implementer render" 'frontend/contracts.md' "$OUT"
 assert_contains "implementer render" 'abcdef1234567890' "$OUT"
+assert_contains "implementer render" 'Applies to (legacy): Task 1, Task 3' "$OUT"
 assert_not_contains "implementer render" 'Reject direct props.model mutation' "$OUT"
-assert_not_contains "implementer render" 'Deep Path Handling' "$OUT"
 COUNT="$(python3 - <<'PY' "$OUT"
 import sys
 print(sys.argv[1].count('Project-private hook rules'))
@@ -170,14 +174,21 @@ if [[ "$COUNT" != "1" ]]; then
   exit 1
 fi
 
-REVIEW_OUT="$(python3 "$SCRIPT" "$CONTEXT" --task "Task 1" --role reviewer --strict)"
+TASK_COMPAT_OUT="$(python3 "$SCRIPT" "$CONTEXT" --task "Task 99" --role implementer --strict)"
+assert_contains "task compatibility render" 'Use updateByPath(path, value)' "$TASK_COMPAT_OUT"
+assert_contains "task compatibility render" 'Use dot-notation for nested object paths' "$TASK_COMPAT_OUT"
+assert_contains "task compatibility render" 'Keep shared payload names portable' "$TASK_COMPAT_OUT"
+
+REVIEW_OUT="$(python3 "$SCRIPT" "$CONTEXT" --role reviewer --strict)"
 assert_contains "reviewer render" 'Reject direct props.model mutation' "$REVIEW_OUT"
 assert_contains "reviewer render" 'Check that no project-specific environment names leak into shared docs' "$REVIEW_OUT"
 
-EMPTY_OUT="$(python3 "$SCRIPT" "$CONTEXT" --task "Task 99" --role implementer --strict)"
-assert_contains "empty render" 'No applicable wiki constraints for this task/role.' "$EMPTY_OUT"
+EMPTY_CONTEXT="$TMP/empty.wiki-context.json"
+printf '{"schemaVersion":3,"kind":"superpower-adapter.wiki-context","wikiPages":[]}' > "$EMPTY_CONTEXT"
+EMPTY_OUT="$(python3 "$SCRIPT" "$EMPTY_CONTEXT" --role implementer --strict)"
+assert_contains "empty render" 'No selected wiki constraints for this role.' "$EMPTY_OUT"
 
-REREAD_OUT="$(python3 "$SCRIPT" "$CONTEXT" --task "Task 1" --role implementer --reread-list --strict)"
+REREAD_OUT="$(python3 "$SCRIPT" "$CONTEXT" --role implementer --reread-list --strict)"
 assert_contains "reread list" 'path-based-update' "$REREAD_OUT"
 assert_contains "reread list" 'contract-review' "$REREAD_OUT"
 assert_contains "reread list" 'includeDocumentContext' "$REREAD_OUT"
@@ -186,7 +197,7 @@ python3 "$SCRIPT" "$CONTEXT" --validate-only --strict >/dev/null
 
 LEGACY="$TMP/plan.wiki-context.md"
 printf '# Legacy\n' > "$LEGACY"
-if python3 "$SCRIPT" "$LEGACY" --task "Task 1" --role implementer >/tmp/wiki-context-legacy.out 2>&1; then
+if python3 "$SCRIPT" "$LEGACY" --role implementer >/tmp/wiki-context-legacy.out 2>&1; then
   printf 'Expected legacy markdown sidecar to fail\n' >&2
   exit 1
 fi
@@ -208,7 +219,7 @@ data = json.load(open(src, encoding='utf-8'))
 data['wikiPages'][0]['sections'][0]['constraints']['security'] = ['unknown category']
 open(dst, 'w', encoding='utf-8').write(json.dumps(data))
 PY
-if python3 "$SCRIPT" "$BAD_CATEGORY" --task "Task 1" --role implementer --strict >/tmp/wiki-context-bad-category.out 2>&1; then
+if python3 "$SCRIPT" "$BAD_CATEGORY" --role implementer --strict >/tmp/wiki-context-bad-category.out 2>&1; then
   printf 'Expected unknown category to fail in strict mode\n' >&2
   exit 1
 fi
@@ -222,7 +233,7 @@ data = json.load(open(src, encoding='utf-8'))
 data['wikiPages'][0]['sections'][0]['documentContext'] = {'title': 'duplicated'}
 open(dst, 'w', encoding='utf-8').write(json.dumps(data))
 PY
-if python3 "$SCRIPT" "$BAD_SECTION_CONTEXT" --task "Task 1" --role implementer --strict >/tmp/wiki-context-bad-section-context.out 2>&1; then
+if python3 "$SCRIPT" "$BAD_SECTION_CONTEXT" --role implementer --strict >/tmp/wiki-context-bad-section-context.out 2>&1; then
   printf 'Expected section-level documentContext to fail in strict mode\n' >&2
   exit 1
 fi

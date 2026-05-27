@@ -16,7 +16,6 @@ ROLE_CATEGORIES = {
     "implementer": ("implementation", "test", "general"),
     "reviewer": ("implementation", "test", "review", "general"),
 }
-PLAN_WIDE_TASKS = {"all", "plan-wide", "plan_wide", "*"}
 
 
 class ValidationError(Exception):
@@ -39,7 +38,7 @@ def _as_dict(value: Any, field: str) -> dict[str, Any]:
 
 def _load_context(path: Path) -> dict[str, Any]:
     if path.suffix == ".md":
-        raise ValidationError("Legacy .wiki-context.md is not supported for mechanical filtering; regenerate a schemaVersion 3 .wiki-context.json during planning.")
+        raise ValidationError("Legacy .wiki-context.md is not supported for selected wiki context rendering; regenerate a schemaVersion 3 .wiki-context.json during planning.")
     try:
         raw = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -86,30 +85,15 @@ def _validate_context(data: dict[str, Any], strict: bool) -> list[str]:
     return caveats
 
 
-def _task_matches(section: dict[str, Any], requested_tasks: set[str]) -> bool:
-    applies_to = [str(item).strip() for item in _as_list(section.get("appliesTo"), "appliesTo") if str(item).strip()]
-    if not applies_to:
-        return False
-    normalized = {item.lower() for item in applies_to}
-    if normalized & PLAN_WIDE_TASKS:
-        return True
-    return bool(set(applies_to) & requested_tasks)
-
-
-def _matching_pages(data: dict[str, Any], tasks: list[str]) -> list[dict[str, Any]]:
-    requested = {task.strip() for task in tasks if task.strip()}
-    matched: list[dict[str, Any]] = []
+def _selected_pages(data: dict[str, Any]) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
     for page in _as_list(data.get("wikiPages"), "wikiPages"):
         page_obj = dict(_as_dict(page, "wikiPages[]"))
-        sections = []
-        for section in _as_list(page_obj.get("sections"), "sections"):
-            section_obj = _as_dict(section, "sections[]")
-            if _task_matches(section_obj, requested):
-                sections.append(section_obj)
+        sections = [_as_dict(section, "sections[]") for section in _as_list(page_obj.get("sections"), "sections")]
         if sections:
             page_obj["sections"] = sections
-            matched.append(page_obj)
-    return matched
+            selected.append(page_obj)
+    return selected
 
 
 def _format_bool(value: Any) -> str:
@@ -193,10 +177,10 @@ def _append_source_anchors(lines: list[str], anchors: Any) -> None:
             lines.append(f"- {anchor}")
 
 
-def render_markdown(data: dict[str, Any], tasks: list[str], role: str) -> str:
-    pages = _matching_pages(data, tasks)
+def render_markdown(data: dict[str, Any], role: str) -> str:
+    pages = _selected_pages(data)
     if not pages:
-        return "No applicable wiki constraints for this task/role."
+        return "No selected wiki constraints for this role."
 
     lines: list[str] = ["## Wiki Constraints", ""]
     for page in pages:
@@ -213,9 +197,11 @@ def render_markdown(data: dict[str, Any], tasks: list[str], role: str) -> str:
         for section in _as_list(page.get("sections"), "sections"):
             section_id = section.get("sectionId") or section.get("section_name")
             lines.append(f"### Section: `{section_id}`")
+            if section.get("relevanceTo"):
+                lines.append(f"- Relevance to: {section['relevanceTo']}")
             applies = ", ".join(str(item) for item in _as_list(section.get("appliesTo"), "appliesTo"))
             if applies:
-                lines.append(f"- Applies to: {applies}")
+                lines.append(f"- Applies to (legacy): {applies}")
             if section.get("relevance"):
                 lines.append(f"- Relevance: {section['relevance']}")
             if section.get("confidence"):
@@ -234,21 +220,21 @@ def render_markdown(data: dict[str, Any], tasks: list[str], role: str) -> str:
     return "\n".join(lines).rstrip()
 
 
-def render_reread_list(data: dict[str, Any], tasks: list[str]) -> str:
+def render_reread_list(data: dict[str, Any]) -> str:
     lines: list[str] = []
-    for page in _matching_pages(data, tasks):
+    for page in _selected_pages(data):
         for section in _as_list(page.get("sections"), "sections"):
             if not section.get("hardConstraint") or not section.get("reread"):
                 continue
             section_id = section.get("sectionId") or section.get("section_name")
             lines.append(json.dumps({"displayPath": page.get("displayPath"), "sectionId": section_id, "reread": section.get("reread")}, ensure_ascii=False, sort_keys=True))
-    return "\n".join(lines) if lines else "No hard-constraint rereads for this task."
+    return "\n".join(lines) if lines else "No hard-constraint rereads for selected wiki context."
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate, filter, and render schemaVersion 3 wiki context JSON.")
+    parser = argparse.ArgumentParser(description="Validate and render schemaVersion 3 selected wiki context JSON.")
     parser.add_argument("context_path", help="Path to docs/superpowers/plans/<plan-stem>.wiki-context.json")
-    parser.add_argument("--task", action="append", default=[], help="Task id or label to include; repeatable")
+    parser.add_argument("--task", action="append", default=[], help="Deprecated compatibility option; selected wiki context is not task-filtered")
     parser.add_argument("--role", choices=["implementer", "reviewer"], default="implementer")
     parser.add_argument("--format", choices=["markdown"], default="markdown")
     parser.add_argument("--validate-only", action="store_true")
@@ -264,12 +250,10 @@ def main() -> int:
                 print(f"Warning: {caveat}", file=sys.stderr)
             print("wiki context JSON is valid")
             return 0
-        if not args.task:
-            raise ValidationError("At least one --task is required unless --validate-only is used")
         if args.reread_list:
-            print(render_reread_list(data, args.task))
+            print(render_reread_list(data))
             return 0
-        print(render_markdown(data, args.task, args.role))
+        print(render_markdown(data, args.role))
         return 0
     except ValidationError as exc:
         print(f"Error: {exc}", file=sys.stderr)

@@ -29,6 +29,15 @@ DEFAULT_SHARED_WIKI_NEUTRALITY = {
     "blockedTerms": [],
     "blockedPatterns": [],
 }
+WIKI_RESEARCH_PHASES = ("brainstorm", "plan", "debug", "implement", "review")
+DEFAULT_WIKI_RESEARCH_MAX_PAGES: dict[str, int | None] = {
+    "brainstorm": 3,
+    "plan": 5,
+    "debug": 2,
+    "implement": None,
+    "review": None,
+}
+WIKI_RESEARCH_UNLIMITED_VALUES = {"unlimited", "none", "no_limit"}
 ENTRY_STUB = "# Project Wiki\n\nUse this file as the entry point for project-specific wiki pages.\n\n" + AUTO_START + "\n" + AUTO_END + "\n"
 
 
@@ -132,8 +141,7 @@ def wiki_settings_path(project_root: Path, root: WikiRoot) -> Path:
     raise ValueError(f"Unknown wiki root: {root.name}")
 
 
-def load_wiki_settings(project_root: Path, root: WikiRoot) -> dict:
-    settings_path = wiki_settings_path(project_root, root)
+def _load_settings_payload(settings_path: Path) -> dict:
     if not settings_path.is_file():
         return {}
 
@@ -143,13 +151,77 @@ def load_wiki_settings(project_root: Path, root: WikiRoot) -> dict:
         raise ValueError(f"Invalid JSON in {settings_path}: {exc}") from exc
     if not isinstance(payload, dict):
         raise ValueError(f"Settings must be a JSON object: {settings_path}")
+    return payload
 
+
+def _wiki_settings_from_payload(payload: dict, settings_path: Path) -> dict:
     wiki_settings = payload.get("wiki", {})
     if wiki_settings is None:
         return {}
     if not isinstance(wiki_settings, dict):
         raise ValueError(f"wiki settings must be an object in {settings_path}")
     return wiki_settings
+
+
+def load_project_settings_payload(project_root: Path) -> tuple[Path, dict]:
+    settings_path = project_root.resolve() / PROJECT_SETTINGS_REL
+    return settings_path, _load_settings_payload(settings_path)
+
+
+def load_wiki_settings(project_root: Path, root: WikiRoot) -> dict:
+    settings_path = wiki_settings_path(project_root, root)
+    return _wiki_settings_from_payload(_load_settings_payload(settings_path), settings_path)
+
+
+def _normalize_wiki_research_max_pages(value: object, settings_path: Path, phase: str) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError(f"wiki.research.maxWikiPages.{phase} must be a positive integer or unlimited in {settings_path}")
+    if isinstance(value, int):
+        if value <= 0:
+            raise ValueError(f"wiki.research.maxWikiPages.{phase} must be a positive integer or unlimited in {settings_path}")
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower().replace("-", "_")
+        if normalized in WIKI_RESEARCH_UNLIMITED_VALUES:
+            return None
+        raise ValueError(f"Invalid wiki.research.maxWikiPages.{phase} in {settings_path}: {value!r}; expected positive integer, null, unlimited, none, or no_limit")
+    raise ValueError(f"wiki.research.maxWikiPages.{phase} must be a positive integer or unlimited in {settings_path}")
+
+
+def load_wiki_research_max_pages(project_root: Path) -> dict[str, int | None]:
+    settings_path, payload = load_project_settings_payload(project_root)
+    wiki_settings = _wiki_settings_from_payload(payload, settings_path)
+    research = wiki_settings.get("research", {})
+    if research is None:
+        research = {}
+    if not isinstance(research, dict):
+        raise ValueError(f"wiki.research must be an object in {settings_path}")
+    unknown_research = sorted(set(research) - {"maxWikiPages"})
+    if unknown_research:
+        raise ValueError(f"Unknown wiki.research key(s) in {settings_path}: {', '.join(unknown_research)}")
+
+    raw_limits = research.get("maxWikiPages", {})
+    if raw_limits is None:
+        raw_limits = {}
+    if not isinstance(raw_limits, dict):
+        raise ValueError(f"wiki.research.maxWikiPages must be an object in {settings_path}")
+    unknown_phases = sorted(set(raw_limits) - set(WIKI_RESEARCH_PHASES))
+    if unknown_phases:
+        raise ValueError(f"Unknown wiki.research.maxWikiPages phase(s) in {settings_path}: {', '.join(unknown_phases)}")
+
+    limits = dict(DEFAULT_WIKI_RESEARCH_MAX_PAGES)
+    for phase, value in raw_limits.items():
+        limits[phase] = _normalize_wiki_research_max_pages(value, settings_path, phase)
+    return limits
+
+
+def wiki_research_max_pages_for_phase(project_root: Path, phase: str) -> int | None:
+    if phase not in WIKI_RESEARCH_PHASES:
+        allowed = ", ".join(WIKI_RESEARCH_PHASES)
+        raise ValueError(f"Unknown wiki research phase: {phase!r}; expected one of {allowed}")
+    return load_wiki_research_max_pages(project_root)[phase]
 
 
 def _read_string_list(settings_path: Path, payload: dict, key: str) -> list[str]:

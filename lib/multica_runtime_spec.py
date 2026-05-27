@@ -771,6 +771,7 @@ SCRIPT_EXECUTABLES = (
     'update-wiki.py',
     'wiki-context.py',
     'wiki_context_render.py',
+    'wiki_settings.py',
     'source_truth_settings.py',
     'source_truth_render.py',
     'wiki_import.py',

@@ -11,8 +11,8 @@ Default adapter flow:
 1. During `brainstorming`, use `wiki-researcher` with `phase: brainstorm` to disclose a small amount of relevant project/shared wiki context.
 2. During `writing-plans`, use `wiki-researcher` with `phase: plan` to formally select relevant project/shared wiki.
 3. Write detailed selected-section constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.json` as schemaVersion 3 JSON, with page-rooted `wikiPages`, one bounded `documentContext` per page from the companion `<stem>.index.md` title/overview, nested `sections`, and categorized implementation/test/review/general constraints.
-4. Record a lightweight `## Referenced Project Wiki` section in the plan that links the `.wiki-context.json` file and summarizes selected pages, applicable tasks, and hard constraints.
-5. During implementation and review, consume the plan's `Referenced Project Wiki` and render task/role-specific constraints from the linked `.wiki-context.json` with `wiki_context_render.py` instead of reselecting wiki pages from scratch; forced hard-constraint rereads include document context plus the selected section body only.
+4. Record a lightweight `## Referenced Project Wiki` section in the plan that links the `.wiki-context.json` file and summarizes selected pages, selected sections, and hard constraints.
+5. During implementation and review, consume the plan's `Referenced Project Wiki` and render selected role constraints from the linked `.wiki-context.json` with `wiki_context_render.py` instead of reselecting wiki pages from scratch or filtering by task string; forced hard-constraint rereads include document context plus the selected section body only.
 6. After finishing work, use the `update-wiki` skill to review whether durable implementation knowledge should persist in the appropriate wiki root.
 
 Use this skill only when:
@@ -38,5 +38,5 @@ Manual fallback flow:
 - Read the minimum relevant leaf wiki page files.
 - Use root-prefixed paths such as `.shared-superpowers/wiki/frontend/contracts.md` in selected-page output.
 - If planning, write detailed constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.json` as page-rooted schemaVersion 3 JSON and link it from `Referenced Project Wiki`.
-- If implementing or reviewing, use the plan's `Referenced Project Wiki` and linked `.wiki-context.json`; render task/role-specific constraints with `wiki_context_render.py`, and for hard-constraint rereads, inject document context before the selected section body and do not include sibling sections or the whole page.
+- If implementing or reviewing, use the plan's `Referenced Project Wiki` and linked `.wiki-context.json`; render selected role constraints with `wiki_context_render.py`, and for hard-constraint rereads, inject document context before the selected section body and do not include sibling sections or the whole page.
 - After finishing work, update relevant wiki pages if new knowledge should persist.

@@ -234,6 +234,7 @@ required_snapshots = [
     root / 'source' / 'superpower-adapter' / 'overlays' / 'agents' / 'source-of-truth-verifier.md',
     root / 'source' / 'superpower-adapter' / 'overlays' / 'skills' / 'update-wiki' / 'SKILL.md',
     root / 'source' / 'superpower-adapter' / 'overlays' / 'scripts' / 'wiki_context_render.py',
+    root / 'source' / 'superpower-adapter' / 'overlays' / 'scripts' / 'wiki_settings.py',
     root / 'source' / 'superpower-adapter' / 'overlays' / 'scripts' / 'source_truth_render.py',
     root / 'source' / 'superpowers' / 'skills' / 'writing-plans' / 'SKILL.md',
 ]

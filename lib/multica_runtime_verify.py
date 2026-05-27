@@ -620,6 +620,8 @@ def verify_tool_scripts(root: Path, adapter_root: Path, manifest: dict) -> None:
         raise VerifyError(f'runtime manifest toolScripts mismatch: missing={sorted(expected_paths - manifest_tool_paths)} extra={sorted(manifest_tool_paths - expected_paths)}')
     if 'scripts/wiki_context_render.py' not in actual_paths:
         raise VerifyError('tool-manifest missing wiki_context_render.py')
+    if 'scripts/wiki_settings.py' not in actual_paths:
+        raise VerifyError('tool-manifest missing wiki_settings.py')
 
 
 def verify_source_snapshots(root: Path) -> None:
@@ -631,6 +633,7 @@ def verify_source_snapshots(root: Path) -> None:
     require_dir(adapter_source / 'overlays' / 'skills')
     require_dir(adapter_source / 'overlays' / 'scripts')
     require_file(adapter_source / 'overlays' / 'scripts' / 'wiki_context_render.py')
+    require_file(adapter_source / 'overlays' / 'scripts' / 'wiki_settings.py')
     require_dir(superpowers_source / 'skills')
     require_file(superpowers_source / 'skills' / 'writing-plans' / 'SKILL.md')
 

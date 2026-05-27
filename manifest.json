@@ -23,6 +23,7 @@
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
     "scripts/wiki_context_render.py",
+    "scripts/wiki_settings.py",
     "scripts/source_truth_common.py",
     "scripts/source_truth_settings.py",
     "scripts/source_truth_render.py",

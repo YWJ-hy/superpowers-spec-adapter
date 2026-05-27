@@ -47,10 +47,10 @@ planSummary: <optional plan title and key steps>
 changedFiles:
   - <optional related files>
 focus: <optional module or concern>
-maxWikiPages: 5
+maxWikiPages: <positive integer or unlimited>
 ```
 
-Treat `task`, `phase`, and `wikiRoots` as the important fields. If older prompts provide `wikiRoot: .superpowers/wiki`, treat it as a single-root compatibility input. If `sharedWikiSource` is missing, use `auto`. If optional fields are missing, proceed with the information available and mention uncertainty in `caveats`.
+Treat `task`, `phase`, and `wikiRoots` as the important fields. `maxWikiPages` may be a positive integer or `unlimited`; unlimited removes the selected-page cap but does not permit broad, unfocused wiki reading, so still select the minimum relevant context. If older prompts provide `wikiRoot: .superpowers/wiki`, treat it as a single-root compatibility input. If `sharedWikiSource` is missing, use `auto`. If optional fields are missing, proceed with the information available and mention uncertainty in `caveats`.
 
 Normal adapter flow invokes this agent during `brainstorm` and `plan`. Use `debug` only from `systematic-debugging` after root-cause evidence has narrowed the investigation to a specific component, contract, workflow, or project convention. Use `implement` or `review` only for explicit fallback, audit, or when the main agent determines the plan's `Referenced Project Wiki` and linked `.wiki-context.json` are clearly insufficient.
 
@@ -180,7 +180,7 @@ For `source: github_mcp`, `path` and `displayPath` are human-readable logical di
 
 Treat section `readDepth` as a phase-driven label. Use `readDepth: index-only` during brainstorming or when the section index description alone is sufficient. Use `readDepth: full` during planning when the wiki section is a hard constraint for implementation, tests, API contracts, directory layout, naming, or review, and the main agent must distill it into the plan's linked `.wiki-context.json` file.
 
-During `phase: plan`, include page-level `documentContext` plus section-level `sectionId`, `section_name`, `hardConstraint`, categorized `constraints`, and `sourceAnchors` when you read the section full text. `documentContext` must come from the companion `<stem>.index.md` title/overview and stay bounded at the page node; do not summarize sibling sections or the full page into it. Every constraint from the selected section must appear in one of `implementation`, `test`, `review`, or `general`; use `general` when the category is unclear. The main agent determines `appliesTo` (specific task numbers) after task decomposition — this agent outputs only `relevanceTo` (coarse description). The main agent, not this agent, writes `docs/superpowers/plans/<plan-stem>.wiki-context.json` and links it from the plan's `Referenced Project Wiki` section.
+During `phase: plan`, include page-level `documentContext` plus section-level `sectionId`, `section_name`, `hardConstraint`, categorized `constraints`, and `sourceAnchors` when you read the section full text. `documentContext` must come from the companion `<stem>.index.md` title/overview and stay bounded at the page node; do not summarize sibling sections or the full page into it. Every constraint from the selected section must appear in one of `implementation`, `test`, `review`, or `general`; use `general` when the category is unclear. Output `relevanceTo` as a coarse human-readable task-area description, not specific task numbers. The main agent absorbs selected constraints into the plan/tasks during planning, writes `docs/superpowers/plans/<plan-stem>.wiki-context.json`, and links it from the plan's `Referenced Project Wiki` section; do not rely on `appliesTo` for execution-time routing.
 
 During `phase: debug`, `constraints` are project rules, contracts, or gotchas to verify; they are not confirmed root causes and are not plan constraints. `hardConstraint: true` only means the wiki section states a strong project rule, not that the bug root cause is confirmed. Include caveats when wiki context may be stale, incomplete, or needs verification against code, logs, tests, reproduction steps, or diagnostics.
 

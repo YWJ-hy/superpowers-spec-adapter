@@ -8,6 +8,19 @@
   // 实际 settings 文件必须是严格 JSON。本文件使用 JSONC 仅用于说明配置含义。
 
   "wiki": {
+    // 项目本地 wiki research 页数上限。仅从 .superpowers/settings.json 读取。
+    // 字段缺失时默认值：brainstorm=3, plan=5, debug=2, implement/review=unlimited。
+    // 每个 phase 允许正整数、null，或字符串 "unlimited" / "none" / "no_limit"。
+    "research": {
+      "maxWikiPages": {
+        "brainstorm": 3,
+        "plan": 5,
+        "debug": 2,
+        "implement": null,
+        "review": "unlimited"
+      }
+    },
+
     "updateAuthorization": {
       // 控制对已有 wiki 页面和已有 index 文件的编辑。
       // 字段缺失时默认值："skip"。

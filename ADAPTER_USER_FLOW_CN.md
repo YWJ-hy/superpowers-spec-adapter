@@ -28,7 +28,7 @@ adapter 增强这些阶段：
 - 蓝湖 frontend Markdown 证据包保留 XML-like 的 1:1 原始需求界面复刻，供 Superpowers/agent 稳定读取；frontend HTML 证据包使用 `index.html` 作为 evidence reader，并用 `prototype/index.html` 1:1 复刻蓝湖原始需求界面和真实控件。HTML 已有真实控件时，不再重复输出“控件类型”文案；HTML prototype 复刻的是 selected/evidenced 范围，不因为返回了图片资源就全量复刻整张图。蓝湖原始需求中的明确事实不得因模板主题装不下而丢失；analyst 可按源需求创建具体的源事实主题承接，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst；图片相关性、是否分析高成本图片区域或是否保存原图也应走同一确认门禁。`confirmationGate.status: clear` 且用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 Superpowers `brainstorming`。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，生成配套 schemaVersion 3 `.wiki-context.json` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。JSON 以 wiki page 为根节点，每个 page 只保留一份来自伴随 `<stem>.index.md` 的有界 `documentContext`，选中的 sections 作为子节点并保留 implementation / test / review / general 分类约束。
-- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.json`，并通过安装在 Superpowers plugin 内的 `wiki_context_render.py` 按 task / role 机械过滤和组装 implementer / reviewer 约束。对 `hardConstraint: true` 的 section，执行阶段会强制回读原始 wiki section 全文（通过 `<!-- wiki-section:xxx -->` 标记提取），并附带有界 `documentContext` 注入 implementer 和 spec-reviewer prompt，确保约束不因摘要信息衰减或 section 脱离页面主语而被误用。
+- 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.json`，并通过安装在 Superpowers plugin 内的 `wiki_context_render.py` 按 role 渲染 selected constraints，不按 task string 过滤 wiki 约束。对 `hardConstraint: true` 的 section，执行阶段会通过 `--reread-list` 强制回读原始 wiki section 全文（通过 `<!-- wiki-section:xxx -->` 标记提取），并附带有界 `documentContext` 注入 implementer 和 spec-reviewer prompt，确保约束不因摘要信息衰减或 section 脱离页面主语而被误用。
 - Wiki 文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section:section-id -->` 标记包裹独立约束主题段落，每个叶子文档都必须有 `<stem>.index.md` 伴随索引；该索引包含文档级语义概览和 section 表格。`wiki-researcher` 通过读取 per-document index 快速判断文档和 section 相关性，未迁移到新格式的文档不参与 wiki-researcher 选择。用户可通过 `migrate-wiki` skill 将现有 wiki 迁移到 section-marker 格式。
 - 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki。wiki 只作为待验证线索，不替代 root cause evidence。
 - `update-wiki` 写入前读取目标 root 的 settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；默认更新已有页面跳过授权，创建新 wiki 文档询问用户授权；写入 shared wiki 前必须把内容中性化，不能保留当前系统特有标识。如团队使用 GitHub-backed shared-wiki MCP，则 shared wiki 写入通过 MCP validate patch + branch + PR，不直接改本地 shared wiki。
@@ -80,9 +80,9 @@ Superpowers 插件目录
 - `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先确认前端/后端 evidence role，再路由到 `lanhu-frontend-requirements-analyst`、`lanhu-frontend-html-requirements-analyst` 或 `lanhu-backend-requirements-analyst` 直接生成 `.lanhu/MM-DD-需求名称/` 蓝湖原始需求证据包；主会话只接收 status、confirmationGate、packageDir、indexPath、writtenFiles、sourceFactCoverage、openQuestions、caveats 等轻量摘要，`index.md` 是用户确认和后续读取的入口。如用户直接引用已确认的 `.lanhu/.../index.md` 或已存在证据包，则不默认重新读蓝湖，而是先读 `index.md`，再按其中索引读取同包内 `prd.md`、`prds/*.md`、`index.html` 或 `prototype/index.html` 等详细证据来源，作为 Superpowers spec 的需求输入。Lanhu 包不得被复制为 final spec、验收标准、测试计划、技术方案或 implementation plan。
 - `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目/共享 wiki 页面，生成 `docs/superpowers/plans/<plan-stem>.wiki-context.json`，并要求 plan 写入轻量 `Referenced Project Wiki` 入口；完整 draft plan 写出后调用 `source-of-truth-verifier`，生成 `.source-truth-report.json` 和 `.source-truth-constraints.json`，再修订 final plan 并交给 `plan-document-reviewer`。
 - `plan-document-reviewer`：不重新做真实源调查，只检查 final plan 是否正确消费 verifier 结果，例如 blocked 状态是否阻止执行、`edit: never` 真实源是否没有被实现任务要求修改、完整 report 是否没有变成默认执行上下文。
-- `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug`、`maxWikiPages: 2` 条件式查询 wiki。
-- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.json`，用 plugin-root `wiki_context_render.py` 按当前 task 渲染 implementer 约束；如果 plan 链接 `.source-truth-constraints.json`，再用 plugin-root `source_truth_render.py` 渲染当前 task 的轻量真实源约束，不重新选择 wiki 页面，也不读取完整 source-truth report。
-- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki`、`.wiki-context.json` 和可选 `.source-truth-constraints.json` 分别通过 plugin-root renderer 渲染为 implementer / reviewer 的 task-specific 约束块，再传给 subagent。
+- `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug` 条件式查询 wiki；默认 `maxWikiPages` 为 2，可由 `.superpowers/settings.json` 配置或设为 unlimited。
+- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.json`，用 plugin-root `wiki_context_render.py` 渲染 selected implementer 约束；如果 plan 链接 `.source-truth-constraints.json`，再用 plugin-root `source_truth_render.py` 渲染当前 task 的轻量真实源约束，不重新选择 wiki 页面，也不读取完整 source-truth report。
+- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki`、`.wiki-context.json` 和可选 `.source-truth-constraints.json` 分别通过 plugin-root renderer 渲染为 wiki selected role 约束块和 source-truth task-specific 约束块，再传给 subagent。
 - `using-git-worktrees`：创建 worktree 时把原始分支、原始 worktree 和原始 HEAD 记录到新 worktree 的 private git-dir metadata。
 - `finishing-a-development-branch`：metadata 有效时，提供明确合并回创建 worktree 前原始分支的收尾选项。
 
@@ -435,7 +435,7 @@ wikiRoots:
   - .superpowers/wiki
   - .shared-superpowers/wiki
 focus: <已知模块或关注点>
-maxWikiPages: 3
+maxWikiPages: <resolved integer or unlimited>
 ```
 
 `wiki-researcher` 会从存在的 project/shared root index 开始渐进读取，返回少量相关 wiki 页面。shared wiki 可以来自本地 `.shared-superpowers/wiki/`，也可以来自配置好的 GitHub-backed shared-wiki MCP。没有匹配项、MCP 不可用，或两个 wiki root 都没有 `index.md` 时，不阻塞 brainstorming，只说明 caveat 并继续。
@@ -452,7 +452,7 @@ wikiRoots:
   - .shared-superpowers/wiki
 planPath: docs/superpowers/plans/<filename>.md
 planSummary: <计划目标和任务区域>
-maxWikiPages: 5
+maxWikiPages: <resolved integer or unlimited>
 ```
 
 writing-plans 默认把详细约束写入与 plan 同名的 sidecar 文件；如果 shared wiki 页面来自 GitHub-backed MCP，sidecar 还要记录 source-aware metadata：
@@ -471,7 +471,7 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.json`
 - `.superpowers/wiki/domain/user.md` — applies to Tasks 1, 2, and 4; hard constraint: use `account_id` as the stable identity key.
 ```
 
-`.wiki-context.json` 是 schemaVersion 3 的 source of truth，应使用 page-rooted `wikiPages` 结构：每个 page 包含路径、root、source、`displayPath`、本地 `localPath` 或 MCP `wikiPath` / `revision`、来自伴随 `<stem>.index.md` 的有界 `documentContext`，以及嵌套 `sections`。每个 section 包含 `sectionId` / `section_name`、适用任务、hard constraint 标记、必要原文锚点、caveats、section-level `reread` metadata，以及 `implementation` / `test` / `review` / `general` 分类约束；无法可靠分类但不能丢失的约束放入 `general`。`documentContext` 只用于保留页面级主语和适用范围，不能包含 sibling sections 或整页正文；对于 `source: github_mcp`，`.shared-superpowers/wiki/<path>.md` 是逻辑展示路径而不是本地文件路径。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
+`.wiki-context.json` 是 schemaVersion 3 的 source of truth，应使用 page-rooted `wikiPages` 结构：每个 page 包含路径、root、source、`displayPath`、本地 `localPath` 或 MCP `wikiPath` / `revision`、来自伴随 `<stem>.index.md` 的有界 `documentContext`，以及嵌套 `sections`。每个 section 包含 `sectionId` / `section_name`、`relevanceTo` 描述、hard constraint 标记、必要原文锚点、caveats、section-level `reread` metadata，以及 `implementation` / `test` / `review` / `general` 分类约束；无法可靠分类但不能丢失的约束放入 `general`。`appliesTo` 仅作为 legacy/optional metadata，不用于执行期路由。`documentContext` 只用于保留页面级主语和适用范围，不能包含 sibling sections 或整页正文；对于 `source: github_mcp`，`.shared-superpowers/wiki/<path>.md` 是逻辑展示路径而不是本地文件路径。如果 selected wiki page 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki，再写 plan。
 
 
 ### 5.3 source-of-truth-verifier 阶段
@@ -489,7 +489,7 @@ docs/superpowers/plans/<plan-stem>.source-truth-constraints.json
 
 ### 5.4 执行阶段
 
-`executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`，定位其中链接的 `.wiki-context.json`，再用 plugin-root `wiki_context_render.py` 按 task / role 渲染约束块。硬约束 section 的 forced reread 应注入有界 document context 加选中 section 全文，而不是补读整页 wiki。
+`executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`，定位其中链接的 `.wiki-context.json`，再用 plugin-root `wiki_context_render.py` 渲染 selected role 约束块，不按 task string 过滤 wiki 约束。硬约束 section 的 forced reread 应通过 `--reread-list` 找到 selected hard constraints，并注入有界 document context 加选中 section 全文，而不是补读整页 wiki。
 
 如果 plan 的 `Source-of-Truth Verification` section 链接了 `.source-truth-constraints.json`，执行阶段还要用 plugin-root `source_truth_render.py` 按当前 task / role 渲染轻量约束块。执行阶段不应读取完整 `.source-truth-report.json`，也不应把完整 verifier 推理作为 implementer/reviewer 默认上下文。
 
@@ -514,7 +514,7 @@ wikiRoots:
 focus: <已收窄的组件、契约、工作流或 gotcha>
 changedFiles:
   - <已被证据关联的文件，可选>
-maxWikiPages: 2
+maxWikiPages: <resolved integer or unlimited>
 ```
 
 只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时才应调用；明显局部错误、泛型语言错误、宽泛“搜 wiki”、或 root cause evidence 前不应调用。

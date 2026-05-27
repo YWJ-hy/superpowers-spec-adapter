@@ -661,7 +661,9 @@ check_native_skill_residuals() {
   for required in \
     'wiki-researcher' \
     'phase: debug' \
-    'maxWikiPages: 2' \
+    'maxWikiPages: <resolved integer or unlimited>' \
+    'wiki_settings.py' \
+    'default to 2' \
     'Do not call `wiki-researcher` at the start of debugging' \
     'continue systematic debugging' \
     'do not write `.wiki-context.json`' \
@@ -675,14 +677,14 @@ check_native_skill_residuals() {
     fi
   done
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
     if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1
