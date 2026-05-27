@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -16,9 +18,18 @@ ROLE_CATEGORIES = {
     "implementer": ("implementation", "test", "general"),
     "reviewer": ("implementation", "test", "review", "general"),
 }
+DESTINATION_KINDS = {"task-bound", "global", "planning-only"}
+TASK_FINGERPRINT_NORMALIZATION = "superpower-adapter-task-text-v1"
+TASK_HEADING_RE = re.compile(r"^### Task\s+([A-Za-z0-9][A-Za-z0-9_-]*):\s*(.+?)\s*$")
+TASK_OR_HIGHER_HEADING_RE = re.compile(r"^#{1,3}\s+")
+HEX_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class ValidationError(Exception):
+    pass
+
+
+class FingerprintError(Exception):
     pass
 
 
@@ -50,7 +61,147 @@ def _load_context(path: Path) -> dict[str, Any]:
     return _as_dict(data, "wiki context")
 
 
-def _validate_context(data: dict[str, Any], strict: bool) -> list[str]:
+def _section_id(section: dict[str, Any]) -> str:
+    section_id = section.get("sectionId") or section.get("section_name")
+    if not section_id:
+        raise ValidationError("section must include sectionId or section_name")
+    return str(section_id)
+
+
+def _section_key(page: dict[str, Any], section: dict[str, Any]) -> tuple[str, str, str, str]:
+    root = str(page.get("root") or "")
+    source = str(page.get("source") or "")
+    path = str(page.get("localPath") or page.get("wikiPath") or page.get("displayPath") or page.get("path") or "")
+    return (root, source, path, _section_id(section))
+
+
+def _iter_sections(data: dict[str, Any]) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    pairs: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for page in _as_list(data.get("wikiPages"), "wikiPages"):
+        page_obj = _as_dict(page, "wikiPages[]")
+        for section in _as_list(page_obj.get("sections"), "sections"):
+            pairs.append((page_obj, _as_dict(section, "sections[]")))
+    return pairs
+
+
+def _ref_path(ref: dict[str, Any]) -> str:
+    return str(ref.get("localPath") or ref.get("wikiPath") or ref.get("displayPath") or ref.get("path") or "")
+
+
+def _resolve_section_ref(data: dict[str, Any], section_ref: dict[str, Any], field: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    section_id = section_ref.get("sectionId") or section_ref.get("section_name")
+    if not section_id:
+        raise ValidationError(f"{field}.sectionRef must include sectionId")
+    ref_root = section_ref.get("root")
+    ref_source = section_ref.get("source")
+    ref_path = _ref_path(section_ref)
+    if not ref_path:
+        raise ValidationError(f"{field}.sectionRef must include localPath, wikiPath, displayPath, or path")
+
+    matches: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for page, section in _iter_sections(data):
+        if _section_id(section) != section_id:
+            continue
+        if ref_root is not None and page.get("root") != ref_root:
+            continue
+        if ref_source is not None and page.get("source") != ref_source:
+            continue
+        page_paths = {page.get("localPath"), page.get("wikiPath"), page.get("displayPath"), page.get("path")}
+        if ref_path not in page_paths:
+            continue
+        matches.append((page, section))
+
+    if not matches:
+        raise ValidationError(f"{field}.sectionRef does not resolve: {json.dumps(section_ref, ensure_ascii=False, sort_keys=True)}")
+    if len(matches) > 1:
+        raise ValidationError(f"{field}.sectionRef resolves multiple sections: {json.dumps(section_ref, ensure_ascii=False, sort_keys=True)}")
+    return matches[0]
+
+
+def _ref_key(data: dict[str, Any], ref_obj: dict[str, Any], field: str) -> tuple[str, str, str, str]:
+    section_ref = _as_dict(ref_obj.get("sectionRef"), f"{field}.sectionRef")
+    page, section = _resolve_section_ref(data, section_ref, field)
+    return _section_key(page, section)
+
+
+def _validate_ref_list(data: dict[str, Any], refs: list[Any], field: str) -> list[tuple[str, str, str, str]]:
+    keys: list[tuple[str, str, str, str]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for index, ref in enumerate(refs):
+        ref_obj = _as_dict(ref, f"{field}[{index}]")
+        if not str(ref_obj.get("reason") or "").strip():
+            raise ValidationError(f"{field}[{index}].reason is required")
+        key = _ref_key(data, ref_obj, f"{field}[{index}]")
+        if key in seen:
+            raise ValidationError(f"{field}[{index}] duplicates a sectionRef")
+        seen.add(key)
+        keys.append(key)
+    return keys
+
+
+def _validate_task_fingerprint(task_ref: dict[str, Any], field: str) -> None:
+    fingerprint = _as_dict(task_ref.get("taskFingerprint"), f"{field}.taskFingerprint")
+    if fingerprint.get("algorithm") != "sha256":
+        raise ValidationError(f"{field}.taskFingerprint.algorithm must be sha256")
+    if fingerprint.get("normalization") != TASK_FINGERPRINT_NORMALIZATION:
+        raise ValidationError(f"{field}.taskFingerprint.normalization must be {TASK_FINGERPRINT_NORMALIZATION}")
+    hash_value = fingerprint.get("hash")
+    if not isinstance(hash_value, str) or not HEX_SHA256_RE.match(hash_value):
+        raise ValidationError(f"{field}.taskFingerprint.hash must be a 64-character lowercase sha256 hex digest")
+
+
+def _validate_execution_ready(data: dict[str, Any]) -> None:
+    task_routing = _as_dict(data.get("taskRouting"), "taskRouting")
+    if task_routing.get("status") != "confirmed":
+        raise ValidationError("taskRouting.status must be confirmed for execution-ready wiki context")
+    if task_routing.get("selectedSectionsFrozen") is not True:
+        raise ValidationError("taskRouting.selectedSectionsFrozen must be true for execution-ready wiki context")
+
+    section_destinations: dict[tuple[str, str, str, str], str] = {}
+    for page, section in _iter_sections(data):
+        key = _section_key(page, section)
+        destination = _as_dict(section.get("destination"), f"section {key}.destination")
+        kind = destination.get("kind")
+        if kind not in DESTINATION_KINDS:
+            raise ValidationError(f"section {key}.destination.kind must be one of {', '.join(sorted(DESTINATION_KINDS))}")
+        if not str(destination.get("reason") or "").strip():
+            raise ValidationError(f"section {key}.destination.reason is required")
+        relevance = section.get("relevance")
+        if section.get("hardConstraint") or relevance == "direct":
+            if kind == "planning-only":
+                raise ValidationError(f"hard/direct section {key} cannot have planning-only destination")
+        section_destinations[key] = str(kind)
+
+    global_refs = _as_list(data.get("globalWikiRefs"), "globalWikiRefs")
+    global_keys = set(_validate_ref_list(data, global_refs, "globalWikiRefs"))
+
+    task_refs = _as_list(data.get("taskWikiRefs"), "taskWikiRefs")
+    task_ids: set[str] = set()
+    task_bound_keys: set[tuple[str, str, str, str]] = set()
+    for index, task_ref in enumerate(task_refs):
+        task_obj = _as_dict(task_ref, f"taskWikiRefs[{index}]")
+        task_id = task_obj.get("taskId")
+        if not isinstance(task_id, str) or not task_id.strip():
+            raise ValidationError(f"taskWikiRefs[{index}].taskId is required")
+        if task_id in task_ids:
+            raise ValidationError(f"taskWikiRefs[{index}].taskId duplicates {task_id}")
+        task_ids.add(task_id)
+        if not isinstance(task_obj.get("taskTitle"), str) or not task_obj.get("taskTitle", "").strip():
+            raise ValidationError(f"taskWikiRefs[{index}].taskTitle is required")
+        _validate_task_fingerprint(task_obj, f"taskWikiRefs[{index}]")
+        wiki_refs = _as_list(task_obj.get("wikiRefs"), f"taskWikiRefs[{index}].wikiRefs")
+        task_bound_keys.update(_validate_ref_list(data, wiki_refs, f"taskWikiRefs[{index}].wikiRefs"))
+
+    for key, kind in section_destinations.items():
+        if kind == "task-bound" and key not in task_bound_keys:
+            raise ValidationError(f"task-bound section {key} is not referenced by taskWikiRefs")
+        if kind == "global" and key not in global_keys:
+            raise ValidationError(f"global section {key} is not referenced by globalWikiRefs")
+        if kind == "planning-only" and key in task_bound_keys.union(global_keys):
+            raise ValidationError(f"planning-only section {key} must not be referenced by execution refs")
+
+
+def _validate_context(data: dict[str, Any], strict: bool, execution_ready: bool = False) -> list[str]:
     caveats: list[str] = []
     if data.get("schemaVersion") != SCHEMA_VERSION:
         raise ValidationError(f"schemaVersion must be {SCHEMA_VERSION}")
@@ -82,18 +233,42 @@ def _validate_context(data: dict[str, Any], strict: bool) -> list[str]:
                 _as_list(section_obj.get("appliesTo"), f"wikiPages[{page_index}].sections[{section_index}].appliesTo")
             if "sourceAnchors" in section_obj:
                 _as_list(section_obj.get("sourceAnchors"), f"wikiPages[{page_index}].sections[{section_index}].sourceAnchors")
+    if execution_ready:
+        _validate_execution_ready(data)
     return caveats
 
 
-def _selected_pages(data: dict[str, Any]) -> list[dict[str, Any]]:
+def _selected_pages(data: dict[str, Any], section_keys: set[tuple[str, str, str, str]] | None = None) -> list[dict[str, Any]]:
     selected: list[dict[str, Any]] = []
     for page in _as_list(data.get("wikiPages"), "wikiPages"):
         page_obj = dict(_as_dict(page, "wikiPages[]"))
-        sections = [_as_dict(section, "sections[]") for section in _as_list(page_obj.get("sections"), "sections")]
+        sections = []
+        for section in _as_list(page_obj.get("sections"), "sections"):
+            section_obj = _as_dict(section, "sections[]")
+            if section_keys is not None and _section_key(page_obj, section_obj) not in section_keys:
+                continue
+            sections.append(section_obj)
         if sections:
             page_obj["sections"] = sections
             selected.append(page_obj)
     return selected
+
+
+def _task_section_keys(data: dict[str, Any], task_id: str) -> set[tuple[str, str, str, str]]:
+    keys: set[tuple[str, str, str, str]] = set()
+    for index, ref in enumerate(_as_list(data.get("globalWikiRefs"), "globalWikiRefs")):
+        keys.add(_ref_key(data, _as_dict(ref, f"globalWikiRefs[{index}]"), f"globalWikiRefs[{index}]"))
+
+    matches = [
+        _as_dict(task_ref, "taskWikiRefs[]")
+        for task_ref in _as_list(data.get("taskWikiRefs"), "taskWikiRefs")
+        if _as_dict(task_ref, "taskWikiRefs[]").get("taskId") == task_id
+    ]
+    if len(matches) != 1:
+        raise ValidationError(f"taskWikiRefs must contain exactly one entry for taskId {task_id}")
+    for index, ref in enumerate(_as_list(matches[0].get("wikiRefs"), f"taskWikiRefs[{task_id}].wikiRefs")):
+        keys.add(_ref_key(data, _as_dict(ref, f"taskWikiRefs[{task_id}].wikiRefs[{index}]"), f"taskWikiRefs[{task_id}].wikiRefs[{index}]"))
+    return keys
 
 
 def _format_bool(value: Any) -> str:
@@ -177,12 +352,18 @@ def _append_source_anchors(lines: list[str], anchors: Any) -> None:
             lines.append(f"- {anchor}")
 
 
-def render_markdown(data: dict[str, Any], role: str) -> str:
-    pages = _selected_pages(data)
+def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None) -> str:
+    section_keys = _task_section_keys(data, task_id) if task_id else None
+    pages = _selected_pages(data, section_keys)
     if not pages:
+        if task_id:
+            return f"No selected wiki constraints for task `{task_id}` and role `{role}`."
         return "No selected wiki constraints for this role."
 
     lines: list[str] = ["## Wiki Constraints", ""]
+    if task_id:
+        lines.append(f"- Task ID: `{task_id}`")
+        lines.append("")
     for page in pages:
         display = page.get("displayPath") or page.get("path") or page.get("wikiPath") or "unknown wiki page"
         lines.append(f"### Wiki Page: `{display}`")
@@ -209,6 +390,11 @@ def render_markdown(data: dict[str, Any], role: str) -> str:
             if section.get("reason"):
                 lines.append(f"- Reason: {section['reason']}")
             lines.append(f"- Hard constraint: `{_format_bool(section.get('hardConstraint'))}`")
+            destination = section.get("destination")
+            if isinstance(destination, dict):
+                lines.append(f"- Destination: `{destination.get('kind')}`")
+                if destination.get("reason"):
+                    lines.append(f"- Destination reason: {destination['reason']}")
             for caveat in _as_list(section.get("caveats"), "section.caveats"):
                 lines.append(f"- Caveat: {caveat}")
             _append_constraints(lines, _as_dict(section.get("constraints"), "constraints"), role)
@@ -220,21 +406,109 @@ def render_markdown(data: dict[str, Any], role: str) -> str:
     return "\n".join(lines).rstrip()
 
 
-def render_reread_list(data: dict[str, Any]) -> str:
+def render_reread_list(data: dict[str, Any], task_id: str | None = None) -> str:
+    section_keys = _task_section_keys(data, task_id) if task_id else None
     lines: list[str] = []
-    for page in _selected_pages(data):
+    for page in _selected_pages(data, section_keys):
         for section in _as_list(page.get("sections"), "sections"):
             if not section.get("hardConstraint") or not section.get("reread"):
                 continue
             section_id = section.get("sectionId") or section.get("section_name")
             lines.append(json.dumps({"displayPath": page.get("displayPath"), "sectionId": section_id, "reread": section.get("reread")}, ensure_ascii=False, sort_keys=True))
-    return "\n".join(lines) if lines else "No hard-constraint rereads for selected wiki context."
+    if lines:
+        return "\n".join(lines)
+    if task_id:
+        return f"No hard-constraint rereads for task `{task_id}`."
+    return "No hard-constraint rereads for selected wiki context."
+
+
+def _normalize_task_text(task_text: str) -> str:
+    lines = task_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    lines = [line.rstrip() for line in lines]
+    while lines and not lines[0]:
+        lines.pop(0)
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines) + "\n"
+
+
+def _task_fingerprint(task_text: str) -> str:
+    normalized = _normalize_task_text(task_text)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def extract_plan_tasks(plan_path: Path) -> dict[str, dict[str, str]]:
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise FingerprintError(f"Cannot read plan: {exc}") from exc
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    starts: list[tuple[int, str, str]] = []
+    for index, line in enumerate(lines):
+        match = TASK_HEADING_RE.match(line)
+        if match:
+            starts.append((index, match.group(1), match.group(2)))
+    if not starts:
+        raise FingerprintError("No stable task headings found; expected headings like `### Task T1: Title`")
+
+    tasks: dict[str, dict[str, str]] = {}
+    for position, (start, task_id, title) in enumerate(starts):
+        if task_id in tasks:
+            raise FingerprintError(f"Duplicate task id in plan: {task_id}")
+        end = len(lines)
+        next_task_start = starts[position + 1][0] if position + 1 < len(starts) else None
+        for index in range(start + 1, len(lines)):
+            if next_task_start is not None and index == next_task_start:
+                end = index
+                break
+            if TASK_OR_HIGHER_HEADING_RE.match(lines[index]) and not lines[index].startswith("####"):
+                end = index
+                break
+        task_text = "\n".join(lines[start:end])
+        tasks[task_id] = {"title": title, "text": task_text, "hash": _task_fingerprint(task_text)}
+    return tasks
+
+
+def fingerprint_preflight(data: dict[str, Any], plan_path: Path) -> str:
+    plan_tasks = extract_plan_tasks(plan_path)
+    sidecar_tasks: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for index, task_ref in enumerate(_as_list(data.get("taskWikiRefs"), "taskWikiRefs")):
+        task_obj = _as_dict(task_ref, f"taskWikiRefs[{index}]")
+        task_id = task_obj.get("taskId")
+        if not isinstance(task_id, str) or not task_id:
+            errors.append(f"taskWikiRefs[{index}] missing taskId")
+            continue
+        if task_id in sidecar_tasks:
+            errors.append(f"duplicate sidecar taskId: {task_id}")
+            continue
+        sidecar_tasks[task_id] = task_obj
+
+    for task_id, task in plan_tasks.items():
+        sidecar = sidecar_tasks.get(task_id)
+        if not sidecar:
+            errors.append(f"plan task missing from taskWikiRefs: {task_id}")
+            continue
+        fingerprint = _as_dict(sidecar.get("taskFingerprint"), f"taskWikiRefs[{task_id}].taskFingerprint")
+        if fingerprint.get("hash") != task["hash"]:
+            errors.append(f"fingerprint mismatch for {task_id}: expected {fingerprint.get('hash')}, current {task['hash']}")
+
+    for task_id in sorted(set(sidecar_tasks) - set(plan_tasks)):
+        errors.append(f"taskWikiRefs contains task not found in plan: {task_id}")
+
+    if errors:
+        raise FingerprintError("\n".join(errors))
+    return f"fingerprint preflight passed for {len(plan_tasks)} task(s)"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate and render schemaVersion 3 selected wiki context JSON.")
     parser.add_argument("context_path", help="Path to docs/superpowers/plans/<plan-stem>.wiki-context.json")
-    parser.add_argument("--task", action="append", default=[], help="Deprecated compatibility option; selected wiki context is not task-filtered")
+    parser.add_argument("--task", action="append", default=[], help="Deprecated compatibility option; selected wiki context is not filtered by task string")
+    parser.add_argument("--task-id", help="Render only wiki refs bound to the finalized plan task id, plus global refs")
+    parser.add_argument("--plan-path", help="Implementation plan path used for task fingerprint preflight")
+    parser.add_argument("--execution-ready", action="store_true", help="Require confirmed taskWikiRefs/globalWikiRefs routing suitable for execution")
+    parser.add_argument("--fingerprint-preflight", action="store_true", help="Compare taskWikiRefs fingerprints against the current plan task text")
     parser.add_argument("--role", choices=["implementer", "reviewer"], default="implementer")
     parser.add_argument("--format", choices=["markdown"], default="markdown")
     parser.add_argument("--validate-only", action="store_true")
@@ -244,18 +518,23 @@ def main() -> int:
 
     try:
         data = _load_context(Path(args.context_path))
-        caveats = _validate_context(data, args.strict)
+        caveats = _validate_context(data, args.strict, args.execution_ready)
+        if args.fingerprint_preflight:
+            if not args.plan_path:
+                raise ValidationError("--fingerprint-preflight requires --plan-path")
+            print(fingerprint_preflight(data, Path(args.plan_path)))
+            return 0
         if args.validate_only:
             for caveat in caveats:
                 print(f"Warning: {caveat}", file=sys.stderr)
             print("wiki context JSON is valid")
             return 0
         if args.reread_list:
-            print(render_reread_list(data))
+            print(render_reread_list(data, args.task_id))
             return 0
-        print(render_markdown(data, args.role))
+        print(render_markdown(data, args.role, args.task_id))
         return 0
-    except ValidationError as exc:
+    except (ValidationError, FingerprintError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 

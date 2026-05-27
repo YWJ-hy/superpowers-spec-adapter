@@ -112,7 +112,7 @@ python3 overlays/scripts/wiki_update_check.py --json
 
 ### Wiki 文档 Section 标记规范
 
-Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section:section-id -->` HTML 注释标记包裹独立约束主题段落。Section ID 必须为 kebab-case（`[a-z0-9][a-z0-9_-]*`），反映约束的核心语义。
+Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section:section-id -->` HTML 注释标记包裹独立约束主题段落。Section ID 必须为 kebab-case（`[a-z0-9][a-z0-9_-]*`），反映约束的核心语义。任务绑定只在 final task 稳定后进行，执行前通过 `taskWikiRefs` / `globalWikiRefs` / `taskFingerprint` 固化到 `.wiki-context.json`，不再靠 `appliesTo` 早生成路由。
 
 - 一个 section = 一个可独立引用的约束单元
 - 多个 heading 描述同一约束主题时合并为一个 section
@@ -210,9 +210,9 @@ writing-plans
 ```
 
 4. 确认 agent 实际走的是文档指定的分析、wiki-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `wiki-progressive-disclosure`。
-5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.json`；planning agent 应先读安装后的 `contracts/wiki-context-v3.example.jsonc` 作为 sidecar authoring contract，不应读取 `wiki_context_render.py` 源码来反推格式；sidecar 应使用 schemaVersion 3 page-rooted `wikiPages`，每个 page 只保留一份有界 `documentContext`，sections 保留 `relevanceTo`、分类约束、hard constraint、reread 和 anchors；planning 阶段必须用 plugin-root `wiki_context_render.py --validate-only --strict` 校验 sidecar，并把 selected wiki constraints 吸收到 plan/task 文本中；执行阶段必须通过 plugin-root `wiki_context_render.py` 按 role 渲染 selected constraints，不按 task string 过滤 wiki 约束，并通过 `--reread-list` 只重读选中 hard section 的 document context + section body，不注入 sibling sections 或整页正文。
+5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.json`；planning agent 应先读安装后的 `contracts/wiki-context-v3.example.jsonc` 作为 sidecar authoring contract，不应读取 `wiki_context_render.py` 源码来反推格式；sidecar 应使用 schemaVersion 3 page-rooted `wikiPages`，每个 page 只保留一份有界 `documentContext`，sections 保留 `relevanceTo`、分类约束、hard constraint、reread 和 anchors；final task 稳定后再写入 `taskRouting`、`taskWikiRefs`、`globalWikiRefs`、`destination` 和 `taskFingerprint`，planning 阶段必须用 plugin-root `wiki_context_render.py --validate-only --strict --execution-ready --plan-path <plan>` 校验 sidecar，并把 selected wiki constraints 吸收到 plan/task 文本中；进入执行前先做一次 `--fingerprint-preflight --execution-ready --strict --plan-path <plan>`，执行阶段必须通过 plugin-root `wiki_context_render.py --task-id <task-id> --role <role> --strict --execution-ready` 渲染 task-scoped constraints，不按 task string 过滤 wiki 约束，并通过 `--task-id <task-id> --reread-list --execution-ready` 只重读当前 task 选中的 hard section document context + section body，不注入 sibling sections 或整页正文。
 6. 如果修改 source-truth 流程，确认 `writing-plans` 是 draft plan → `source-of-truth-verifier` → final plan → `plan-document-reviewer` 顺序；执行阶段只通过 plugin-root `source_truth_render.py` 消费 `.source-truth-constraints.json`，不读取完整 `.source-truth-report.json`。还要运行 `tests/source-truth-settings-smoke.sh`、`tests/source-truth-render-smoke.sh`、native patch smoke 和 Multica bootstrap/live/runtime smoke。
-7. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和 resolved `maxWikiPages`（默认 2，可配置或 unlimited），wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.json`、不运行 `update-wiki`。
+7. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和 `sharedWikiSource: auto`，wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.json`、不运行 `update-wiki`。debug wiki 选择没有页数上限，但仍必须渐进读取，不可无目标扫描整棵 wiki。
 
 ### 5.3 修改 hook 配置或安装逻辑时
 

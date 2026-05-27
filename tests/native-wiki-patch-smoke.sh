@@ -229,13 +229,10 @@ SYSTEMATIC_SKILL="${TARGET_INPUT}/skills/systematic-debugging/SKILL.md"
 for required in \
   'wiki-researcher' \
   'phase: debug' \
-  'maxWikiPages: <resolved integer or unlimited>' \
-  'wiki_settings.py' \
-  'default to 2' \
-  'Do not call `wiki-researcher` at the start of debugging' \
-  'continue systematic debugging' \
-  'do not write `.wiki-context.json`' \
   'sharedWikiSource: auto' \
+  'There is no `maxWikiPages` cap' \
+  'Do not call `wiki-researcher` at the start of debugging' \
+  'do not write `.wiki-context.json`' \
   'GitHub-backed shared-wiki MCP source' \
   'break-loop'
 do
@@ -260,7 +257,7 @@ if grep -Fq 'Before attempting ANY fix, use wiki-researcher' "$SYSTEMATIC_SKILL"
   exit 1
 fi
 
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 3' 'page-rooted `wikiPages` tree' 'documentContext'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 3' 'page-rooted `wikiPages` tree' 'documentContext' 'taskWikiRefs' 'taskFingerprint' 'globalWikiRefs'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
     printf 'Expected writing-plans patch to contain source-aware wiki context: %s\n' "$required" >&2
     exit 1
@@ -299,7 +296,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/executing-plans/SKILL
   exit 1
 fi
 
-for required in 'do not reselect wiki pages from scratch' 'wiki_context_render.py' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
+for required in 'Do not reselect wiki pages from scratch during execution, do not rematch wiki sections, do not filter wiki constraints by task string, do not use legacy `appliesTo`, and do not fall back to full selected section injection.' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
     printf 'Expected executing-plans patch to contain source-aware execution text: %s\n' "$required" >&2
     exit 1
@@ -316,7 +313,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/subagent-driven-devel
   exit 1
 fi
 
-for required in 'Do not filter wiki constraints by task string' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
+for required in 'Do not reselect wiki pages, do not rematch wiki sections, do not filter wiki constraints by task string, do not use legacy `appliesTo`, and do not fall back to full selected section injection.' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
     printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
     exit 1
