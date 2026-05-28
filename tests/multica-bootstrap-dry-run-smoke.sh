@@ -201,11 +201,11 @@ for template, (entrypoint, extra) in cases.items():
     if missing:
         raise SystemExit(f'Template {template} body missing {missing}:\n{body}')
     if template == 'writing-plans':
-        for required in ('superpowers-source-of-truth-verifier', 'source-truth-report.json', 'source-truth-constraints.json', 'Source-of-Truth Verification'):
+        for required in ('superpowers-source-of-truth-verifier', 'source-truth-report.json', 'source-truth-constraints.json', 'constraintSets', 'taskConstraintRefs', 'Source-of-Truth Verification'):
             if required not in body:
                 raise SystemExit(f'writing-plans issue body missing source-truth requirement {required!r}:\n{body}')
     if template in {'execute-plan', 'sdd-execution'}:
-        for required in ('Source-truth constraints path', 'source_truth_render.py', 'do not read the full `*.source-truth-report.json`'):
+        for required in ('Source-truth constraints path', 'source_truth_render.py', '--fingerprint-preflight', '--task-id', 'do not read the full `*.source-truth-report.json`'):
             if required not in body:
                 raise SystemExit(f'{template} issue body missing constraints-only execution guidance {required!r}:\n{body}')
     if template in {'publish-shared-wiki', 'shared-wiki-mcp-pr'} and 'Authorization gate:' not in body:

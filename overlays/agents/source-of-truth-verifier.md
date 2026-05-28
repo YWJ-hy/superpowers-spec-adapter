@@ -24,6 +24,7 @@ You must not:
 - Treat service usage, mocks, fixtures, or existing component code as truth unless the project config classifies them as `truth`.
 - Use heuristic source classification unless `sourceOfTruth.heuristics` is explicitly `true`.
 - Tell implementers to read the full report during normal execution.
+- Use `appliesTo`, task-title string matching, or draft task IDs for execution routing.
 - Invent fields, enum values, permissions, schema properties, API behavior, generated types, or project rules that are not supported by configured truth sources.
 
 ## Input
@@ -74,9 +75,9 @@ Full report path: `docs/superpowers/plans/<plan-stem>.source-truth-report.json`.
 This is a planning/audit artifact only.
 
 Lightweight constraints path: `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`.
-Execution consumes this through `source_truth_render.py`.
+Execution consumes this through `source_truth_render.py` after the main planning flow binds constraints to finalized task IDs.
 
-The constraints artifact must contain only task-specific constraints needed by implementers/reviewers. Do not include full reasoning, long excerpts, or full checked source inventories there.
+The constraints artifact must contain only short execution-relevant constraint sets needed by implementers/reviewers. Do not include full reasoning, long excerpts, or full checked source inventories there. The verifier produces `constraintSets`; it does not own final execution routing. After final task headings stabilize, the main planning flow assigns each set a `destination`, writes `globalConstraintRefs` / `taskConstraintRefs`, and computes `taskFingerprint` entries. Audit-only findings stay in the full report and should be omitted from the lightweight constraints artifact.
 
 ## Full Report Shape
 
@@ -106,25 +107,62 @@ The constraints artifact must contain only task-specific constraints needed by i
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "superpower-adapter.source-truth-constraints",
+  "generatedBy": "superpower-adapter",
   "planPath": "docs/superpowers/plans/example.md",
+  "sourceTruthReportPath": "docs/superpowers/plans/example.source-truth-report.json",
   "status": "passed",
-  "taskConstraints": [
+  "taskRouting": {
+    "status": "confirmed",
+    "planTaskFormat": "superpower-adapter-plan-task-heading-v1",
+    "fingerprintAlgorithm": "sha256:superpower-adapter-task-text-v1",
+    "selectedConstraintsFrozen": true,
+    "refreshPolicy": "refresh-taskConstraintRefs-and-fingerprints-only"
+  },
+  "constraintSets": [
     {
-      "taskId": "Task 1",
-      "appliesTo": ["Task 1"],
+      "constraintId": "STC1",
+      "title": "Generated clients are authoritative",
+      "destination": {
+        "kind": "global",
+        "reason": "Generated clients must not be edited by any task."
+      },
       "hardConstraint": true,
+      "sourceRefs": [
+        {"path": "src/service2/**", "role": "truth", "edit": "never"}
+      ],
+      "findingRefs": [
+        {"findingId": "F1", "reportPath": "docs/superpowers/plans/example.source-truth-report.json"}
+      ],
       "constraints": {
         "implementation": [],
         "test": [],
         "review": [],
         "general": []
-      }
+      },
+      "caveats": []
+    }
+  ],
+  "globalConstraintRefs": [
+    {"constraintRef": "STC1", "reason": "Applies to every implementation and review task."}
+  ],
+  "taskConstraintRefs": [
+    {
+      "taskId": "T1",
+      "taskTitle": "Implement generated client usage",
+      "taskFingerprint": {
+        "algorithm": "sha256",
+        "normalization": "superpower-adapter-task-text-v1",
+        "source": "docs/superpowers/plans/example.md#T1",
+        "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "constraintRefs": [],
+      "caveats": []
     }
   ],
   "caveats": []
 }
 ```
 
-Use `appliesTo: ["all"]` only for truly plan-wide constraints such as “do not edit generated clients”. Keep each constraint one short line.
+Do not write `appliesTo` in schemaVersion 2. Use `destination.kind: "global"` for truly plan-wide constraints such as “do not edit generated clients”; use `destination.kind: "task-bound"` for constraints that the main planning flow should bind to specific finalized task IDs. Keep each constraint one short line.

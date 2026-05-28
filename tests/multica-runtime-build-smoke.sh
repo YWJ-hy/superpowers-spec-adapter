@@ -92,7 +92,7 @@ for schema_name, required_field in {
     'spec.schema.json': 'decisions',
     'implementation-plan.schema.json': 'referencedProjectWiki',
     'source-truth-report.schema.json': 'summary',
-    'source-truth-constraints.schema.json': 'taskConstraints',
+    'source-truth-constraints.schema.json': 'constraintSets',
     'lanhu-evidence-package.schema.json': 'confirmationGate',
     'update-wiki-candidate.schema.json': 'candidates',
     'review-result.schema.json': 'findings',
@@ -215,8 +215,12 @@ if graph.get('workflowId') != 'subagent-driven-development':
     raise SystemExit('SDD task graph workflowId mismatch')
 if 'wiki_context_render.py' not in json.dumps(graph, ensure_ascii=False):
     raise SystemExit('SDD task graph missing wiki_context_render.py reference')
-if 'source_truth_render.py' not in json.dumps(graph, ensure_ascii=False):
+graph_text = json.dumps(graph, ensure_ascii=False)
+if 'source_truth_render.py' not in graph_text:
     raise SystemExit('SDD task graph missing source_truth_render.py reference')
+for required in ('--fingerprint-preflight', '--task-id <task-id>', 'fullReport'):
+    if required not in graph_text:
+        raise SystemExit(f'SDD task graph missing source-truth v2 routing contract: {required}')
 nodes = {node.get('nodeId'): node for node in graph.get('nodes', [])}
 for node_id in ('implementer', 'spec-compliance-reviewer', 'code-quality-reviewer', 'code-reviewer-final'):
     if node_id not in nodes:

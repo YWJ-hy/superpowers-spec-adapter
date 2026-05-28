@@ -135,7 +135,7 @@ Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section
 - `paths` 使用 gitignore-style 语法，必须覆盖 `**`、前导 `/`、尾随 `/`、`!` 否定和后规则覆盖。
 - `truth` 必须配置 `edit: never | ask`；`evidence` / `ignore` 不配置 `edit`。
 - 完整 `.source-truth-report.json` 只用于 planning/audit，不得成为 implementer/reviewer 默认上下文。
-- execution/SDD 只能通过 `source_truth_render.py` 注入当前 task/role 的 `.source-truth-constraints.json` 轻量结果。
+- execution/SDD 只能先通过 `source_truth_render.py --fingerprint-preflight --strict --execution-ready --plan-path <plan>` 校验 task binding，再通过 `source_truth_render.py --task-id <task-id> --role <role> --strict --execution-ready` 注入当前 task/role 的 `.source-truth-constraints.json` 轻量结果。
 - Multica 中 verifier 必须是可见 `superpowers-source-of-truth-verifier` role-agent，不能退回单 orchestrator 内部步骤。
 
 ### Plugin-root 脚本执行边界
@@ -211,7 +211,7 @@ writing-plans
 
 4. 确认 agent 实际走的是文档指定的分析、wiki-researcher 选择和 plan 引用流程；`brainstorming` / `writing-plans` 不应要求调用 `wiki-progressive-disclosure`。
 5. 如果修改 planning wiki 披露流程，确认 plan 的 `Referenced Project Wiki` 是轻量入口，并正确链接 `docs/superpowers/plans/<plan-stem>.wiki-context.json`；planning agent 应先读安装后的 `contracts/wiki-context-v3.example.jsonc` 作为 sidecar authoring contract，不应读取 `wiki_context_render.py` 源码来反推格式；sidecar 应使用 schemaVersion 3 page-rooted `wikiPages`，每个 page 只保留一份有界 `documentContext`，sections 保留 `relevanceTo`、分类约束、hard constraint、reread 和 anchors；final task 稳定后再写入 `taskRouting`、`taskWikiRefs`、`globalWikiRefs`、`destination` 和 `taskFingerprint`，planning 阶段必须用 plugin-root `wiki_context_render.py --validate-only --strict --execution-ready --plan-path <plan>` 校验 sidecar，并把 selected wiki constraints 吸收到 plan/task 文本中；进入执行前先做一次 `--fingerprint-preflight --execution-ready --strict --plan-path <plan>`，执行阶段必须通过 plugin-root `wiki_context_render.py --task-id <task-id> --role <role> --strict --execution-ready` 渲染 task-scoped constraints，不按 task string 过滤 wiki 约束，并通过 `--task-id <task-id> --reread-list --execution-ready` 只重读当前 task 选中的 hard section document context + section body，不注入 sibling sections 或整页正文。
-6. 如果修改 source-truth 流程，确认 `writing-plans` 是 draft plan → `source-of-truth-verifier` → final plan → `plan-document-reviewer` 顺序；执行阶段只通过 plugin-root `source_truth_render.py` 消费 `.source-truth-constraints.json`，不读取完整 `.source-truth-report.json`。还要运行 `tests/source-truth-settings-smoke.sh`、`tests/source-truth-render-smoke.sh`、native patch smoke 和 Multica bootstrap/live/runtime smoke。
+6. 如果修改 source-truth 流程，确认 `writing-plans` 是 draft plan → `source-of-truth-verifier` → final task 稳定后绑定 `constraintSets` 到 `taskConstraintRefs` / `globalConstraintRefs` / `taskFingerprint` → final plan → `plan-document-reviewer` 顺序；执行阶段只通过 plugin-root `source_truth_render.py --fingerprint-preflight` 和 `source_truth_render.py --task-id <task-id>` 消费 `.source-truth-constraints.json`，不读取完整 `.source-truth-report.json`，也不使用 legacy `appliesTo` 或 task string 路由。还要运行 `tests/source-truth-settings-smoke.sh`、`tests/source-truth-render-smoke.sh`、native patch smoke 和 Multica bootstrap/live/runtime smoke。
 7. 如果修改 `systematic-debugging` wiki 辅助流程，确认它不在 Phase 1 前调用 `wiki-researcher`，只在证据收窄后使用 `phase: debug` 和 `sharedWikiSource: auto`，wiki 线索必须继续用代码、日志、测试或复现验证，且调试阶段不写 `.wiki-context.json`、不运行 `update-wiki`。debug wiki 选择没有页数上限，但仍必须渐进读取，不可无目标扫描整棵 wiki。
 
 ### 5.3 修改 hook 配置或安装逻辑时

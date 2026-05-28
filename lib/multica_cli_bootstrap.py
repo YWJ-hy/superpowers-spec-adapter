@@ -392,8 +392,9 @@ Required behavior:
 2. Select only the wiki pages needed for the plan and record them as `Referenced Project Wiki`.
 3. Produce or update a schemaVersion 3 `.wiki-context.json` next to the plan when wiki context is used.
 4. Write a complete draft plan with concrete API/service/type/schema/permission/design-token assumptions, then run visible role-agent `{SOURCE_TRUTH_ROLE_AGENT_NAME}` using `agents/source-of-truth-verifier.md` before final plan review.
-5. Produce `docs/superpowers/plans/<plan-stem>.source-truth-report.json` for planning/audit and `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json` for execution, then revise/finalize the plan before `plan-document-reviewer`.
-6. Stop after producing the final plan; do not implement until the user approves it. If source-truth status is `blocked`, do not hand off to execution.
+5. Produce `docs/superpowers/plans/<plan-stem>.source-truth-report.json` for planning/audit and schemaVersion 2 `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json` for execution.
+6. After final task headings stabilize, bind source-truth `constraintSets` to stable task IDs with `globalConstraintRefs`, `taskConstraintRefs`, and `taskFingerprint`; do not use legacy `appliesTo` routing.
+7. Stop after producing the final plan; do not implement until the user approves it. If source-truth status is `blocked`, do not hand off to execution.
 
 {common_do_not(ctx)}
 Expected output:
@@ -420,7 +421,7 @@ Required behavior:
 1. Follow `upstream-superpowers/executing-plans.md` from the attached skill pack.
 2. Confirm the plan has been approved before editing target project files.
 3. Read only the plan-selected `Referenced Project Wiki` and the provided `.wiki-context.json`; do not broaden to the entire wiki.
-4. If the plan links source-truth constraints, consume only task-specific renderer output from `source_truth_render.py`; do not read the full `*.source-truth-report.json` during normal execution.
+4. If the plan links source-truth constraints, run `source_truth_render.py --fingerprint-preflight --strict --execution-ready --plan-path <plan>` once, then consume only task-specific renderer output from `source_truth_render.py --task-id <task-id> --strict --execution-ready`; do not read the full `*.source-truth-report.json` during normal execution.
 5. Implement the approved plan in the target repo and verify the touched behavior with appropriate local checks.
 6. If the work creates durable implementation knowledge, include an `update-wiki` handoff.
 
@@ -446,7 +447,7 @@ Required behavior:
 1. Follow `upstream-superpowers/subagent-driven-development.md` from the attached skill pack.
 2. Confirm the plan has been approved before editing target project files.
 3. Run the implementer/reviewer loop as Claude Code task behavior described by the skill; do not create a local adapter state machine.
-4. Consume only the plan-selected wiki context, provided `.wiki-context.json`, and rendered task-specific source-truth constraints from `source_truth_render.py` when present.
+4. Consume only the plan-selected wiki context, provided `.wiki-context.json`, and rendered task-specific source-truth constraints from `source_truth_render.py --task-id <task-id> --strict --execution-ready` when present; run source-truth `--fingerprint-preflight` once before dispatch.
 5. Do not make implementer/reviewer subagents read the full `*.source-truth-report.json`; do not read the full `*.source-truth-report.json` during normal execution because it is planning/audit context only.
 6. Verify the completed behavior and report reviewer findings.
 
@@ -641,7 +642,7 @@ Adapter version: `{adapter_manifest.get('version')}`. Adapted Superpowers versio
 - The target project is the repo named in the issue body, normally `{target_text}`.
 - Supporting scripts live inside this skill pack under `scripts/`. When a copied Superpowers instruction mentions `{MULTICA_SKILL_ROOT_HINT}/scripts/<name>.py`, resolve that path from the task workspace where Multica injected this skill. Do not run `scripts/<name>.py` from the target repository unless that file is part of the injected skill pack.
 - Planning must expose source-truth verification as a visible role-agent run named `{SOURCE_TRUTH_ROLE_AGENT_NAME}` between draft plan and final plan review.
-- Execution consumes source-truth output only through lightweight task-specific constraints rendered by `source_truth_render.py`; the full source-truth report is planning/audit context only.
+- Execution consumes source-truth output only through lightweight schemaVersion 2 task-bound constraints rendered by `source_truth_render.py --task-id` after `--fingerprint-preflight`; the full source-truth report is planning/audit context only.
 - Do not commit, push, open PRs, publish shared wiki changes, or perform other external side effects without explicit user authorization in the Multica issue.
 
 ## User-facing language
@@ -652,8 +653,8 @@ Infer the user's preferred language only after first reading the assigned issue 
 
 1. Optional Lanhu intake: use `skills/lanhu-requirements/SKILL.md` when the issue includes a Lanhu URL and the workspace has Claude Code MCP access.
 2. Brainstorming: follow `upstream-superpowers/brainstorming.md`; use `agents/wiki-researcher.md` for lightweight project/shared wiki disclosure.
-3. Planning: follow `upstream-superpowers/writing-plans.md`; produce a draft plan, run `{SOURCE_TRUTH_ROLE_AGENT_NAME}` / `agents/source-of-truth-verifier.md`, revise the final plan, then run plan-document-reviewer. Produce schemaVersion 3 `.wiki-context.json` and lightweight `.source-truth-constraints.json` under the target repo when configured.
-4. Execution: follow `upstream-superpowers/executing-plans.md` or `upstream-superpowers/subagent-driven-development.md`; consume only the plan-selected `Referenced Project Wiki`, rendered wiki-context constraints, and rendered task-specific source-truth constraints. Do not read full source-truth reports during normal execution.
+3. Planning: follow `upstream-superpowers/writing-plans.md`; produce a draft plan, run `{SOURCE_TRUTH_ROLE_AGENT_NAME}` / `agents/source-of-truth-verifier.md`, revise the final plan, bind source-truth `constraintSets` to stable task IDs, then run plan-document-reviewer. Produce schemaVersion 3 `.wiki-context.json` and schemaVersion 2 lightweight `.source-truth-constraints.json` under the target repo when configured.
+4. Execution: follow `upstream-superpowers/executing-plans.md` or `upstream-superpowers/subagent-driven-development.md`; consume only the plan-selected `Referenced Project Wiki`, rendered wiki-context constraints, and rendered task-specific source-truth constraints by `--task-id` after fingerprint preflight. Do not read full source-truth reports during normal execution.
 5. Finishing: follow `upstream-superpowers/finishing-a-development-branch.md` and ask before visible side effects.
 6. Durable knowledge review: use `skills/update-wiki/SKILL.md` only when the completed work produced reusable implementation knowledge.
 

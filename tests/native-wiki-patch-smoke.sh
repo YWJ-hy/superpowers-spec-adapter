@@ -36,7 +36,7 @@ if [[ ! -f "${TARGET_INPUT}/agents/source-of-truth-verifier.md" ]]; then
   printf 'Expected installed source-of-truth-verifier agent\n' >&2
   exit 1
 fi
-for required in 'sourceOfTruth' 'heuristics' 'truth' 'evidence' 'ignore' 'source-truth-report.json' 'source-truth-constraints.json' 'planning/audit artifact only' 'source_truth_render.py'; do
+for required in 'sourceOfTruth' 'heuristics' 'truth' 'evidence' 'ignore' 'source-truth-report.json' 'source-truth-constraints.json' 'schemaVersion": 2' 'constraintSets' 'taskConstraintRefs' 'globalConstraintRefs' 'taskFingerprint' 'planning/audit artifact only' 'source_truth_render.py'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/agents/source-of-truth-verifier.md"; then
     printf 'Expected installed source-of-truth-verifier text: %s\n' "$required" >&2
     exit 1
@@ -296,7 +296,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/executing-plans/SKILL
   exit 1
 fi
 
-for required in 'Do not reselect wiki pages from scratch during execution, do not rematch wiki sections, do not filter wiki constraints by task string, do not use legacy `appliesTo`, and do not fall back to full selected section injection.' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
+for required in 'Do not reselect wiki pages from scratch during execution, do not rematch wiki sections, do not filter wiki constraints by task string, do not use legacy `appliesTo`, and do not fall back to full selected section injection.' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'taskConstraintRefs' 'taskFingerprint' 'Do not use legacy `appliesTo`, task title strings, or task body matching for source-truth execution routing' 'Do not read or inject the full `*.source-truth-report.json`'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
     printf 'Expected executing-plans patch to contain source-aware execution text: %s\n' "$required" >&2
     exit 1
@@ -313,7 +313,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/subagent-driven-devel
   exit 1
 fi
 
-for required in 'Do not reselect wiki pages, do not rematch wiki sections, do not filter wiki constraints by task string, do not use legacy `appliesTo`, and do not fall back to full selected section injection.' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
+for required in 'Do not reselect wiki pages, do not rematch wiki sections, do not filter wiki constraints by task string, do not use legacy `appliesTo`, and do not fall back to full selected section injection.' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' 'Wiki Constraint — Document Context' 'includeDocumentContext: true' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'taskConstraintRefs' 'taskFingerprint' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
     printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
     exit 1

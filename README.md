@@ -358,7 +358,7 @@ docs/superpowers/plans/<plan-stem>.source-truth-report.json
 docs/superpowers/plans/<plan-stem>.source-truth-constraints.json
 ```
 
-The full report is planning/audit context only. Normal execution and SDD must not read or inject the full `*.source-truth-report.json`; they render task-specific constraints from `*.source-truth-constraints.json` with `source_truth_render.py` and pass only that small block to implementer/reviewer roles. If the verifier status is `blocked`, execution must return to planning instead of implementing around the conflict.
+The full report is planning/audit context only. Normal execution and SDD must not read or inject the full `*.source-truth-report.json`; after final plan tasks are stable, planning binds schemaVersion 2 `constraintSets` to `globalConstraintRefs` / `taskConstraintRefs` with `taskFingerprint`, then execution runs `source_truth_render.py --fingerprint-preflight` and renders task-specific constraints with `source_truth_render.py --task-id <task-id> --strict --execution-ready`. If the verifier status is `blocked`, execution must return to planning instead of implementing around the conflict.
 
 In Multica, the verifier is also visible as `superpowers-source-of-truth-verifier`, and planning chains should show draft plan → verifier → final plan → plan document review.
 

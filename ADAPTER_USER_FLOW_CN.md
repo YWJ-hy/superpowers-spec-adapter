@@ -81,8 +81,8 @@ Superpowers 插件目录
 - `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目/共享 wiki 页面，读取 `contracts/wiki-context-v3.example.jsonc` 后生成 `docs/superpowers/plans/<plan-stem>.wiki-context.json`，用 `wiki_context_render.py --validate-only --strict --execution-ready --plan-path <plan>` 校验，并要求 plan 写入轻量 `Referenced Project Wiki` 入口；完整 draft plan 写出后调用 `source-of-truth-verifier`，生成 `.source-truth-report.json` 和 `.source-truth-constraints.json`，再修订 final plan 并交给 `plan-document-reviewer`。
 - `plan-document-reviewer`：不重新做真实源调查，只检查 final plan 是否正确消费 verifier 结果，例如 blocked 状态是否阻止执行、`edit: never` 真实源是否没有被实现任务要求修改、完整 report 是否没有变成默认执行上下文。
 - `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug` 条件式查询 wiki；debug wiki 选择没有页数上限，但仍必须渐进读取并保持小范围。
-- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.json`，先做一次 plugin-root `wiki_context_render.py --fingerprint-preflight --strict --execution-ready --plan-path <plan>`，再用 plugin-root `wiki_context_render.py --task-id <task-id> --role implementer --strict --execution-ready` 渲染 task-scoped 约束；如果 plan 链接 `.source-truth-constraints.json`，再用 plugin-root `source_truth_render.py` 渲染当前 task 的轻量真实源约束，不重新选择 wiki 页面，也不读取完整 source-truth report。
-- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki`、`.wiki-context.json` 和可选 `.source-truth-constraints.json` 分别通过 plugin-root renderer 渲染为 task-scoped wiki 约束块和 source-truth task-specific 约束块，再传给 subagent；dispatch 前同样先做 fingerprint preflight。
+- `executing-plans`：执行前读取 plan 中的 `Referenced Project Wiki` 和链接的 `.wiki-context.json`，先做一次 plugin-root `wiki_context_render.py --fingerprint-preflight --strict --execution-ready --plan-path <plan>`，再用 plugin-root `wiki_context_render.py --task-id <task-id> --role implementer --strict --execution-ready` 渲染 task-scoped 约束；如果 plan 链接 `.source-truth-constraints.json`，再用 plugin-root `source_truth_render.py --fingerprint-preflight --strict --execution-ready --plan-path <plan>` 校验真实源 task binding，并通过 `source_truth_render.py --task-id <task-id> --role implementer --strict --execution-ready` 渲染当前 task 的轻量真实源约束，不重新选择 wiki 页面，也不读取完整 source-truth report。
+- `subagent-driven-development`：把 plan 中的 `Referenced Project Wiki`、`.wiki-context.json` 和可选 `.source-truth-constraints.json` 分别通过 plugin-root renderer 渲染为 task-scoped wiki 约束块和 source-truth task-id scoped 约束块，再传给 subagent；dispatch 前同样先做 wiki 和 source-truth fingerprint preflight。
 - `using-git-worktrees`：创建 worktree 时把原始分支、原始 worktree 和原始 HEAD 记录到新 worktree 的 private git-dir metadata。
 - `finishing-a-development-branch`：metadata 有效时，提供明确合并回创建 worktree 前原始分支的收尾选项。
 
@@ -313,7 +313,7 @@ Project wiki 与 shared wiki 分别读取自己的 settings：
 
 `truth + edit: never` 表示 plan 不能要求实现 agent 修改这些真实源；如果需求中字段缺失或契约不匹配，应提示用户缺了什么或回到真实源生成链路。`truth + edit: ask` 表示必须先询问用户：是修订 plan，还是把修改真实源纳入本次任务。`evidence` 只能作为线索，不能单独证明事实成立；`ignore` 不参与校验。
 
-`source-of-truth-verifier` 会输出完整 `.source-truth-report.json` 和轻量 `.source-truth-constraints.json`。完整 report 只用于 planning/audit；正常执行阶段只通过 `source_truth_render.py` 渲染当前 task/role 的 constraints，不读取完整 report。
+`source-of-truth-verifier` 会输出完整 `.source-truth-report.json` 和轻量 schemaVersion 2 `.source-truth-constraints.json`。完整 report 只用于 planning/audit；final task 稳定后由 planning flow 把 `constraintSets` 绑定到 `globalConstraintRefs` / `taskConstraintRefs` / `taskFingerprint`。正常执行阶段先用 `source_truth_render.py --fingerprint-preflight` 校验绑定，再用 `source_truth_render.py --task-id <task-id> --role <role> --strict --execution-ready` 渲染当前 task/role 的 constraints，不读取完整 report，也不使用 legacy `appliesTo` 或 task string 路由。
 
 ### 4.5 可选：同步 / 发布 shared wiki submodule
 
@@ -491,7 +491,7 @@ docs/superpowers/plans/<plan-stem>.source-truth-constraints.json
 
 `executing-plans` 和 `subagent-driven-development` 执行前应读取 plan 中的 `Referenced Project Wiki`，定位其中链接的 `.wiki-context.json`，再用 plugin-root `wiki_context_render.py` 先做一次 `--fingerprint-preflight --execution-ready --strict --plan-path` 校验，再按 `--task-id <stable-task-id>` 渲染 selected role 约束块。硬约束 section 的 forced reread 应通过 `--task-id <stable-task-id> --reread-list --execution-ready` 找到当前 task 的 selected hard constraints，并注入有界 document context 加选中 section 全文，而不是补读整页 wiki。执行阶段不按 task string 模糊过滤，也不重新匹配 wiki；如果 plan 审核后被手工修改，只刷新 task 绑定和 fingerprint，不重写 plan。
 
-如果 plan 的 `Source-of-Truth Verification` section 链接了 `.source-truth-constraints.json`，执行阶段还要用 plugin-root `source_truth_render.py` 按当前 task / role 渲染轻量约束块。执行阶段不应读取完整 `.source-truth-report.json`，也不应把完整 verifier 推理作为 implementer/reviewer 默认上下文。
+如果 plan 的 `Source-of-Truth Verification` section 链接了 `.source-truth-constraints.json`，执行阶段还要用 plugin-root `source_truth_render.py --fingerprint-preflight --execution-ready --strict --plan-path <plan>` 校验真实源 task binding，再用 `source_truth_render.py --task-id <stable-task-id> --role <role> --strict --execution-ready` 渲染轻量约束块。执行阶段不应读取完整 `.source-truth-report.json`，不应把完整 verifier 推理作为 implementer/reviewer 默认上下文，也不应通过 legacy `appliesTo` 或 task string 临时匹配真实源约束。
 
 执行阶段不应默认：
 
