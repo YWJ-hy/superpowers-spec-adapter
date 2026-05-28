@@ -1785,10 +1785,20 @@ def sdd_task_graph() -> dict:
             'default': 'disabled',
             'allowedOnlyWith': ['worktree-isolation', 'patch-branch', 'patch-queue'],
         },
+        'renderedConstraintDelivery': {
+            'transport': 'capture-renderer-stdout',
+            'injectInto': 'role-task-prompt',
+            'promptBoundaries': ['## Assigned Task', '## Rendered Wiki Constraints for This Task', '## Rendered Source-of-Truth Constraints for This Task', '## Hard Wiki Constraint Rereads'],
+            'labelsRequired': ['sourceSidecar', 'taskId', 'role', 'fingerprintPreflightStatus'],
+            'normalPersistence': 'forbidden-rendered-markdown-context',
+            'forbiddenNormalFiles': ['.claude-*-wiki-task*-impl.md', '.claude-*-source-task*-impl.md'],
+            'debugOrTestTemporaryFiles': 'allowed',
+        },
         'sourceTruthRendering': {
             'tool': source_truth_render,
             'preflight': '--fingerprint-preflight --strict --execution-ready --plan-path <plan>',
             'render': '--task-id <task-id> --role <implementer|reviewer> --strict --execution-ready',
+            'delivery': 'capture stdout and inject under ## Rendered Source-of-Truth Constraints for This Task',
             'fullReport': 'planning-audit-only',
         },
         'nodes': [
@@ -2413,7 +2423,7 @@ Core rules:
 1. Multica is the workflow runtime; users do not need a local Claude Code Superpowers plugin.
 2. Feature and behavior-change work starts with brainstorming, then approved spec, then writing-plans, then execution.
 3. Planning must create schemaVersion 3 `.wiki-context.json` and a lightweight `Referenced Project Wiki` section.
-4. Execution consumes the plan-selected wiki context through `{MULTICA_TOOLS_ROOT_EXPR}/scripts/wiki_context_render.py`; it must not reselect wiki pages.
+4. Execution consumes the plan-selected wiki context through `{MULTICA_TOOLS_ROOT_EXPR}/scripts/wiki_context_render.py` by capturing renderer stdout and injecting labeled task/role constraint blocks into role-task prompts; it must not reselect wiki pages or persist rendered Markdown context files such as `.claude-*-wiki-task*-impl.md` or `.claude-*-source-task*-impl.md`.
 5. Role agents run as fresh Multica tasks; do not collapse implementer, reviewer, debugger, and wiki-curator contracts into one context.
 6. Python scripts are tool-runner internals, not user entrypoints.
 7. External visible side effects require gates: commit, push, PR creation, and shared wiki publish.

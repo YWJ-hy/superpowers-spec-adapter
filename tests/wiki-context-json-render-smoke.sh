@@ -100,7 +100,7 @@ cat > "$CONTEXT" <<JSON
             "implementation": ["Use updateByPath(path, value) for all field updates."],
             "test": ["Verify nested path updates preserve change tracking."],
             "review": ["Reject direct props.model mutation."],
-            "general": ["Keep path strings stable across adapter layers."]
+            "general": ["Keep path strings stable across adapter layers.", "Preserve Unicode sentinel  in rendered constraints."]
           },
           "reread": {
             "root": "project",
@@ -289,6 +289,9 @@ assert_contains "T1 render" 'Hook Guidelines' "$T1_OUT"
 assert_contains "T1 render" 'Shared Frontend Contracts' "$T1_OUT"
 assert_contains "T1 render" 'Use updateByPath(path, value)' "$T1_OUT"
 assert_contains "T1 render" 'Keep shared payload names portable' "$T1_OUT"
+assert_contains "T1 render" 'Preserve Unicode sentinel  in rendered constraints.' "$T1_OUT"
+CP936_OUT="$(PYTHONIOENCODING=cp936:strict python3 "$SCRIPT" "$CONTEXT" --task-id T1 --role implementer --strict --execution-ready)"
+assert_contains "cp936 render" 'Preserve Unicode sentinel  in rendered constraints.' "$CP936_OUT"
 assert_not_contains "T1 render" 'Use dot-notation for nested object paths' "$T1_OUT"
 assert_not_contains "T1 render" 'No selected wiki constraints for this role.' "$T1_OUT"
 assert_not_contains "T1 render" 'planning-only' "$T1_OUT"
@@ -348,11 +351,12 @@ data = json.load(open(src, encoding='utf-8'))
 data['wikiPages'][0]['sections'][0]['constraints']['security'] = ['unknown category']
 open(dst, 'w', encoding='utf-8').write(json.dumps(data))
 PY
-if python3 "$SCRIPT" "$BAD_CATEGORY" --role implementer --strict >/tmp/wiki-context-bad-category.out 2>&1; then
+if PYTHONIOENCODING=cp936:strict python3 "$SCRIPT" "$BAD_CATEGORY" --role implementer --strict >/tmp/wiki-context-bad-category.out 2>&1; then
   printf 'Expected unknown category to fail in strict mode\n' >&2
   exit 1
 fi
 assert_contains "bad category failure" 'unsupported categories: security' "$(cat /tmp/wiki-context-bad-category.out)"
+assert_not_contains "bad category failure" 'UnicodeEncodeError' "$(cat /tmp/wiki-context-bad-category.out)"
 
 BAD_SECTION_CONTEXT="$TMP/bad-section-context.wiki-context.json"
 python3 - <<'PY' "$CONTEXT" "$BAD_SECTION_CONTEXT"

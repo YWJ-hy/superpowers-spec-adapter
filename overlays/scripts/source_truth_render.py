@@ -35,6 +35,16 @@ class FingerprintError(Exception):
     pass
 
 
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
+
 def _as_list(value: Any, field: str) -> list[Any]:
     if value is None:
         return []
@@ -438,6 +448,7 @@ def fingerprint_preflight(data: dict[str, Any], plan_path: Path) -> str:
 
 
 def main() -> int:
+    _configure_stdio()
     parser = argparse.ArgumentParser(description="Validate, filter, and render source-truth constraints JSON.")
     parser.add_argument("constraints_path", help="Path to docs/superpowers/plans/<plan-stem>.source-truth-constraints.json")
     parser.add_argument("--task", action="append", default=[], help="Deprecated schemaVersion 1 task id or label to include; repeatable")

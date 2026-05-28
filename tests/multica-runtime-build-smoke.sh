@@ -218,9 +218,12 @@ if 'wiki_context_render.py' not in json.dumps(graph, ensure_ascii=False):
 graph_text = json.dumps(graph, ensure_ascii=False)
 if 'source_truth_render.py' not in graph_text:
     raise SystemExit('SDD task graph missing source_truth_render.py reference')
-for required in ('--fingerprint-preflight', '--task-id <task-id>', 'fullReport'):
+for required in ('--fingerprint-preflight', '--task-id <task-id>', 'fullReport', 'capture-renderer-stdout', 'role-task-prompt', 'forbidden-rendered-markdown-context', '## Rendered Wiki Constraints for This Task', '## Rendered Source-of-Truth Constraints for This Task', '.claude-*-source-task*-impl.md'):
     if required not in graph_text:
-        raise SystemExit(f'SDD task graph missing source-truth v2 routing contract: {required}')
+        raise SystemExit(f'SDD task graph missing source-truth/render delivery contract: {required}')
+for node in graph.get('nodes', []):
+    if 'rendered-markdown' in json.dumps(node.get('outputArtifacts', []), ensure_ascii=False):
+        raise SystemExit('SDD task graph must not output rendered Markdown context artifacts')
 nodes = {node.get('nodeId'): node for node in graph.get('nodes', [])}
 for node_id in ('implementer', 'spec-compliance-reviewer', 'code-quality-reviewer', 'code-reviewer-final'):
     if node_id not in nodes:

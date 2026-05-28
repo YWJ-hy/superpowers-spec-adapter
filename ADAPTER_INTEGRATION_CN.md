@@ -182,13 +182,13 @@ plan 小节示例：
 
 ### 5.3 `executing-plans`
 
-执行前读取 plan 中的 `Referenced Project Wiki`，定位链接的 `.wiki-context.json`，并通过 plugin-root `wiki_context_render.py` 按当前 task / implementer role 渲染 selected project wiki constraints。
+执行前读取 plan 中的 `Referenced Project Wiki`，定位链接的 `.wiki-context.json`，并通过 plugin-root `wiki_context_render.py` 按当前 task / implementer role 渲染 selected project wiki constraints。主 agent 应捕获 renderer stdout，并在 prompt 中用 `## Rendered Wiki Constraints for This Task` 标注 source sidecar、task id、role 和 preflight 状态后直接注入；正常执行不应把 rendered constraints 写成 `.claude-*-wiki-task*-impl.md` 或 `.claude-*-source-task*-impl.md` 等 Markdown 上下文文件。
 
 执行阶段不重新选择 wiki 页面，也不执行用户项目内复制的 adapter 脚本。
 
 ### 5.4 `subagent-driven-development`
 
-分发 implementer / reviewer subagent 前，主 agent 应读取 plan 的 `Referenced Project Wiki`，用 plugin-root `wiki_context_render.py` 按分配任务分别渲染 implementer / reviewer 约束块，并把渲染结果放进 subagent prompt。
+分发 implementer / reviewer subagent 前，主 agent 应读取 plan 的 `Referenced Project Wiki`，用 plugin-root `wiki_context_render.py` 按分配任务分别渲染 implementer / reviewer 约束块，捕获 stdout，并把带边界标注的渲染结果直接放进 subagent prompt，而不是传递 rendered Markdown 文件路径。
 
 subagent 不应重新从 `.superpowers/wiki/` 选择规范，除非主 agent 判断 plan 引用明显不足并回到 planning 修正。
 

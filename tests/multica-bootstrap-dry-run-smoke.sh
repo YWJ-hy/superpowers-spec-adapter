@@ -205,7 +205,7 @@ for template, (entrypoint, extra) in cases.items():
             if required not in body:
                 raise SystemExit(f'writing-plans issue body missing source-truth requirement {required!r}:\n{body}')
     if template in {'execute-plan', 'sdd-execution'}:
-        for required in ('Source-truth constraints path', 'source_truth_render.py', '--fingerprint-preflight', '--task-id', 'do not read the full `*.source-truth-report.json`'):
+        for required in ('Source-truth constraints path', 'source_truth_render.py', '--fingerprint-preflight', '--task-id', 'do not read the full `*.source-truth-report.json`', 'Capture renderer stdout', '## Assigned Task', '## Rendered Wiki Constraints for This Task', '## Rendered Source-of-Truth Constraints for This Task', '## Hard Wiki Constraint Rereads', '.claude-*-source-task*-impl.md', 'tests and diagnostics may temporarily redirect renderer stdout'):
             if required not in body:
                 raise SystemExit(f'{template} issue body missing constraints-only execution guidance {required!r}:\n{body}')
     if template in {'publish-shared-wiki', 'shared-wiki-mcp-pr'} and 'Authorization gate:' not in body:

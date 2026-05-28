@@ -111,7 +111,7 @@ payload = {
             "hardConstraint": True,
             "sourceRefs": [{"path": "src/services/generated/client.ts", "role": "truth", "edit": "never"}],
             "constraints": {
-                "implementation": ["Do not edit generated service clients."],
+                "implementation": ["Do not edit generated service clients.", "Preserve Unicode sentinel  in rendered constraints."],
                 "test": ["Test against the generated client shape."],
                 "review": ["Confirm generated clients were not modified."],
                 "general": ["Backend contract is the authority for service fields."],
@@ -136,7 +136,7 @@ payload = {
     "taskConstraintRefs": tasks,
     "caveats": ["Full report is planning/audit only."],
 }
-out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 PY
 
 python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --validate-only --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
@@ -148,6 +148,9 @@ require_text 'Task ID: `T1`' "$TMP_DIR/t1-implementer.md"
 require_text 'Do not edit generated service clients.' "$TMP_DIR/t1-implementer.md"
 require_text 'Test against the generated client shape.' "$TMP_DIR/t1-implementer.md"
 require_text 'Backend contract is the authority' "$TMP_DIR/t1-implementer.md"
+require_text 'Preserve Unicode sentinel  in rendered constraints.' "$TMP_DIR/t1-implementer.md"
+PYTHONIOENCODING=cp936:strict python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --task-id T1 --role implementer --strict --execution-ready >"$TMP_DIR/t1-cp936.md"
+require_text 'Preserve Unicode sentinel  in rendered constraints.' "$TMP_DIR/t1-cp936.md"
 require_text 'Use existing permission keys only.' "$TMP_DIR/t1-implementer.md"
 reject_text 'Confirm generated clients were not modified.' "$TMP_DIR/t1-implementer.md"
 reject_text 'Applies to:' "$TMP_DIR/t1-implementer.md"
@@ -160,11 +163,12 @@ python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2
 require_text 'Do not edit generated service clients.' "$TMP_DIR/t2-implementer.md"
 reject_text 'Use existing permission keys only.' "$TMP_DIR/t2-implementer.md"
 
-if python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --task-id T404 --role implementer --strict --execution-ready >"$TMP_DIR/unknown-task.out" 2>&1; then
+if PYTHONIOENCODING=cp936:strict python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --task-id T404 --role implementer --strict --execution-ready >"$TMP_DIR/unknown-task.out" 2>&1; then
   printf 'Expected unknown task-id to fail\n' >&2
   exit 1
 fi
 require_text 'taskConstraintRefs must contain exactly one entry for taskId T404' "$TMP_DIR/unknown-task.out"
+reject_text 'UnicodeEncodeError' "$TMP_DIR/unknown-task.out"
 
 cp "$TMP_DIR/plan.md" "$TMP_DIR/changed-plan.md"
 printf '\nManual edit after review.\n' >>"$TMP_DIR/changed-plan.md"
