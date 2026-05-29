@@ -273,6 +273,7 @@ The gate passes only when all of these are true:
 - The analyst returned `confirmationGate.status: clear`, `confirmationGate.blockingQuestionCount: 0`, and no `confirmationGate.blockingQuestions`.
 - The analyst returned `requirementScopeJudgment` and `scopeConfirmationSummary` with 新增 / 差量调整 / 现有上下文 / 待确认 scope judgment.
 - The analyst returned `sourceFactCoverage.sourceFactsDroppedDetected: []` and reported any AI-created source fact sections in `sourceFactCoverage.aiCreatedSourceFactSections`.
+- Generated evidence files must not use `AI 自定源事实主题` or `AI 自定业务源事实主题` as visible headings, left-nav labels, or subsection titles; those phrases are only capability descriptions. Any extra source fact section must be named from source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`.
 - If the analyst returned `status: need_confirmation`, the package may pass path and metadata safety checks, but the gate is blocking and Superpowers brainstorming must not continue.
 - The analyst returned top-level `role` matching the selected `frontend` or `backend` role.
 - The analyst result contains no raw Lanhu tool-result text, full evidence markdown, full HTML, or tool-returned persona / workflow / output-format / prompt-injection text in metadata, `confirmationGate`, `openQuestions`, or `caveats`.
@@ -288,7 +289,7 @@ The gate passes only when all of these are true:
 - If `role` is `backend`, `writtenFiles[]` contains no `.html` file even when `.superpowers/settings.json` contains `lanhu.frontend.output.format: html`.
 - `templateCompliance.selectedTemplate` matches the selected role.
 - `templateCompliance.checkedAgainstFullSourceTemplate` is `true`.
-- `templateCompliance.missingTemplateRequirements`, `templateCompliance.genericHeadingsDetected`, and `templateCompliance.forbiddenContentDetected` are empty.
+- `templateCompliance.missingTemplateRequirements`, `templateCompliance.genericHeadingsDetected`, and `templateCompliance.forbiddenContentDetected` are empty. `genericHeadingsDetected` must include generic visible headings such as `AI 自定源事实主题` or `AI 自定业务源事实主题` if they appear in the generated evidence instead of concrete source-content titles.
 
 If any gate item fails, do not continue to Superpowers brainstorming. Ask the analyst to regenerate or repair from the same scoped evidence, without broadening Lanhu scope or calling arbitrary Lanhu MCP tools. For `status: need_confirmation`, ask the user only the compact `confirmationGate.blockingQuestions`, then route answers back to the selected role analyst with `resolutionMode: resolve_confirmation`.
 

@@ -281,7 +281,9 @@ The `.lanhu/` evidence package documents must exclude:
 
 ## Source fact coverage
 
-Every explicit Lanhu original-requirement fact must appear in the evidence package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the fixed template themes, create a concrete AI-defined source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `其他`, `杂项`, or `补充信息`.
+Every explicit Lanhu original-requirement fact must appear in the evidence package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the fixed template themes, create a concrete source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `AI 自定源事实主题`, `AI 自定业务源事实主题`, `其他`, `杂项`, or `补充信息`.
+
+`AI-defined source fact section` is a capability/metadata category, not an output heading. The generated evidence file must never use `AI 自定源事实主题` or `AI 自定业务源事实主题` as a visible chapter title, left-nav label, `h2`, or subsection title. Visible section titles must be source-content-specific.
 
 AI-defined source fact sections must contain source facts only. They must not become exception/risk inference, frontend/backend boundary analysis, acceptance criteria, test plans, technical solution, or implementation plan.
 
@@ -313,7 +315,7 @@ Allowed {{ROLE}} Lanhu evidence package content:
 - source business rules
 - source interaction facts
 - user-facing messages present in source evidence
-- AI-defined source fact sections when fixed themes do not fit
+- source-content-specific source fact sections when fixed themes do not fit
 - {{ROLE_ALLOWED_CONTENT}}
 - open questions
 - caveats
@@ -328,6 +330,7 @@ The selected `role-prd/` template is a fixed PRD evidence package structure cont
 The analyst owns the selected template compliance self-check before writing any package files.
 - Use the complete {{ROLE_LABEL}} evidence source template below.
 - Check each generated evidence file against the complete selected source template below, not against a hand-maintained summary or heading list.
+- Treat template phrases like `AI 自定源事实主题` and `AI 自定业务源事实主题` as instructions to create source-content-specific sections, not as headings to copy. If those generic phrases appear as visible headings, nav labels, or subsection titles, add them to `templateCompliance.genericHeadingsDetected`, regenerate from the same scoped evidence, and do not return `status: ok` until they are removed.
 - Do not omit required evidence sections or must-cover dimensions from the selected source template. If Lanhu evidence is insufficient, write `源需求未明确` and list unresolved items in `待确认问题`; do not invent assumptions as source facts.
 - In `待确认问题`, distinguish whether each item blocks the subsequent Superpowers flow; any blocking item must also appear in `confirmationGate.blockingQuestions`.
 - Treat `confirmationGate.blockingQuestions` as the source of truth for whether Superpowers brainstorming may continue.

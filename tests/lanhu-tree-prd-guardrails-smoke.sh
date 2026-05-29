@@ -216,6 +216,9 @@ for required in \
   '左侧导航' \
   '右侧内容区仅显示当前激活章节内容' \
   '真实 HTML 控件' \
+  '按源需求命名的源事实主题' \
+  '<button data-target="custom-facts">九、按源需求命名的源事实主题</button>' \
+  '<section id="custom-facts" class="evidence-section"><h2>九、按源需求命名的源事实主题</h2>{{custom_facts_section_content}}</section>' \
   'rawHtmlInjectionDetected' \
   'fallbackToMarkdown' \
   '不输出 XML-like 页面布局结构草图文本' \
@@ -244,7 +247,8 @@ for required in \
   '业务状态源事实' \
   '权限与数据可见性源事实' \
   '数据相关源事实' \
-  'AI 自定业务源事实主题' \
+  '按源需求命名的业务源事实主题' \
+  '不得输出“AI 自定业务源事实主题”作为标题' \
   '待确认问题' \
   '标准 PRD evidence package structure' \
   '不得改变顶层包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态' \

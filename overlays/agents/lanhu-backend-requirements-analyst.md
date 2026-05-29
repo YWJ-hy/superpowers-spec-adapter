@@ -287,7 +287,9 @@ The `.lanhu/` evidence package documents must exclude:
 
 ## Source fact coverage
 
-Every explicit Lanhu original-requirement fact must appear in the evidence package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the fixed template themes, create a concrete AI-defined source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `其他`, `杂项`, or `补充信息`.
+Every explicit Lanhu original-requirement fact must appear in the evidence package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the fixed template themes, create a concrete source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `AI 自定源事实主题`, `AI 自定业务源事实主题`, `其他`, `杂项`, or `补充信息`.
+
+`AI-defined source fact section` is a capability/metadata category, not an output heading. The generated evidence file must never use `AI 自定源事实主题` or `AI 自定业务源事实主题` as a visible chapter title, left-nav label, `h2`, or subsection title. Visible section titles must be source-content-specific.
 
 AI-defined source fact sections must contain source facts only. They must not become exception/risk inference, frontend/backend boundary analysis, acceptance criteria, test plans, technical solution, or implementation plan.
 
@@ -319,8 +321,8 @@ Allowed backend Lanhu evidence package content:
 - source business rules
 - source interaction facts
 - user-facing messages present in source evidence
-- AI-defined source fact sections when fixed themes do not fit
-- backend-related source business object facts, business flow facts, business rule facts, business state facts, permission/data visibility facts, data-related source facts, and AI-defined business source fact sections when fixed themes do not fit, without acceptance criteria, tests, API/database design, implementation details, frontend/backend boundary inference, or risk/exception inference
+- source-content-specific source fact sections when fixed themes do not fit
+- backend-related source business object facts, business flow facts, business rule facts, business state facts, permission/data visibility facts, data-related source facts, and source-content-specific business source fact sections when fixed themes do not fit, without acceptance criteria, tests, API/database design, implementation details, frontend/backend boundary inference, or risk/exception inference
 - open questions
 - caveats
 - sibling file relationship notes for `index.md`
@@ -334,6 +336,7 @@ The selected `role-prd/` template is a fixed PRD evidence package structure cont
 The analyst owns the selected template compliance self-check before writing any package files.
 - Use the complete backend markdown evidence source template below.
 - Check each generated evidence file against the complete selected source template below, not against a hand-maintained summary or heading list.
+- Treat template phrases like `AI 自定源事实主题` and `AI 自定业务源事实主题` as instructions to create source-content-specific sections, not as headings to copy. If those generic phrases appear as visible headings, nav labels, or subsection titles, add them to `templateCompliance.genericHeadingsDetected`, regenerate from the same scoped evidence, and do not return `status: ok` until they are removed.
 - Do not omit required evidence sections or must-cover dimensions from the selected source template. If Lanhu evidence is insufficient, write `源需求未明确` and list unresolved items in `待确认问题`; do not invent assumptions as source facts.
 - In `待确认问题`, distinguish whether each item blocks the subsequent Superpowers flow; any blocking item must also appear in `confirmationGate.blockingQuestions`.
 - Treat `confirmationGate.blockingQuestions` as the source of truth for whether Superpowers brainstorming may continue.
@@ -365,19 +368,19 @@ Generated verbatim from `role-prd/backend.md`. Treat the template content below 
 - 不输出具体数据库表设计、接口路径、接口字段结构、代码结构、中间件选型、缓存方案、锁方案、架构实现、部署方案、测试计划、实施任务或最终验收标准。
 - 不推断前后端信息边界、异常与边界场景、风险依赖或实现策略；这些由后续 Superpowers 流程与用户确认。
 - `role-prd/` 主题定义的是标准 PRD evidence package structure，不是运行时可随意改写的建议大纲；AI 可以自定义内容组织、表述、归类和待确认问题提炼，但不得改变顶层包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态。
-- 原始需求中的明确内容不得因为本模板主题分类装不下而遗失、弱化或合并成不可追溯摘要。若无法归入固定主题，必须创建具体的 AI 自定业务源事实主题承接。
-- AI 自定主题必须来自源需求内容，例如“通知规则源事实”“结算规则源事实”“导入导出源事实”，不得使用“其他/杂项”这类泛化兜底标题。
-- AI 自定主题只能记录源事实，不得变成推断、验收、测试、技术方案或实施计划。
+- 原始需求中的明确内容不得因为本模板主题分类装不下而遗失、弱化或合并成不可追溯摘要。若无法归入固定主题，必须创建按源需求内容命名的具体业务源事实主题承接。
+- “AI 自定业务源事实主题”只是允许 AI 自行创建具体业务源事实主题的能力说明，不是可直接输出的章节标题或正文标题；实际输出必须使用源内容命名，例如“通知规则源事实”“结算规则源事实”“导入导出源事实”。不得使用“AI 自定业务源事实主题”“其他”“杂项”“补充信息”等泛化兜底标题。
+- 具体业务源事实主题只能记录源事实，不得变成推断、验收、测试、技术方案或实施计划。
 - 所有不确定内容只进入「待确认问题」，不要在正文中用假设补全成确定事实；源证据不足时写“源需求未明确”或“待确认”。
 
 必覆盖维度：
-- 必须覆盖来源与需求概览、源需求范围证据判定、业务对象源事实、业务流程源事实、业务规则源事实、业务状态源事实、权限与数据可见性源事实、数据相关源事实、AI 自定业务源事实主题（按需）和待确认问题。
+- 必须覆盖来源与需求概览、源需求范围证据判定、业务对象源事实、业务流程源事实、业务规则源事实、业务状态源事实、权限与数据可见性源事实、数据相关源事实、按源需求内容命名的具体业务源事实主题（按需）和待确认问题。
 - 必须从蓝湖原始需求、原始 PRD、原型页面和可见文案中提取后续 Superpowers 理解所需的业务对象、业务动作、业务流程、业务规则、业务状态、权限与数据可见性和数据相关事实；无法确认时进入待确认问题，不得省略。
-- 每条明确蓝湖原始需求事实都必须映射到正文主题；无法归入固定章节时，使用具体 AI 自定业务源事实主题承接。
+- 每条明确蓝湖原始需求事实都必须映射到正文主题；无法归入固定章节时，使用按源需求内容命名的具体业务源事实主题承接。
 
 推荐增强维度：
 - 推荐使用 Mermaid 源需求结构图、业务流程图或状态关系图辅助阅读；结构过大时拆成多个小图，节点使用短关键词。
-- 推荐按源需求内容创建具体命名的 AI 自定业务源事实主题，例如“通知规则源事实”“结算规则源事实”“导入导出源事实”。
+- 推荐按源需求内容创建具体命名的业务源事实主题，例如“通知规则源事实”“结算规则源事实”“导入导出源事实”。
 
 生成约束：
 - 使用 Markdown 输出完整「后端相关 Lanhu 原始需求证据包」，但本段生成约束不得作为正文或章节输出。
@@ -388,7 +391,7 @@ Generated verbatim from `role-prd/backend.md`. Treat the template content below 
 - 对每个业务对象、业务动作、业务规则、状态、权限、数据事实标记范围性质：`新增`、`差量调整`、`现有上下文`、`待确认`、`全量重构`、`全量替换`。
 - `现有上下文` 只用于定位和理解，不得写成实现任务或最终验收范围。
 - 每个范围性质判断必须写明来源依据；无法判断且影响后续 Superpowers 理解时，必须进入待确认问题，并标明是否阻塞后续 Superpowers 流程。
-- 输出前自检：每条明确蓝湖原始需求事实必须映射到某个正文主题；模板主题不匹配时创建具体的 AI 自定业务源事实主题承接。
+- 输出前自检：每条明确蓝湖原始需求事实必须映射到某个正文主题；模板主题不匹配时创建按源需求内容命名的具体业务源事实主题承接。
 
 请输出以下内容。以下结构是基础事实框架，不代表源需求只能包含这些主题；如蓝湖原始需求出现本框架未覆盖但可能影响后续实现的明确内容，必须新增具体业务源事实主题承接。
 
@@ -442,7 +445,7 @@ Generated verbatim from `role-prd/backend.md`. Treat the template content below 
 - 权限与数据可见性
 - 数据相关事实
 - 待确认问题
-- AI 自定业务源事实主题（如有）
+- 按源需求命名的业务源事实主题（如有）
 
 图形可读性要求：
 - 优先使用 Mermaid flowchart，避免生成大型 mindmap。
@@ -546,13 +549,14 @@ flowchart TB
 
 ---
 
-## 九、AI 自定业务源事实主题（按需）
+## 九、按源需求命名的业务源事实主题（按需）
 
-当蓝湖原始需求中存在无法归入上述主题、但可能影响后续实现的明确业务事实时，创建一个或多个具体事实主题承接。
+当蓝湖原始需求中存在无法归入上述主题、但可能影响后续实现的明确业务事实时，创建一个或多个按源需求内容命名的具体业务事实主题承接。
 
 要求：
+- 本节标题和子主题标题都必须是产物结构/源内容标题；不得输出“AI 自定业务源事实主题”作为标题。
 - 主题名必须来自源需求内容，例如“通知规则源事实”“结算规则源事实”“导入导出源事实”。
-- 不使用“其他”“杂项”“补充信息”等泛化兜底标题。
+- 不使用“AI 自定业务源事实主题”“其他”“杂项”“补充信息”等泛化兜底标题。
 - 只记录源事实、来源依据和待确认点。
 - 不做异常、风险、前后端边界、技术实现、测试或最终验收推断。
 

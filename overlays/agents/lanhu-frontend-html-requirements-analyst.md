@@ -296,7 +296,9 @@ The `.lanhu/` evidence package documents must exclude:
 
 ## Source fact coverage
 
-Every explicit Lanhu original-requirement fact must appear in the evidence package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the fixed template themes, create a concrete AI-defined source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `其他`, `杂项`, or `补充信息`.
+Every explicit Lanhu original-requirement fact must appear in the evidence package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the fixed template themes, create a concrete source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `AI 自定源事实主题`, `AI 自定业务源事实主题`, `其他`, `杂项`, or `补充信息`.
+
+`AI-defined source fact section` is a capability/metadata category, not an output heading. The generated evidence file must never use `AI 自定源事实主题` or `AI 自定业务源事实主题` as a visible chapter title, left-nav label, `h2`, or subsection title. Visible section titles must be source-content-specific.
 
 AI-defined source fact sections must contain source facts only. They must not become exception/risk inference, frontend/backend boundary analysis, acceptance criteria, test plans, technical solution, or implementation plan.
 
@@ -328,8 +330,8 @@ Allowed frontend Lanhu evidence package content:
 - source business rules
 - source interaction facts
 - user-facing messages present in source evidence
-- AI-defined source fact sections when fixed themes do not fit
-- frontend HTML evidence reader plus a 1:1 Lanhu original-requirement UI replica prototype, including source page display facts, source field/control facts, interaction facts, state/prompt facts, permission visibility facts, and AI-defined source fact sections when fixed themes do not fit, without redundant control-type prose, acceptance criteria, tests, implementation details, frontend/backend boundary inference, or risk/exception inference
+- source-content-specific source fact sections when fixed themes do not fit
+- frontend HTML evidence reader plus a 1:1 Lanhu original-requirement UI replica prototype, including source page display facts, source field/control facts, interaction facts, state/prompt facts, permission visibility facts, and source-content-specific source fact sections when fixed themes do not fit, without redundant control-type prose, acceptance criteria, tests, implementation details, frontend/backend boundary inference, or risk/exception inference
 - open questions
 - caveats
 - sibling file relationship notes for `index.md`
@@ -343,6 +345,7 @@ The selected `role-prd/` template is a fixed PRD evidence package structure cont
 The analyst owns the selected template compliance self-check before writing any package files.
 - Use the complete frontend html evidence source template below.
 - Check each generated evidence file against the complete selected source template below, not against a hand-maintained summary or heading list.
+- Treat template phrases like `AI 自定源事实主题` and `AI 自定业务源事实主题` as instructions to create source-content-specific sections, not as headings to copy. If those generic phrases appear as visible headings, nav labels, or subsection titles, add them to `templateCompliance.genericHeadingsDetected`, regenerate from the same scoped evidence, and do not return `status: ok` until they are removed.
 - Do not omit required evidence sections or must-cover dimensions from the selected source template. If Lanhu evidence is insufficient, write `源需求未明确` and list unresolved items in `待确认问题`; do not invent assumptions as source facts.
 - In `待确认问题`, distinguish whether each item blocks the subsequent Superpowers flow; any blocking item must also appear in `confirmationGate.blockingQuestions`.
 - Treat `confirmationGate.blockingQuestions` as the source of truth for whether Superpowers brainstorming may continue.
@@ -422,11 +425,11 @@ Generated verbatim from `role-prd/frontend_outputHtml.md`. Treat the template co
 输出目标：
 - 通常生成 `.lanhu/MM-DD-需求名称/index.md`、`.lanhu/MM-DD-需求名称/index.html` 和 `.lanhu/MM-DD-需求名称/prototype/index.html`。
 - `index.md` 是需求包入口、文件角色说明、阅读顺序和关系说明。它不得硬编码列举 HTML 内部章节，必须告知后续 Superpowers / AI 主动解析当前 HTML 的标题层级、章节、表格、控件、流程图和提示块。
-- `index.html` 是原始需求证据阅读器，用于承载来源、范围证据、页面、展示、字段、交互、状态、权限、AI 自定源事实主题和待确认问题。它不是完整前端 spec。
+- `index.html` 是原始需求证据阅读器，用于承载来源、范围证据、页面、展示、字段、交互、状态、权限、按源需求内容命名的具体源事实主题（如有）和待确认问题。它不是完整前端 spec。
 - `prototype/index.html` 是蓝湖原始需求界面的 1:1 复刻 artifact，用于承载页面布局、界面结构、真实控件、交互状态、弹窗、抽屉、多步骤流程、空态、提示态和可视化操作关系。它不是生产前端代码。
 - `index.html` 和 `prototype/index.html` 必须互相链接，并在语义上结合解读；若两者存在冲突，必须列为待确认问题，不能自行假设。
 - HTML 模式下不再额外生成完整 `prd.md`，除非触发“纯文字/无页面交互”退化规则。
-- 当本 analyst 被主流程以 `pagePackageMode: true` 调用来处理多页面蓝湖运行中的单个页面时，仍必须产出完整原风格前端 HTML evidence package；不得因为“主 agent 稍后会汇总”而省略页面、字段、交互、状态、权限、AI 自定源事实主题或待确认问题。
+- 当本 analyst 被主流程以 `pagePackageMode: true` 调用来处理多页面蓝湖运行中的单个页面时，仍必须产出完整原风格前端 HTML evidence package；不得因为“主 agent 稍后会汇总”而省略页面、字段、交互、状态、权限、具体源事实主题或待确认问题。
 
 生成约束：
 - 使用原生 HTML 输出「前端 HTML Lanhu 原始需求证据包」主文档和 1:1 交互复刻原型，但本段生成约束不得作为正文或章节输出。
@@ -441,19 +444,19 @@ Generated verbatim from `role-prd/frontend_outputHtml.md`. Treat the template co
 - 不输出最终验收标准、Given/When/Then、测试计划、实施任务、技术方案、前后端信息边界推断、异常与边界推断、风险依赖分析或源需求核对点。
 - HTML 已输出真实控件时，不再重复输出“控件类型：输入框/下拉/按钮”等说明文案；控件类型由 `prototype/index.html` 的真实控件表达。
 - 所有不确定内容只进入「待确认问题」，不要在正文中用假设补全成确定事实；源证据不足时写“源需求未明确”或“待确认”。
-- 原始需求中的明确内容不得因为本模板主题分类装不下而遗失、弱化或合并成不可追溯摘要。若无法归入固定主题，必须创建具体的 AI 自定源事实主题承接。
-- AI 自定主题必须来自源需求内容，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”，不得使用“其他/杂项”这类泛化兜底标题。
+- 原始需求中的明确内容不得因为本模板主题分类装不下而遗失、弱化或合并成不可追溯摘要。若无法归入固定主题，必须创建按源需求内容命名的具体源事实主题承接。
+- “AI 自定源事实主题”只是允许 AI 自行创建具体源事实主题的能力说明，不是可直接输出的章节标题、导航文案或 `h2` 正文标题；实际输出必须使用源内容命名，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”。不得使用“AI 自定源事实主题”“其他”“杂项”“补充信息”等泛化兜底标题。
 
 必覆盖维度：
-- 必须覆盖 `index.md` 文件角色与阅读顺序说明、`index.html` 原始需求证据阅读器、固定 shell、左侧导航 + 右侧激活章节、10 个 section id、`prototype/index.html` 1:1 Lanhu 原始需求界面复刻、页面与入口事实、页面展示事实、字段与控件事实、用户操作与交互事实、页面状态与提示事实、权限与可见性事实、AI 自定源事实主题（按需）和待确认问题。
+- 必须覆盖 `index.md` 文件角色与阅读顺序说明、`index.html` 原始需求证据阅读器、固定 shell、左侧导航 + 右侧激活章节、10 个 section id、`prototype/index.html` 1:1 Lanhu 原始需求界面复刻、页面与入口事实、页面展示事实、字段与控件事实、用户操作与交互事实、页面状态与提示事实、权限与可见性事实、按源需求内容命名的具体源事实主题（按需）和待确认问题。
 - 即使蓝湖原文没有特别描述，也必须从原型页面、可见界面、截图标注和页面上下文中提取前端开发依赖的页面布局、区域层级、信息层级、真实控件、控件所在源区域、操作入口、弹窗/抽屉/Tab/表格/卡片等交互容器、状态提示、权限可见性、字段表现和用户可见文案；无法确认时进入待确认问题，不得省略。
 - 图片、截图和 `designInfo.images` 只在具备范围信号时选择性分析；`prototype/index.html` 复刻 selected scoped/evidenced Lanhu requirement range，不因为返回了图片资源就默认完整复刻整张图或全部控件。
-- 每条明确蓝湖原始需求事实都必须映射到 `index.html` 的正文 section 或 `prototype/index.html` 的可核对结构；无法归入固定章节时，使用具体 AI 自定源事实主题承接。
+- 每条明确蓝湖原始需求事实都必须映射到 `index.html` 的正文 section 或 `prototype/index.html` 的可核对结构；无法归入固定章节时，使用按源需求内容命名的具体源事实主题承接。
 
 推荐增强维度：
 - 推荐使用 Mermaid 源需求结构图、用户操作流程图或状态关系图辅助阅读；结构过大时拆成多个小图，节点使用短关键词。
 - 推荐在 HTML 中使用少量 CSS/JS 改善阅读、章节导航、弹窗/抽屉开关、密码显示隐藏、折叠展开或状态可视化。
-- 推荐按源需求内容创建具体命名的 AI 自定源事实主题，例如“通知规则源事实”“结算规则源事实”“导入导出源事实”。
+- 推荐按源需求内容创建具体命名的源事实主题，例如“通知规则源事实”“结算规则源事实”“导入导出源事实”。
 
 源需求范围判定：
 - 必须先做「源需求范围证据判定」，再展开页面、UI、字段、交互、状态和权限事实。
@@ -534,7 +537,7 @@ HTML 文档结构要求：
         <button data-target="interactions">六、用户操作与交互源事实</button>
         <button data-target="states">七、页面状态与提示源事实</button>
         <button data-target="permissions">八、权限与可见性源事实</button>
-        <button data-target="custom-facts">九、AI 自定源事实主题</button>
+        <button data-target="custom-facts">九、按源需求命名的源事实主题</button>
         <button data-target="questions">十、待确认问题</button>
       </nav>
     </aside>
@@ -547,7 +550,7 @@ HTML 文档结构要求：
       <section id="interactions" class="evidence-section"><h2>六、用户操作与交互源事实</h2>{{interactions_section_content}}</section>
       <section id="states" class="evidence-section"><h2>七、页面状态与提示源事实</h2>{{states_section_content}}</section>
       <section id="permissions" class="evidence-section"><h2>八、权限与可见性源事实</h2>{{permissions_section_content}}</section>
-      <section id="custom-facts" class="evidence-section"><h2>九、AI 自定源事实主题</h2>{{custom_facts_section_content}}</section>
+      <section id="custom-facts" class="evidence-section"><h2>九、按源需求命名的源事实主题</h2>{{custom_facts_section_content}}</section>
       <section id="questions" class="evidence-section"><h2>十、待确认问题</h2>{{questions_section_content}}</section>
     </main>
   </div>
@@ -717,13 +720,14 @@ HTML 表格列必须包含：
 
 ---
 
-## 九、AI 自定源事实主题（按需）
+## 九、按源需求命名的源事实主题（按需）
 
-当蓝湖原始需求中存在无法归入上述主题、但可能影响后续实现的明确内容时，创建一个或多个具体事实主题承接。
+当蓝湖原始需求中存在无法归入上述主题、但可能影响后续实现的明确内容时，创建一个或多个按源需求内容命名的具体事实主题承接。
 
 要求：
+- 本节标题、左侧导航标题和子主题标题都必须是产物结构/源内容标题；不得输出“AI 自定源事实主题”作为标题。
 - 主题名必须来自源需求内容，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”。
-- 不使用“其他”“杂项”“补充信息”等泛化兜底标题。
+- 不使用“AI 自定源事实主题”“其他”“杂项”“补充信息”等泛化兜底标题。
 - 只记录源事实、来源依据和待确认点。
 - 不做异常、风险、前后端边界、技术实现、测试或最终验收推断。
 

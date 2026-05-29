@@ -378,7 +378,8 @@ check_optional_integration_overlays() {
     '真实 Tab 标签' \
     '源证据没有 Tab 时，不输出 `tab-area`' \
     '页面状态与提示源事实' \
-    'AI 自定源事实主题'
+    '按源需求命名的源事实主题' \
+    '不得输出“AI 自定源事实主题”作为标题'
   do
     if ! grep -Fq "$required" "$lanhu_frontend_agent"; then
       printf 'Missing frontend Markdown Lanhu analyst guardrail: %s\n' "$required" >&2
@@ -429,6 +430,8 @@ check_optional_integration_overlays() {
     '左侧导航' \
     '右侧内容' \
     '真实 HTML 控件' \
+    '按源需求命名的源事实主题' \
+    '<button data-target="custom-facts">九、按源需求命名的源事实主题</button>' \
     'externalAssetsDetected' \
     'productionImplementationDetected' \
     'rawHtmlInjectionDetected' \
@@ -464,7 +467,8 @@ check_optional_integration_overlays() {
     '业务状态源事实' \
     '权限与数据可见性源事实' \
     '数据相关源事实' \
-    'AI 自定业务源事实主题' \
+    '按源需求命名的业务源事实主题' \
+    '不得输出“AI 自定业务源事实主题”作为标题' \
     '待确认问题'
   do
     if ! grep -Fq "$required" "$lanhu_backend_agent"; then
