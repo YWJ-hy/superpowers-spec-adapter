@@ -7,13 +7,12 @@ TARGET_INPUT="${1:-${ROOT}/../superpowers}"
 TARGET_INPUT="$(cd "${TARGET_INPUT}" && pwd)"
 
 LANHU_FRONTEND_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md"
-LANHU_FRONTEND_HTML_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-html-requirements-analyst.md"
 LANHU_BACKEND_AGENT="${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md"
 LANHU_SKILL="${TARGET_INPUT}/skills/lanhu-requirements/SKILL.md"
 BRAINSTORMING_SKILL="${TARGET_INPUT}/skills/brainstorming/SKILL.md"
 USING_SUPERPOWERS_SKILL="${TARGET_INPUT}/skills/using-superpowers/SKILL.md"
 
-for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL" "$USING_SUPERPOWERS_SKILL"; do
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL" "$USING_SUPERPOWERS_SKILL"; do
   if [[ ! -f "$file" ]]; then
     printf 'Expected installed Lanhu confirmation gate target: %s\n' "$file" >&2
     exit 1
@@ -29,7 +28,7 @@ require_in_file() {
   fi
 }
 
-for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT"; do
+for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
   for required in \
     'status: need_confirmation' \
     'confirmationGate' \
@@ -44,45 +43,18 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
     'Do not continue to Superpowers brainstorming' \
     'raw Lanhu tool-result text' \
     'full PRD markdown' \
+    'full HTML' \
     '是否阻塞后续 Superpowers 流程' \
     '阻塞原因' \
     'outputPreference' \
-    'htmlPrdCompliance' \
-    'checkedAgainstFullHtmlSourceTemplate' \
-    'leftNavActiveSectionOnly' \
-  'leftRightDocumentLayout' \
-    'realHtmlInteractionControls' \
-    'uiControlsTraceableToLanhuEvidence' \
-    'prototype/index.html' \
-    'prototypeArtifactPresent' \
-    'prototypeDirectoryized' \
-    'prototypeLinkedFromIndexHtml' \
-    'indexMdDynamicHtmlParsingGuidance' \
-    'mermaidModuleScriptPresent' \
-    'mermaidBlocksBrowserRenderable' \
-    'onlyAllowedExternalAssetIsMermaidCdn' \
-    'prdPrototypeConflictQuestionsRaised' \
-    'fallbackToMarkdown' \
-    'pagePackageMode' \
-    'full_package_per_page' \
-    'Compact metadata is not an evidence source' \
+    'packageKind' \
     'Missing implementation field names' \
     'image relevance' \
-    'status: need_confirmation' \
-    'selectiveImageAnalysis'
+    'selectiveImageAnalysis' \
+    'Compact metadata is not an evidence source'
   do
     require_in_file "$agent" "$required"
   done
-done
-
-for required in \
-  'canonicalIndexHtmlShell' \
-  'canonicalIndexHtmlShellVersion' \
-  'prototypeVisualLayoutMatchesLanhuEvidence' \
-  'prototypeControlsRemainInSourceRegions' \
-  'prototypeLayoutApproximationCaveats'
-do
-  require_in_file "$LANHU_FRONTEND_HTML_AGENT" "$required"
 done
 
 for required in \
@@ -98,13 +70,7 @@ for required in \
   'main session must not override `confirmationGate` directly' \
   'lanhu.role' \
   'outputPreference' \
-  'htmlPrdCompliance' \
-  'checkedAgainstFullHtmlSourceTemplate' \
-  'leftNavActiveSectionOnly' \
-  'leftRightDocumentLayout' \
-  'realHtmlInteractionControls' \
-  'uiControlsTraceableToLanhuEvidence' \
-  'fallbackToMarkdown' \
+  'packageKind' \
   'Missing implementation field names'
 do
   require_in_file "$LANHU_SKILL" "$required"
@@ -122,13 +88,7 @@ for required in \
   'confirmationGate.status: clear' \
   'lanhu.role' \
   'outputPreference' \
-  'htmlPrdCompliance' \
-  'checkedAgainstFullHtmlSourceTemplate' \
-  'leftNavActiveSectionOnly' \
-  'leftRightDocumentLayout' \
-  'realHtmlInteractionControls' \
-  'uiControlsTraceableToLanhuEvidence' \
-  'fallbackToMarkdown' \
+  'packageKind' \
   'Missing implementation field names'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"

@@ -9,10 +9,8 @@ from pathlib import Path
 import sys
 
 PROJECT_SETTINGS_REL = Path(".superpowers") / "settings.json"
-LANHU_OUTPUT_MARKDOWN = "markdown"
-LANHU_OUTPUT_HTML = "html"
-LANHU_OUTPUT_VALUES = {LANHU_OUTPUT_MARKDOWN, LANHU_OUTPUT_HTML}
 LANHU_ROLE_VALUES = {"frontend", "backend"}
+DEPRECATED_FRONTEND_OUTPUT_VALUES = {"markdown", "html"}
 
 
 def repo_root(start: Path) -> Path:
@@ -42,10 +40,10 @@ def _optional_object(parent: dict, key: str, settings_path: Path, dotted_path: s
     return value
 
 
-def load_lanhu_settings(project_root: Path) -> tuple[str | None, str, Path | None]:
+def load_lanhu_settings(project_root: Path) -> tuple[str | None, str | None, Path | None]:
     settings_path = project_root / PROJECT_SETTINGS_REL
     if not settings_path.is_file():
-        return None, LANHU_OUTPUT_MARKDOWN, None
+        return None, None, None
 
     payload = _read_object(settings_path)
     lanhu = _optional_object(payload, "lanhu", settings_path, "lanhu settings")
@@ -55,58 +53,77 @@ def load_lanhu_settings(project_root: Path) -> tuple[str | None, str, Path | Non
         allowed_roles = ", ".join(sorted(LANHU_ROLE_VALUES))
         raise ValueError(f"Invalid lanhu.role in {settings_path}: {configured_role!r}; expected one of {allowed_roles}")
 
+    deprecated_format = None
     frontend = _optional_object(lanhu, "frontend", settings_path, "lanhu.frontend")
     output = _optional_object(frontend, "output", settings_path, "lanhu.frontend.output")
-
-    value = output.get("format", LANHU_OUTPUT_MARKDOWN)
-    if value not in LANHU_OUTPUT_VALUES:
-        allowed = ", ".join(sorted(LANHU_OUTPUT_VALUES))
-        raise ValueError(f"Invalid lanhu.frontend.output.format in {settings_path}: {value!r}; expected one of {allowed}")
-    return configured_role, value, settings_path
+    if "format" in output:
+        value = output.get("format")
+        if not isinstance(value, str):
+            raise ValueError(f"Invalid lanhu.frontend.output.format in {settings_path}: {value!r}; expected a string")
+        deprecated_format = value
+    return configured_role, deprecated_format, settings_path
 
 
 def resolve_output_preference(project_root: Path, role: str | None) -> dict:
-    configured_role, configured_format, settings_path = load_lanhu_settings(project_root)
+    configured_role, deprecated_format, settings_path = load_lanhu_settings(project_root)
     effective_role = role or configured_role
     if effective_role is None:
         raise ValueError("Lanhu role is required when lanhu.role is not configured; expected frontend or backend")
-    if effective_role not in {"frontend", "backend"}:
+    if effective_role not in LANHU_ROLE_VALUES:
         raise ValueError(f"Unsupported role: {effective_role!r}; expected frontend or backend")
-    warnings: list[str] = []
-    effective_format = configured_format if effective_role == "frontend" else LANHU_OUTPUT_MARKDOWN
-    html_enabled = effective_role == "frontend" and configured_format == LANHU_OUTPUT_HTML
 
-    if effective_role == "backend" and configured_format == LANHU_OUTPUT_HTML:
-        warnings.append("lanhu.frontend.output.format is frontend-only; backend output remains markdown")
+    warnings: list[str] = []
+    if deprecated_format is not None:
+        if deprecated_format not in DEPRECATED_FRONTEND_OUTPUT_VALUES:
+            warnings.append(
+                "lanhu.frontend.output.format is deprecated and ignored; "
+                f"frontend now always uses the unified role-prd package, received unsupported legacy value {deprecated_format!r}"
+            )
+        else:
+            warnings.append(
+                "lanhu.frontend.output.format is deprecated and ignored; "
+                "frontend now always uses the unified role-prd package"
+            )
 
     settings_display = PROJECT_SETTINGS_REL.as_posix() if settings_path else None
-    primary_kind = "html_prd" if html_enabled else "markdown_prd"
-    primary_filename = "index.html" if html_enabled else "prd.md"
+    package_kind = "frontend_unified" if effective_role == "frontend" else "backend_markdown"
+    primary_kind = "frontend_role_prd" if effective_role == "frontend" else "backend_markdown_prd"
+    primary_filename = "role-prd/prd.md" if effective_role == "frontend" else "prd.md"
+
     return {
         "role": effective_role,
         "configuredRole": configured_role,
         "roleSource": settings_display if role is None and configured_role else "argument",
         "settingsPath": settings_display,
         "source": settings_display or "default",
-        "format": effective_format,
+        "packageKind": package_kind,
         "primaryOutput": {
             "kind": primary_kind,
             "filename": primary_filename,
         },
-        "htmlPrd": {
-            "enabled": html_enabled,
-            "filename": "index.html",
-            "prototypeFilename": "prototype/index.html" if html_enabled else None,
-            "companionFiles": ["prototype/index.html"] if html_enabled else [],
-            "appliesToRole": "frontend",
-            "fallbackToMarkdownWhenTextOnly": True,
+        "frontendPackage": {
+            "enabled": effective_role == "frontend",
+            "prdPath": "role-prd/prd.md",
+            "designDemoPath": "role-prd/design/index.html",
+            "assetsDir": "role-prd/design/assets/",
+            "designDemoOptional": True,
+        },
+        "backendPackage": {
+            "enabled": effective_role == "backend",
+            "primaryPath": "prd.md",
+            "splitDir": "prds/",
+            "markdownOnly": True,
+        },
+        "deprecatedSettings": {
+            "lanhu.frontend.output.format": deprecated_format,
+            "ignored": deprecated_format is not None,
         },
         "warnings": warnings,
     }
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Resolve Lanhu output settings from project-local .superpowers/settings.json")
+    parser = argparse.ArgumentParser(description="Resolve Lanhu role and unified package settings from project-local .superpowers/settings.json")
     parser.add_argument("args", nargs="*")
     parsed = parser.parse_args(argv)
     if len(parsed.args) > 2:

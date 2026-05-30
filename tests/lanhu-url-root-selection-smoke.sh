@@ -7,12 +7,11 @@ TARGET_INPUT="${1:-${ROOT}/../superpowers}"
 TARGET_INPUT="$(cd "${TARGET_INPUT}" && pwd)"
 
 LANHU_FRONTEND_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md"
-LANHU_FRONTEND_HTML_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-html-requirements-analyst.md"
 LANHU_BACKEND_AGENT="${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md"
 LANHU_SKILL="${TARGET_INPUT}/skills/lanhu-requirements/SKILL.md"
 BRAINSTORMING_SKILL="${TARGET_INPUT}/skills/brainstorming/SKILL.md"
 
-for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
   if [[ ! -f "$file" ]]; then
     printf 'Expected installed Lanhu URL-root selection target: %s\n' "$file" >&2
     exit 1
@@ -48,7 +47,7 @@ for orchestrator in "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
     'matchingRestrictedToRootTree' \
     'mainAgentReadFullPageEvidenceBeforeDispatch: false' \
     'childPagePolicy: exclude' \
-    'one selected role-and-format analyst per selected page' \
+    'one selected' \
     'include_child_pages: false' \
     'confirmed_child_page_ids: []' \
     'full_package_per_page'
@@ -59,17 +58,18 @@ for orchestrator in "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
   forbid_in_file "$orchestrator" 'target page is always included'
   forbid_in_file "$orchestrator" 'If child pages exist, ask the user whether to include them before reading page content'
   forbid_in_file "$orchestrator" 'use `include_child_pages: true`'
+  forbid_in_file "$orchestrator" 'role-and-format'
 done
 
 for required in \
   'optional cross-package synthesis' \
-  'after per-page evidence packages' \
+  'after per-page packages' \
   'must not replace them'
 do
   require_in_file "$LANHU_SKILL" "$required"
 done
 
-for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT"; do
+for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
   for required in \
     'rootScopeContext' \
     'selectedFromRootTree' \

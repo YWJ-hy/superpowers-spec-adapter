@@ -94,7 +94,7 @@ ADAPTER_WORKFLOWS = (
     WorkflowSpec('init-wiki', 'adapter-skill', Path('overlays/skills/init-wiki/SKILL.md'), ('wiki-update-authorization',), ('superpowers-orchestrator', 'wiki-curator'), 'standalone'),
     WorkflowSpec('import-wiki', 'adapter-skill', Path('overlays/skills/import-wiki/SKILL.md'), ('wiki-update-authorization',), ('superpowers-orchestrator', 'wiki-curator'), 'standalone'),
     WorkflowSpec('migrate-wiki', 'adapter-skill', Path('overlays/skills/migrate-wiki/SKILL.md'), ('wiki-update-authorization',), ('superpowers-orchestrator', 'wiki-curator'), 'standalone'),
-    WorkflowSpec('lanhu-requirements', 'adapter-skill', Path('overlays/skills/lanhu-requirements/SKILL.md'), ('lanhu-scope-confirmation',), ('superpowers-orchestrator', 'lanhu-frontend-requirements-analyst', 'lanhu-frontend-html-requirements-analyst', 'lanhu-backend-requirements-analyst'), 'standalone'),
+    WorkflowSpec('lanhu-requirements', 'adapter-skill', Path('overlays/skills/lanhu-requirements/SKILL.md'), ('lanhu-scope-confirmation',), ('superpowers-orchestrator', 'lanhu-frontend-requirements-analyst', 'lanhu-backend-requirements-analyst'), 'standalone'),
     WorkflowSpec('shared-wiki-mcp', 'adapter-skill', Path('overlays/skills/shared-wiki-mcp/SKILL.md'), ('external-pr-creation-authorization',), ('superpowers-orchestrator', 'shared-wiki-publisher', 'wiki-curator'), 'standalone'),
     WorkflowSpec('publish-shared-wiki', 'adapter-skill', Path('overlays/skills/publish-shared-wiki/SKILL.md'), ('shared-wiki-publish-authorization',), ('superpowers-orchestrator', 'shared-wiki-publisher'), 'standalone'),
 )
@@ -117,7 +117,6 @@ ADAPTER_ROLE_AGENT_PATHS = {
 
 GENERATED_LANHU_AGENT_IDS = (
     'lanhu-frontend-requirements-analyst',
-    'lanhu-frontend-html-requirements-analyst',
     'lanhu-backend-requirements-analyst',
 )
 
@@ -285,15 +284,6 @@ ROLE_AGENT_CONTRACTS = {
         'mayPerformExternalSideEffects': True,
     },
     'lanhu-frontend-requirements-analyst': {
-        'roleKind': 'lanhu-role',
-        'inputArtifacts': ('lanhu-page-scope',),
-        'outputArtifacts': ('lanhu-evidence-package',),
-        'allowedCapabilities': ('local-filesystem', 'artifact-store', 'task-isolation', 'mcp-client'),
-        'toolAccess': ('lanhu-mcp', 'selective-image-analysis'),
-        'mayAdvanceGates': False,
-        'mayPerformExternalSideEffects': False,
-    },
-    'lanhu-frontend-html-requirements-analyst': {
         'roleKind': 'lanhu-role',
         'inputArtifacts': ('lanhu-page-scope',),
         'outputArtifacts': ('lanhu-evidence-package',),

@@ -88,7 +88,8 @@
   },
 
   // 项目本地 Lanhu 配置。仅从 .superpowers/settings.json 读取。
-  // Lanhu MCP 仍然是可选能力；配置缺失时默认只输出 Markdown。
+  // Lanhu MCP 仍然是可选能力；frontend 现在始终输出统一 `role-prd/` 包，
+  // backend 始终保持 Markdown-only。
   "lanhu": {
     // 可选默认角色。配置后 `lanhu-requirements` skill 在用户未显式给出角色时不再询问。
     // 字段缺失时仍会从命令参数判断，判断不到时再询问用户。
@@ -97,13 +98,14 @@
 
     "frontend": {
       "output": {
-        // 字段缺失时默认值："markdown"。
-        // 允许值：
-        // - "markdown"：使用前端 Markdown analyst，写入常规 Markdown PRD 需求包。
-        // - "html"：使用独立前端 HTML analyst，通常写入需求包根目录 index.html 作为完整 HTML PRD 主文档。
-        //   当需求仅为文字、无页面交互时，可退化为 prd.md。
-        // 后端角色始终保持 Markdown-only，即使启用该配置也不会写入 HTML。
-        "format": "markdown"
+        // 已废弃兼容字段：保留旧项目配置时只会得到 ignored warning，
+        // 不再改变 analyst 路由，也不会再切换第二种 frontend 产物形态。
+        // frontend 始终输出：
+        // - `role-prd/prd.md`
+        // - 可选 `role-prd/design/index.html`
+        // - 可选 `role-prd/design/assets/`
+        // backend 始终保持 Markdown-only。
+        "format": "html"
       }
     }
   },

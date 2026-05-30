@@ -1,294 +1,154 @@
-# Lanhu MCP 改造完整测试计划
+# Lanhu MCP 测试计划
 
-本文用于验证 Lanhu MCP 改造后，`superpower-adapter` 在安装后的 Superpowers command / native skill / role analyst agent 集成路径中行为正确。测试应使用用户提供的真实可访问 Lanhu URL，并覆盖前端、后端、显式 `pageId`、页面树、确认门禁、输出安全、模板合规和 Superpowers handoff。
+## 1. 目标
 
-## 0. 测试目标
+验证 `lanhu-requirements` skill 在当前统一 frontend `role-prd/` 输出契约下的 MCP 调用边界、页面范围控制、确认门禁、模板合规、内容净化和 Superpowers handoff 行为是否正确。
 
-- 验证 `lanhu-requirements` skill 必须先确认 `role: frontend | backend`，角色缺失或歧义时不读取蓝湖。
-- 验证 Lanhu MCP 可用时，前端 / 后端专用 analyst 能从真实蓝湖 URL 生成 `.lanhu/MM-DD-需求名称/` 需求包。
-- 验证显式 `pageId` 场景必须先读取页面树、确认子页白名单，并对每个纳入页面使用自己的 scoped evidence `mode: full`，不能一次性请求父页加多个子页。
-- 验证 PRD 拆分由业务交付边界决定，不由页面数量决定，且 `index.md` 是入口和关系权威来源。
-- 验证多页面 Lanhu scope 的 page fan-out 只作为证据保真策略：每页产出完整页面 证据包，主会话只写聚合 `index.md`，不得根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
-- 验证输出只包含产品需求事实和角色证据包，不包含测试点、技术方案、实现方案、接口 / 数据库推测或文件影响。
-- 验证 `confirmationGate`、`requirementScopeJudgment`、`scopeConfirmationSummary` 的阻塞与二次确认流程正确。
-- 验证 `.lanhu/` 需求包确认前不会进入 Superpowers `brainstorming`，确认后才作为需求输入交接。
-- 验证 Lanhu MCP 不可用时 adapter 仍可用，可让用户粘贴需求或走普通 Superpowers 流程。
+重点验证：
 
-## 1. 测试前置条件
+- 必须先确认 `role: frontend | backend`，角色缺失或歧义时不读取蓝湖。
+- URL 带 `pageId` 时，主会话只读 lightweight page tree metadata，不提前读取 full scoped evidence。
+- 只有 `lanhu_resolve_invite_link`、`lanhu_get_prd_page_scope`、`lanhu_get_prd_scoped_evidence` 三类允许工具被使用。
+- scoped evidence 必须受 `scope_policy: pageid_children_only`、`include_child_pages`、`confirmed_child_page_ids`、`output_mode: evidence_only` 等约束。
+- frontend 始终输出统一 `role-prd/` 包，不再存在 frontend HTML 独立 analyst 或第二种 frontend 详细产物。
+- backend 维持 Markdown-only。
+- 多页面 fan-out 仍以“每页完整证据包”方式保持证据保真，但详细产物不能再从 compact metadata / `.yaml` / page summaries 合成。
+- `confirmationGate`、`scopeConfirmationSummary`、`requirementScopeJudgment`、`selectiveImageAnalysis` 等 compact metadata 只用于门禁、聚合和用户确认，不是最终 PRD 事实来源。
 
-### 1.1 环境
+## 2. 前置条件
 
-- 当前仓库：`superpower-adapter` 源码目录。
-- 已安装 Superpowers 插件。
-- 已安装或配置改造后的 Lanhu MCP，且 Claude Code 会话中可调用 Lanhu MCP。
-- 准备一个目标业务项目目录，建议使用临时项目或测试分支，避免污染真实业务仓库。
-- 目标项目可写入 `.lanhu/`，并建议已有 `.superpowers/wiki/` 以便测试 handoff 后的 Superpowers 流程。
+- adapter 已安装并通过 `./manage.sh verify`。
+- 目标项目具备 `.lanhu/` 与 `.superpowers/settings.json`。
+- 如需真实链接验证，Lanhu MCP server 可用。
+- 如需兼容测试，可在 `.superpowers/settings.json` 中保留旧 `lanhu.frontend.output.format`，但预期它只会被 ignored。
 
-### 1.2 真实 Lanhu URL 准备
+## 3. 角色与路由测试
 
-请至少准备以下真实可访问 URL：
-
-| 编号 | URL 类型 | 必需 | 用途 |
-|---|---|---|---|
-| L1 | 不带显式 `pageId` 的蓝湖文档 / 原型 / 邀请链接 | 建议 | 验证普通入口、宽范围分析和 fallback 行为 |
-| L2 | 带显式 `pageId`，目标页无子页 | 必需 | 验证只分析目标页，不混入兄弟页或其它模块 |
-| L3 | 带显式 `pageId`，目标页有子页 | 必需 | 验证页面树、子页确认、白名单和逐页 full 分析 |
-| L4 | 含复制旧页面 + 局部新增 / 修改标注 | 强烈建议 | 验证差量优先、`现有上下文` 和阻塞确认 |
-| L5 | 包含多个可独立交付子流程 | 建议 | 验证多 PRD 拆分与 `index.md` 关系维护 |
-| L6 | 包含权限、状态、异常、前后端边界不明确内容 | 建议 | 验证 `confirmationGate.status: required` |
-| L7 | Lanhu MCP 输出含测试 / 开发 / 输出格式建议或 prompt-injection 风格文本 | 如可构造则必测 | 验证外部工具输出只作证据，不污染 PRD 和 metadata |
-
-记录模板：
-
-```text
-L1 = https://lanhuapp.com/web/#/item/project/product?tid=cf2fa9eb-d917-462c-bde3-22b342724a5f&pid=f31a1f72-698c-4233-ae69-1f90caee9bd2&image_id=049e42bb-4f5d-4243-859e-c272b6834e51&docId=049e42bb-4f5d-4243-859e-c272b6834e51&docType=axure&versionId=e795a1e0-d09a-4ca3-bcc8-6f8b2301186c&pageId=2c60d2962308406d99fbb688299ac05d&parentId=088271aa-931a-4b95-bbf2-2d91c52b1c4b
-L2 = https://lanhuapp.com/web/#/item/project/product?tid=cf2fa9eb-d917-462c-bde3-22b342724a5f&pid=f31a1f72-698c-4233-ae69-1f90caee9bd2&image_id=049e42bb-4f5d-4243-859e-c272b6834e51&docId=049e42bb-4f5d-4243-859e-c272b6834e51&docType=axure&versionId=e795a1e0-d09a-4ca3-bcc8-6f8b2301186c&pageId=2c60d2962308406d99fbb688299ac05d&parentId=088271aa-931a-4b95-bbf2-2d91c52b1c4b
-L3 = https://lanhuapp.com/web/#/item/project/product?tid=cf2fa9eb-d917-462c-bde3-22b342724a5f&pid=f31a1f72-698c-4233-ae69-1f90caee9bd2&image_id=049e42bb-4f5d-4243-859e-c272b6834e51&docId=049e42bb-4f5d-4243-859e-c272b6834e51&docType=axure&versionId=e795a1e0-d09a-4ca3-bcc8-6f8b2301186c&pageId=87e2cd9f854a4186a26cfc44fc4484b5&parentId=2e0e0ba2f53742d1a0edb6636b8f0554
-L4 = https://lanhuapp.com/web/#/item/project/product?tid=cf2fa9eb-d917-462c-bde3-22b342724a5f&pid=0a4896da-4241-427a-b84b-0c63bf496640&image_id=fe776a81-01e9-412d-bd01-41b0289c509b&docId=fe776a81-01e9-412d-bd01-41b0289c509b&docType=axure&versionId=5dd46908-4cd7-4ba9-bdf1-6a0d5d818da0&pageId=a8d6d2b0e447481681708f01d1d9bb6a&parentId=6dc7f29e-688e-4284-9b40-b89b6a0ce1fa
-L5 = <待填>
-L6 = <待填>
-L7 = <待填>
-目标项目 = <待填>
-Superpowers 安装目录 = <待填，如自动发现则可不填>
-```
-
-## 2. 安装与静态回归测试
-
-### 2.1 生成 / 同步 role analyst
-
-```bash
-python3 lib/sync_role_prd.py check
-```
-
-预期：
-
-- 前端 / 后端 Lanhu analyst 与 `role-prd/` 模板同步。
-- 无 out-of-sync 提示。
-
-如 check 失败，先运行：
-
-```bash
-python3 lib/sync_role_prd.py sync
-```
-
-然后重新检查 diff，确认生成结果符合预期。
-
-### 2.2 安装 adapter 并验证 overlay
-
-```bash
-./manage.sh install
-./manage.sh verify
-./manage.sh status
-```
-
-预期：
-
-- `skills/lanhu-requirements/SKILL.md` 已安装。
-- `agents/lanhu-frontend-requirements-analyst.md` 已安装。
-- `agents/lanhu-backend-requirements-analyst.md` 已安装。
-- native `brainstorming` / `using-superpowers` patch 中包含 Lanhu confirmation gate 与 handoff 边界。
-- 当前流程不安装 adapter SessionStart hook。
-
-### 2.3 Lanhu 静态 guardrail smoke
-
-```bash
-bash tests/lanhu-confirmation-gate-smoke.sh <installed-superpowers-target>
-bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
-```
-
-预期：
-
-- 两个 smoke 均通过。
-- 安装后的 command / agents / native skills 包含 `confirmationGate`、`scopeConfirmationSummary`、`requirementScopeJudgment`、page-by-page full analysis、模板合规、禁止 raw Lanhu output 等关键规则。
-
-### 2.4 全量 adapter 回归
-
-```bash
-./manage.sh release-check <目标项目路径>
-```
-
-预期：
-
-- release-check 通过。
-- 如失败，区分是 Lanhu 改造引入的问题，还是目标项目 wiki / 环境配置问题。
-
-## 3. Claude Code 集成路径测试总则
-
-以下测试必须在目标项目目录中，从 Claude Code 的 Superpowers command / skill 入口执行，不以直接运行 Python 脚本作为最终验收。
-
-每个用例都记录：
-
-```text
-用例编号：
-使用 URL：
-入口：`lanhu-requirements` skill ... 或 brainstorming 中贴 Lanhu URL
-角色：frontend / backend / 缺失 / 歧义
-是否显式 pageId：是 / 否
-是否有子页：是 / 否
-预期 status：ok / need_confirmation / partial / unavailable / need_role
-生成目录：.lanhu/<...>/
-最终结果：通过 / 失败
-失败说明：
-```
-
-通用验收点：
-
-- 主会话不能接收、粘贴或总结 raw Lanhu MCP tool result。
-- 主会话不能接收完整 evidence markdown，只能接收 compact metadata。
-- `.lanhu/` 之外不应有 Lanhu command 写入产物。
-- 不应写 `.superpowers/wiki/`。
-- 不应写 Superpowers spec、plan、plan sidecar 或 `Referenced Project Wiki`。
-- 不应启动 implementation、verification、completion、review 等 Superpowers 收尾技能。
-- `index.md` 必须存在，且作为入口和 PRD 关系权威来源。
-- 用户确认 `index.md` 和 `scopeConfirmationSummary` 前，不得进入 Superpowers `brainstorming`。
-
-## 4. 角色选择与入口行为测试
-
-### TC-R01：缺失角色时不读取 Lanhu
+### TC-R01：缺失角色时先问用户
 
 入口：
 
 ```text
-`lanhu-requirements` skill <L2>
+`lanhu-requirements` skill <L1>
 ```
 
 预期：
 
-- 先询问：生成前端还是后端角色证据包。
-- 在用户回答前，不调用 Lanhu analyst，不调用 Lanhu MCP。
-- 不创建 `.lanhu/` 需求包。
+- 不立即读取 full scoped evidence。
+- 如果 `.superpowers/settings.json` 未配置 `lanhu.role`，先要求用户在 `frontend | backend` 中选择其一。
+- 如果用户回答“全栈”，仍要求先选一个角色，建议分两次生成。
 
-### TC-R02：歧义角色 / 全栈时要求选择一个
+### TC-R02：settings 中已配置角色时不重复询问
+
+准备：
+
+```json
+{
+  "lanhu": {
+    "role": "frontend"
+  }
+}
+```
 
 入口：
 
 ```text
-`lanhu-requirements` skill <L2> 前后端都要
-`lanhu-requirements` skill <L2> fullstack
+`lanhu-requirements` skill <L2> fe-role-test
 ```
 
 预期：
 
-- 询问本次先生成哪一种角色证据包。
-- 建议前端和后端分别运行两次。
-- 在角色明确前，不读取蓝湖。
+- 直接按 frontend 路由。
+- 不再额外询问角色。
+- frontend 路由到 `lanhu-frontend-requirements-analyst`。
 
-### TC-R03：前端角色路由正确
+### TC-R03：已废弃 frontend HTML 配置不改变路由
+
+准备：
+
+```json
+{
+  "lanhu": {
+    "role": "frontend",
+    "frontend": {
+      "output": {
+        "format": "html"
+      }
+    }
+  }
+}
+```
 
 入口：
 
 ```text
-`lanhu-requirements` skill <L2> 前端 测试前端需求
+`lanhu-requirements` skill <L2> fe-deprecated-format
 ```
 
 预期：
 
-- 路由到 `lanhu-frontend-requirements-analyst`。
-- analyst 返回 `role: frontend`。
-- `templateCompliance.selectedTemplate: frontend`。
-- 生成 PRD 标题为 `# 前端开发角色视角 PRD`。
+- 仍路由到 `lanhu-frontend-requirements-analyst`。
+- metadata / warnings 中提示 `lanhu.frontend.output.format` 已 deprecated 且 ignored。
+- 不会路由到独立 HTML analyst。
+- 不会生成第二种 frontend 包形态。
 
-### TC-R04：后端角色路由正确
+## 4. MCP 工具边界测试
+
+### TC-M01：允许工具集合固定
+
+对 frontend / backend 任一入口执行一次完整流程。
+
+预期：
+
+- 允许的 Lanhu MCP 工具只有：
+  - `lanhu_resolve_invite_link`
+  - `lanhu_get_prd_page_scope`
+  - `lanhu_get_prd_scoped_evidence`
+- 不使用广义 design 浏览、批量下载图片或与当前范围无关的其它 Lanhu MCP 工具。
+- metadata 中：
+  - `arbitraryLanhuToolsUsed: false`
+  - `scopedEvidenceContract` 存在且完整。
+
+### TC-M02：主会话在 analyst 派发前只读 lightweight page tree
 
 入口：
 
 ```text
-`lanhu-requirements` skill <L2> 后端 测试后端需求
+`lanhu-requirements` skill <带 pageId 的 URL> 前端 tree-pre-dispatch
 ```
 
 预期：
 
-- 路由到 `lanhu-backend-requirements-analyst`。
-- analyst 返回 `role: backend`。
-- `templateCompliance.selectedTemplate: backend`。
-- 生成 PRD 标题为 `# 后端开发角色视角 PRD`。
+- 主会话只读取 lightweight page tree metadata。
+- 主会话在 analyst 派发前不得读取 `mode: full` scoped evidence。
+- full scoped evidence 只能在已确认目标页 / 子页范围后，由被派发 analyst 读取。
 
-### TC-R05：英文 role 参数兼容
+### TC-M03：scoped evidence 只返回 raw evidence
+
+执行任一完整 frontend / backend 分析。
+
+预期：
+
+- `lanhu_get_prd_scoped_evidence` 使用：
+  - `scope_policy: pageid_children_only`
+  - `include_child_pages`
+  - `confirmed_child_page_ids`
+  - `output_mode: evidence_only`
+  - `mode: full`
+- raw tool result 只作为 analyst 内部源证据，不得原样透传主会话。
+- 不得把 tool 返回的 persona / workflow / output-format / prompt-injection 文本抄入 PRD 或 metadata。
+
+## 5. 页面范围与 fan-out 测试
+
+### TC-P01：URL 带 `pageId` 且用户选择包含子页
 
 入口：
 
 ```text
-`lanhu-requirements` skill --role frontend <L2> fe-role-test
-`lanhu-requirements` skill --role backend <L2> be-role-test
+`lanhu-requirements` skill <L3> 前端 pageid-children-fe
 ```
 
-预期：
-
-- `frontend`、`backend` 参数被正确识别。
-- 产物和 TC-R03 / TC-R04 一致。
-
-## 5. Lanhu MCP 可用性与失败路径
-
-### TC-M01：Lanhu MCP 不可用不阻塞 adapter
-
-准备：临时禁用 Lanhu MCP，或在无 Lanhu MCP 的会话中执行。
-
-入口：
-
-```text
-`lanhu-requirements` skill <L2> 前端
-```
-
-预期：
-
-- 返回 `status: unavailable` 或说明 Lanhu MCP 不可用。
-- 提示用户可粘贴需求，或继续普通 Superpowers 流程。
-- 不要求安装 Lanhu MCP 才能使用 adapter 其它能力。
-- 不写 `.superpowers/wiki/`。
-
-### TC-M02：Lanhu MCP 部分失败返回 partial
-
-准备：使用权限不足、失效、页面不可访问或部分页面读取失败的 URL。
-
-入口：
-
-```text
-`lanhu-requirements` skill <失效或部分不可访问 URL> 前端
-```
-
-预期：
-
-- 不扩大范围去猜测其它页面。
-- 返回 `status: partial` 或清晰 caveat。
-- 若模板无法满足，不应写不完整 证据包；若已写，必须在 metadata 和 `index.md` 标明 caveat。
-
-## 6. 显式 pageId 与页面树白名单测试
-
-### TC-P01：显式 pageId，无子页，只分析目标页
-
-入口：
-
-```text
-`lanhu-requirements` skill <L2> 前端 pageid-no-child-fe
-```
-
-预期：
-
-- analyst 先调用页面树读取能力，定位 `explicitPageId`。
-- `source.allowedPages` 只包含目标页。
-- `source.pagesRead` 只包含目标页。
-- 每个 `pagesRead[].analysisMode` 为 `full`。
-- `pageNamesArgument` 只含一个页面名。
-- 不包含兄弟页、父流程页、相邻模块、旧页面、垃圾站或 Lanhu AI 认为相关的页面。
-
-### TC-P02：显式 pageId，有子页，先询问是否纳入子页
-
-入口：
-
-```text
-`lanhu-requirements` skill <L3> 前端 pageid-with-children-fe
-```
-
-预期：
-
-- 先调用页面树读取能力。
-- 发现目标页有子页后，询问是否纳入子页，并推荐纳入。
-- 用户确认前，不生成最终 `.lanhu/` 证据包。
-- 不直接请求父页 + 所有子页的 full 分析。
-
-### TC-P03：用户选择包含子页后逐页 full 分析
-
-继续 TC-P02，用户回答：
+当询问是否纳入子页时，回答：
 
 ```text
 包含子页
@@ -298,14 +158,14 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 - `allowedPages` 为目标页 + descendant whitelist。
 - `pagesRead` 按树顺序列出父页和子页。
-- 每个页面单独 full 分析，并在多页面 fan-out 时调用同一个已选角色 / 输出格式 analyst 写入该页完整页面 证据包。
+- 每个页面单独 full 分析，并在多页面 fan-out 时调用同一个已选角色 analyst 写入该页完整页面证据包。
 - 每个 `pageNamesArgument` 恰好一个页面名。
-- 前端 HTML 多页面输出时，每个页面包都有自己的 `index.md`、`index.html`、`prototype/index.html`，聚合根只写 `index.md`。
+- 前端多页面输出时，每个页面包都有自己的 `index.md` + `role-prd/prd.md`，并且仅在该页存在设计稿或需要交互 demo 时才额外写 `role-prd/design/index.html`；聚合根只写 `index.md`。
 - 不出现 `page_names: all`。
 - 不出现一次请求父页加多个子页的行为。
-- 不出现根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD 的行为。
+- 不出现根据 compact metadata、`.yaml` 或 summary Markdown 生成最终详细 frontend 产物的行为。
 
-### TC-P04：用户选择不包含子页时只分析父页
+### TC-P02：用户选择不包含子页时只分析父页
 
 入口：
 
@@ -325,7 +185,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 子页不进入 PRD，不进入 `index.md`，不进入 `scopeConfirmationSummary`。
 - 如父页只是摘要且缺少需求细节，应返回 `partial` 或 `need_confirmation`，不能自动混入子页。
 
-### TC-P05：pageId 找不到时不退化为全量分析
+### TC-P03：pageId 找不到时不退化为全量分析
 
 入口：
 
@@ -340,7 +200,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 不分析整个文档。
 - 不混入同名或相邻页面。
 
-### TC-P06：页面同名歧义时不冒险混入兄弟页
+### TC-P04：页面同名歧义时不冒险混入兄弟页
 
 准备：选择存在同名页面或 MCP 不能按 id / path disambiguate 的 URL。
 
@@ -350,18 +210,19 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 不用同名页面结果生成 PRD。
 - caveat 只描述歧义，不包含 raw tool result。
 
-## 7. PRD 输出结构与包目录测试
+## 6. PRD 输出结构与包目录测试
 
-### TC-O00：默认 Markdown-only 与前端 HTML 输出
+### TC-O00：默认输出与已废弃 frontend HTML 配置
 
 准备：目标项目不配置 `.superpowers/settings.json`。
 
 预期：
 
-- 前端和后端 Lanhu 输出都只写 `index.md` + `prd.md` / `prds/*.md`。
-- `writtenFiles` 不包含 `.html`。
+- frontend 输出写 `.lanhu/.../index.md` + `role-prd/prd.md`，并且仅在有设计稿或需要交互 demo 时可额外写 `role-prd/design/index.html` / `role-prd/design/assets/`。
+- backend 输出保持 `index.md` + `prd.md` / `prds/*.md`。
+- backend `writtenFiles` 不包含 `.html`。
 
-准备：目标项目 `.superpowers/settings.json` 配置：
+准备：目标项目 `.superpowers/settings.json` 仍保留已废弃配置：
 
 ```json
 {
@@ -377,19 +238,15 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 预期：
 
-- 前端输出路由到 `lanhu-frontend-html-requirements-analyst`，通常写 `index.md` + 包根目录 `index.html` + `prototype/index.html`。
-- 前端 Markdown analyst 只嵌入 `role-prd/frontend.md`；前端 HTML analyst 只嵌入 `role-prd/frontend_outputHtml.md`；后端 analyst 不嵌入 `role-prd/frontend_outputHtml.md`。
-- `role-prd/frontend.md` 保持 Markdown-only，不包含 `index.html` 输出职责。
-- `index.html` 是HTML evidence reader，`prototype/index.html` 是1:1 原始需求界面复刻原型；两者互相链接并结合解读。
-- `index.html` 保留完整 evidence 信息结构；`prototype/index.html` 承载真实 HTML 控件、交互状态和可视化操作关系；不再依赖 Markdown 文件作为“更权威正文”。
-- `index.md` 说明文件角色和 AI 解读原则，不硬编码 HTML 内部章节清单。
-- HTML Mermaid 通过必需 Mermaid CDN module script 和 `<pre class="mermaid">` 等浏览器可渲染容器展示；该 CDN 脚本是唯一允许的外部资源。
-- `htmlPrdCompliance` 干净，且 `checkedAgainstFullHtmlSourceTemplate: true`、`prototypeArtifactPresent: true`、`prototypeDirectoryized: true`、`mermaidModuleScriptPresent: true`、`mermaidBlocksBrowserRenderable: true`、`onlyAllowedExternalAssetIsMermaidCdn: true`、`rawHtmlInjectionDetected: []`。
-- 纯文字、无页面交互需求可退化为 `prd.md`，并返回 `htmlPrdCompliance.fallbackToMarkdown: true` 与 `fallbackReason`。
-- 后端输出保持 Markdown-only，`writtenFiles` 不包含 `.html`。
+- frontend 仍路由到唯一的 `lanhu-frontend-requirements-analyst`，不会再路由到独立 HTML analyst。
+- `role-prd/frontend.md` 是唯一 frontend 源模板；旧的 `role-prd/frontend_outputHtml.md` 已废弃且不得再被引用。
+- frontend 始终输出统一 `role-prd/` 包：`role-prd/prd.md` 为主文档；只有在有设计稿或明确交互 demo 价值时才写 `role-prd/design/index.html`。
+- `lanhu.frontend.output.format` 只产生 deprecated warning，不改变路由、模板或产物结构。
+- frontend 不得写包根 `index.html`、`prototype/index.html`、独立 HTML 详细产物，或依赖 page summaries / `.yaml` 生成最终 HTML。
+- backend 输出保持 Markdown-only，`writtenFiles` 不包含 `.html`。
 - `index.md` 仍是 Superpowers 入口和 PRD 关系权威来源。
 
-### TC-O01：单交付边界输出 `prd.md`
+### TC-O01：frontend 单交付边界输出 unified `role-prd/`
 
 入口：
 
@@ -402,28 +259,39 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 ```text
 .lanhu/<MM-DD-single-prd-fe>/
   index.md
-  prd.md
+  role-prd/
+    prd.md
+```
+
+如有设计稿或交互 demo 价值，可额外出现：
+
+```text
+.lanhu/<MM-DD-single-prd-fe>/
+  role-prd/
+    design/
+      index.html
+      assets/
 ```
 
 验收：
 
 - `index.md` 包含 `PRD 角色：frontend`。
-- `index.md` 指向 `prd.md`。
+- `index.md` 指向 `role-prd/prd.md`。
 - `index.md` 说明阅读顺序和范围判断摘要。
-- 无 `prds/` 或 `prds/` 为空。
+- 无包根 `prd.md`、无 `prds/`、无包根 `index.html`。
 
-### TC-O02：多交付边界输出 `prds/`
+### TC-O02：backend 多交付边界输出 `prds/`
 
 入口：
 
 ```text
-`lanhu-requirements` skill <L5> 前端 multi-prd-fe
+`lanhu-requirements` skill <L5> 后端 multi-prd-be
 ```
 
 预期文件：
 
 ```text
-.lanhu/<MM-DD-multi-prd-fe>/
+.lanhu/<MM-DD-multi-prd-be>/
   index.md
   prds/
     <交付边界1>.md
@@ -434,11 +302,10 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 - PRD 数量由独立交付 / 独立负责 / 独立验收边界决定。
 - 页面数量多但同一用户目标和验收边界时，不应机械拆分。
-- 列表页、详情弹窗、抽屉、跳转流程如果服务同一目标，应保留在同一个 PRD。
 - `index.md` 维护跨 PRD 关系、阅读顺序和必要 flowchart。
-- 每个 `prds/*.md` 都是完整角色证据包，不用 `index.md` 替代正文。
+- 每个 `prds/*.md` 都是完整后端角色证据包，不用 `index.md` 替代正文。
 
-### TC-O03：tree mode 第一层 PRD 仍可继续按业务边界拆分
+### TC-O03：tree mode 第一层 page package 仍可继续按业务边界拆分
 
 入口：
 
@@ -448,7 +315,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 预期：
 
-- 如果某个 tree-mode PRD 内仍包含独立可交付子流程，应继续拆分。
+- 如果某个 tree-mode page package 内仍包含独立可交付子流程，应继续拆分。
 - `index.md` 维护拆分后的关系。
 - 不因“一个页面一个 PRD”或“一个子页一个 PRD”机械拆分。
 
@@ -476,63 +343,49 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 不写目标项目其它目录。
 - `indexPath` 必须以 `index.md` 结尾。
 
-## 8. 模板合规测试
+## 7. 模板合规测试
 
-### TC-T01：前端模板完整性
+### TC-T01：frontend 模板完整性
 
-使用前端 PRD 产物检查：
+使用 frontend `role-prd/prd.md` 产物检查：
 
-必须包含：
+必须满足：
 
-- `# 前端开发角色视角 PRD`
-- `## 一、需求概览`
-- `## 二、本次变更范围判定`
-- `### 2.1 需求思维导图`
-- `## 三、页面与入口源事实`
-- `## 四、原始需求 UI 结构 1:1 复现`
-- `### 4.1 页面布局结构草图`
-- `### 4.2 页面展示源事实`
-- `## 五、字段与控件源事实`
-- `## 六、用户操作与交互源事实`
-- `### 6.1 用户操作路径源事实`
-- `### 6.2 交互对象源事实`
-- `## 七、页面状态与提示源事实`
-- `## 八、权限与可见性源事实`
-- `## 九、按源需求命名的源事实主题（按需）`
-- `## 十、待确认问题`
+- 主文件路径固定为 `role-prd/prd.md`。
+- 不要求固定章节标题。
+- 内容组织可按页面、流程、模块、业务对象、状态、权限差异或其它源事实结构组织。
+- 必须聚焦：
+  - 需求范围
+  - 字段规则
+  - 数据规则
+  - 权限 / 角色 / 数据范围差异
+  - 系统响应规则
+  - 状态触发条件
+  - 边界条件
+  - 待确认问题
+- 明确要求“原始资料未说明 / 待确认”而不是补全常见逻辑。
 
 预期 metadata：
 
-- `templateCompliance.selectedTemplate: frontend`
+- `templateCompliance.selectedTemplate: frontend_unified_requirement_input_package`
 - `templateCompliance.checkedAgainstFullSourceTemplate: true`
 - `missingTemplateRequirements: []`
 - `genericHeadingsDetected: []`
 - `forbiddenContentDetected: []`
 
-### TC-T02：前端 XML-like 页面布局草图合规
+### TC-T02：frontend HTML demo 分工合规
 
-检查前端 PRD 的 `### 4.1 页面布局结构草图`：
-
-预期：
-
-- 使用低保真类 XML 描述源证据中真实存在的页面、区域、信息层级和操作位置。
-- 不包含 CSS class / style、JavaScript、事件绑定、框架名、组件库名、路由路径、文件名、组件拆分、状态管理或数据请求实现。
-- 有真实 Tab 时，只使用源证据中的真实 Tab 标签。
-- 源证据无 Tab 时，不输出 `tab-area`。
-- 不为了组织 PRD 内容臆造源页面不存在的区域。
-
-### TC-T03：前端复杂状态页 Mermaid flowchart
-
-使用包含复杂状态、异步加载、权限分支、空态 / 错误态回退的前端 URL。
+检查 frontend 包中的 `role-prd/design/index.html`（仅在生成时）：
 
 预期：
 
-- `## 七、页面状态流转` 包含表格。
-- 复杂状态页面额外包含 Mermaid `flowchart`。
-- 简单页面可以只保留表格。
-- Mermaid 节点短、层级有限，复杂细节放到表格。
+- 只承担页面结构、控件关系、状态与交互路径的可交互结构镜像。
+- 使用左侧章节导航 + 右侧激活章节内容布局。
+- 不承担完整 PRD 正文。
+- 不包含生产代码、真实接口、复杂框架脚本。
+- 如引用本地静态资源，仅使用 `role-prd/design/assets/`。
 
-### TC-T04：后端模板完整性
+### TC-T03：后端模板完整性
 
 使用后端 PRD 产物检查：
 
@@ -559,9 +412,9 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - `genericHeadingsDetected: []`
 - `forbiddenContentDetected: []`
 
-### TC-T05：Mermaid 可读性
+### TC-T04：Mermaid 可读性
 
-对前端和后端 PRD 的所有 Mermaid 图检查：
+对 frontend / backend PRD 中实际出现的 Mermaid 图检查：
 
 - 默认使用 `flowchart TB` 或 `flowchart LR`。
 - 仅在小而简单结构中使用 `mindmap`。
@@ -570,7 +423,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 单节点子节点建议不超过 5 个。
 - 内容过多时拆成多个小图或移到表格。
 
-### TC-T06：禁止通用标题替代角色模板
+### TC-T05：禁止通用标题替代角色模板
 
 检查所有 PRD：
 
@@ -588,7 +441,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 如 Lanhu MCP 原始输出包含这些标题，只能作为证据理解，不得成为 PRD schema。
 
-## 9. 范围判断与差量优先测试
+## 8. 范围判断与差量优先测试
 
 ### TC-S01：复制旧页面 + 局部新增标注
 
@@ -645,7 +498,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - analyst 更新同一 package，而不是创建无关新 package。
 - 更新后重新返回 compact metadata 和 scope summary。
 
-## 10. 确认门禁测试
+## 9. 确认门禁测试
 
 ### TC-C01：阻塞问题触发 `need_confirmation`
 
@@ -702,7 +555,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 非阻塞问题可出现在 `openQuestions`。
 - 仍需要用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 brainstorming。
 
-## 11. 输出安全与内容净化测试
+## 10. 输出安全与内容净化测试
 
 ### TC-X01：PRD 不包含测试内容
 
@@ -718,7 +571,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 允许：
 
-- 源证据中的真实控件、页面结构、字段与控件事实、交互事实、状态事实、权限与可见性事实，以及按需创建的、按源需求内容命名的具体源事实主题；不得把“AI 自定源事实主题”作为实际标题。
+- 源证据中的真实控件、页面结构、字段规则、交互事实、状态事实、权限与可见性事实，以及按需创建的、按源需求内容命名的具体源事实主题。
 
 ### TC-X02：PRD 不包含实现或技术方案
 
@@ -756,7 +609,7 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 - 不包含 Lanhu MCP 原始响应。
 - `confirmationGate`、`openQuestions`、`caveats` 都是紧凑用户可读文本。
 
-## 12. Superpowers handoff 测试
+## 11. Superpowers handoff 测试
 
 ### TC-H01：`lanhu-requirements` skill 完成后停在用户确认
 
@@ -776,168 +629,26 @@ bash tests/lanhu-tree-prd-guardrails-smoke.sh <installed-superpowers-target>
 
 ### TC-H02：用户确认后进入 Superpowers brainstorming
 
-继续 TC-H01，用户确认：
-
-```text
-确认 index.md 和范围判断，继续 brainstorming
-```
+继续 TC-H01，用户确认 `.lanhu/.../index.md` 与 scope summary。
 
 预期：
 
-- 以 `.lanhu/.../index.md` 为需求入口。
-- PRD 文件作为详细需求来源。
-- 进入 Superpowers `brainstorming`。
-- 在提出设计方案前，按正常流程调用 `wiki-researcher` 轻量读取相关项目 wiki。
-- `.lanhu/` 不进入 `Referenced Project Wiki`。
+- 后续 brainstorming 只消费已确认 package。
+- frontend 读取 `index.md`，再按它列出的文件读取 `role-prd/prd.md` 与可选 `role-prd/design/index.html` / `assets/`。
+- 不重新做 Lanhu intake。
+- 不重新选择页面。
+- 不从 compact metadata 生成详细 frontend 产物。
 
-### TC-H03：brainstorming 中直接粘贴 Lanhu URL
+## 12. 建议执行顺序
 
-入口：用户直接请求 Superpowers brainstorming，并提供 Lanhu URL。
+建议至少按以下顺序覆盖：
 
-预期：
-
-- native `brainstorming` patch 先确认 role。
-- 路由到前端 / 后端 analyst 生成 `.lanhu/` 包。
-- 遵守同样的 confirmation gate、scope confirmation 和 user confirmation。
-- gate clear 且用户确认后，才继续 brainstorming 设计方案。
-
-### TC-H04：`.lanhu/` 不写入项目 wiki 或 plan sidecar
-
-验收：
-
-- `.superpowers/wiki/` 未因 Lanhu PRD 生成而变化。
-- `docs/superpowers/plans/*.wiki-context.json` 未因 Lanhu PRD 生成而变化。
-- 没有自动创建 Superpowers spec / plan。
-- 只有后续进入 `brainstorming` / `writing-plans` 时，才由 Superpowers 正常生成对应产物。
-
-## 13. 前端 / 后端双角色一致性测试
-
-### TC-D01：同一 URL 分别生成前端和后端 PRD
-
-入口：
-
-```text
-`lanhu-requirements` skill <L2> 前端 same-url-fe
-`lanhu-requirements` skill <L2> 后端 same-url-be
-```
-
-预期：
-
-- 生成两个独立 package。
-- 前端证据包聚焦页面展示、字段与控件、用户操作与交互、页面状态与提示、权限与可见性，以及必要的、按源需求内容命名的具体源事实主题。
-- 后端证据包聚焦业务对象、业务流程、业务规则、业务状态、权限与数据可见性、数据相关事实，以及必要的、按源需求内容命名的具体业务源事实主题。
-- 两者都不包含实现方案。
-- 两者 `scopeConfirmationSummary` 可有角色差异，但都基于同一源证据。
-
-### TC-D02：前端 agent 不包含后端模板，后端 agent 不包含前端模板
-
-静态与运行时都检查：
-
-- `lanhu-frontend-requirements-analyst` 不输出 `# 后端开发角色视角 PRD`。
-- `lanhu-backend-requirements-analyst` 不输出 `# 前端开发角色视角 PRD`。
-- frontend / backend metadata `prdTemplate` 与 role 一致。
-
-## 14. URL-rooted page selection 测试
-
-### TC-R01：URL 当前页仅作为范围入口，用户只分析指定子页
-
-入口：
-
-```text
-`lanhu-requirements` skill <带 root pageId 且有子页的 Lanhu URL> 前端 预估报价新增报价类型
-用户说明：只分析子页“手术报价”、“门诊报价”、“简易住院”，当前页“预估报价”为现有功能无需分析。
-```
-
-预期：
-
-- 主会话把 URL 当作 `rootScopeUrl`，当前页当作 `rootPageId`。
-- 主会话只调用 `lanhu_get_prd_page_scope` 获取当前页及子树的轻量 page tree metadata。
-- 主会话不在派发前调用 `lanhu_get_prd_scoped_evidence`，也不读取完整页面 evidence。
-- `selectedTargetPages` 只包含“手术报价”、“门诊报价”、“简易住院”。
-- 当前页“预估报价”被记录为排除项，原因是用户说明为已有功能 / 范围入口。
-- 每个选中页面派发一个 analyst，且传入 `childPagePolicy: exclude`。
-- 每个 analyst 只读取自己的 selected page evidence，固定 `include_child_pages: false`、`confirmed_child_page_ids: []`。
-
-### TC-R02：用户点名 URL-rooted tree 外页面
-
-预期：
-
-- 主会话说明该页面不在当前 URL-rooted tree 内。
-- 主会话询问用户更正页面名或提供新的 root URL。
-- 不调用 broad Lanhu tools，不使用 `page_names: all`，不读取 scoped evidence。
-
-### TC-R03：用户点名页面名存在歧义
-
-预期：
-
-- 主会话展示 tree 内候选 page name / path / pageId。
-- 用户选择前不派发 analyst。
-- 用户选择后只派发被选中的 page。
-
-### TC-R04：多页面包完成后询问跨包 synthesis
-
-预期：
-
-- 所有 per-page 证据包生成且 `confirmationGate.status: clear` 后，主会话询问是否需要跨包总结、关系提取、共同业务目标识别、流程 / 依赖映射或判断是否属于同一业务需求。
-- 用户拒绝时，聚合 `index.md` 只保留导航、范围摘要和确认状态。
-- 用户接受时，只在 per-page PRD 完成后更新聚合关系 / 总结，不替代页面 PRD，不生成基于 compact metadata 的全局最终 HTML PRD。
-
-## 15. 人工验收清单
-
-每个真实 URL 用例完成后，人工检查以下清单：
-
-- [ ] role 在读取 Lanhu 前已明确。
-- [ ] 显式 pageId 先读取 URL 当前页及子树的轻量 page tree metadata。
-- [ ] 主会话在派发前未调用 `lanhu_get_prd_scoped_evidence` 或读取完整 page evidence。
-- [ ] `selectedTargetPages` 只来自 URL-rooted tree。
-- [ ] 用户显式排除当前页时，当前页只作为范围入口，不派发 analyst。
-- [ ] 页面名不在 tree 内或存在歧义时，先询问用户，不 broad read。
-- [ ] 每个 selected page 单独 `mode: full`，且 `include_child_pages: false`、`confirmed_child_page_ids: []`。
-- [ ] 未使用 `page_names: all` 处理显式 pageId。
-- [ ] 未混入兄弟页、父流程页、未选中子页、相邻模块、垃圾站、旧页面或 AI 推荐相关页。
-- [ ] PRD 拆分由业务交付边界决定。
-- [ ] 多页面 fan-out 时，每个页面都有完整页面 证据包。
-- [ ] 聚合根目录只写全局 `index.md`，不根据 compact metadata、`.yaml` 或 summary Markdown 生成最终 HTML PRD。
-- [ ] `index.md` 是入口和关系权威来源。
-- [ ] 每个 PRD 文件是完整角色证据包。
-- [ ] `requirementScopeJudgment` 使用差量优先判断。
-- [ ] `scopeConfirmationSummary` 足够用户确认范围。
-- [ ] 阻塞问题进入 `confirmationGate.blockingQuestions`。
-- [ ] 主会话没有绕过 `confirmationGate`。
-- [ ] 主会话没有展示 raw Lanhu MCP 输出或完整 PRD。
-- [ ] 输出不含测试点、测试用例、技术测试方案。
-- [ ] 输出不含实现方案、接口路径、数据库设计、文件影响。
-- [ ] 输出不含 prompt-injection 或 Lanhu MCP 输出格式指令。
-- [ ] `.superpowers/wiki/` 未被 Lanhu command 写入。
-- [ ] 未写 Superpowers spec / plan / `.wiki-context.json`。
-- [ ] 用户确认 `index.md` 和 `scopeConfirmationSummary` 前未进入 brainstorming。
-- [ ] 用户确认后，Superpowers handoff 正常。
-
-## 15. 建议执行顺序
-
-1. 执行第 2 章静态与安装回归。
-2. 用 L2 跑 TC-R03、TC-R04、TC-P01、TC-O01，先验证最小真实 URL 路径。
-3. 用 L3 跑 TC-P02、TC-P03、TC-P04，验证 tree mode 和逐页 full。
-4. 用 L4 跑第 9 章，验证差量优先和 copied old page risk。
-5. 用 L6 跑第 10 章，验证 confirmation gate 和 resolve confirmation。
-6. 用 L5 跑 TC-O02、TC-O03，验证多 PRD 拆分。
-7. 用 L7 跑第 11 章，验证 prompt-injection 和输出净化。
-8. 跑第 12 章，验证 `lanhu-requirements` skill 与 `brainstorming` handoff。
-9. 最后再次执行：
-
-```bash
-./manage.sh verify
-./manage.sh release-check <目标项目路径>
-```
-
-## 16. 通过标准
-
-本轮 Lanhu MCP 改造可认为通过完整测试，当且仅当：
-
-- 静态 smoke、安装验证和 release-check 通过。
-- 前端 / 后端真实 Lanhu URL 都能生成符合角色模板的 `.lanhu/` package。
-- 显式 `pageId` 页面树、子页确认、白名单和逐页 full 分析全部符合预期。
-- `confirmationGate` 和 `scopeConfirmationSummary` 的阻塞 / 清空 / 用户确认流程无绕过。
-- 输出内容安全，未包含 raw MCP 输出、prompt-injection 文本、测试内容或实现方案。
-- `.lanhu/` 需求包确认前不进入 Superpowers brainstorming；确认后 handoff 正常。
-- Lanhu MCP 不可用或部分失败时不破坏 adapter 其它 Superpowers 主流程。
+1. 角色与 deprecated setting 路由测试：TC-R01 ~ TC-R03
+2. MCP 工具边界测试：TC-M01 ~ TC-M03
+3. 页面范围与 fan-out 测试：TC-P01 ~ TC-P04
+4. 输出结构测试：TC-O00 ~ TC-O05
+5. 模板合规测试：TC-T01 ~ TC-T05
+6. 范围判断测试：TC-S01 ~ TC-S04
+7. 确认门禁测试：TC-C01 ~ TC-C04
+8. 内容净化测试：TC-X01 ~ TC-X04
+9. handoff 测试：TC-H01 ~ TC-H02

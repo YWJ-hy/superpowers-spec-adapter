@@ -148,7 +148,6 @@ To pin models, copy the relevant entries from `adapter.config.example.jsonc` int
       "wiki-researcher": "sonnet",
       "source-of-truth-verifier": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
-      "lanhu-frontend-html-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
     },
     "upstreamPromptTemplates": {
@@ -267,15 +266,29 @@ Documents without a companion `<stem>.index.md` are invisible to `wiki-researche
 
 ## Optional Lanhu requirements intake
 
-If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `lanhu-requirements` skill confirms the evidence role and determines the matching `lanhu-frontend-requirements-analyst`, `lanhu-frontend-html-requirements-analyst`, or `lanhu-backend-requirements-analyst` according to role and output format.
+If the user provides a Lanhu link and Lanhu MCP tools are available, the installed `lanhu-requirements` skill confirms the role and routes to either `lanhu-frontend-requirements-analyst` or `lanhu-backend-requirements-analyst`.
 
-The generated `.lanhu/` package is a **Lanhu original-requirement evidence package**, not a Superpowers spec. It preserves source-derived requirement facts, UI layout/control/interaction evidence, state/prompt facts, permission/visibility facts, and open questions. Superpowers uses it as requirements input and remains responsible for final spec structure, acceptance criteria, test strategy, technical solution, and implementation tasks.
+The generated `.lanhu/` package is a **Lanhu original-requirement input package**, not a Superpowers spec. It preserves source-derived requirement facts, UI layout/control/interaction evidence, state/prompt facts, permission/visibility facts, and open questions. Superpowers uses it as requirements input and remains responsible for final spec structure, acceptance criteria, test strategy, technical solution, and implementation tasks.
 
-Lanhu images, screenshots, and `designInfo.images` are candidate evidence only. Analysts use selective image analysis: they directly analyze an image region only when scoped evidence has a signal such as an annotation, arrow, nearby source text, user request, missing key UI fact, or layout ambiguity. By default the package stores structured source facts, caveats, and confirmation questions rather than image files; it does not write remote image references, base64 images, `.lanhu/.../assets/`, or `.lanhu/.../images/` unless the user explicitly asks for image preservation or confirms an offline-audit need.
+Frontend has one package shape only:
+
+```text
+.lanhu/MM-DD-<requirement-name>/
+  index.md
+  role-prd/
+    prd.md
+    design/                 # optional when source has design or interaction-demo value
+      index.html
+      assets/
+```
+
+`role-prd/prd.md` is the main requirements document and does not require fixed headings; it should focus on rules, constraints, system responses, field/data rules, boundaries, and open questions. Optional `role-prd/design/index.html` is an interactive structure mirror with real controls and left-nav/right-active-section layout; it is not production frontend code and not a second full PRD. Backend remains Markdown-only with the existing `index.md` + `prd.md` / `prds/*.md` package.
+
+Lanhu images, screenshots, and `designInfo.images` are candidate evidence only. Analysts use selective image analysis: they directly analyze an image region only when scoped evidence has a signal such as an annotation, arrow, nearby source text, user request, missing key UI fact, or layout ambiguity. By default the package stores structured source facts, caveats, and confirmation questions rather than image files; it does not write remote image references, base64 images, `.lanhu/.../assets/`, or `.lanhu/.../images/` unless the user explicitly asks for image preservation or confirms an offline-audit/demo-support need. Frontend local demo assets, when confirmed, live under `role-prd/design/assets/`.
 
 For explicit `pageId` links, the URL is treated as `rootScopeUrl` and the current page as `rootPageId`, not necessarily as the final target page. The main session first uses only lightweight page tree metadata from `lanhu_get_prd_page_scope`, combines that tree with the user's description to select `selectedTargetPages`, and does not call `lanhu_get_prd_scoped_evidence` before dispatch. Each selected page is routed to exactly one specialized analyst with `childPagePolicy: exclude`; that analyst uses the fixed scoped Lanhu MCP sequence (`lanhu_resolve_invite_link` when needed, `lanhu_get_prd_page_scope`, then `lanhu_get_prd_scoped_evidence` with `scope_policy: pageid_children_only`, `include_child_pages: false`, `confirmed_child_page_ids: []`, and `output_mode: evidence_only`) for its own page only.
 
-Role selection is required before Lanhu analysis, but it can be preconfigured with `lanhu.role` in `.superpowers/settings.json`. Default Lanhu output is Markdown-only. To generate a frontend HTML evidence package with `index.html` plus `prototype/index.html`, set `lanhu.frontend.output.format` to `html` in the target project's `.superpowers/settings.json`. Backend remains Markdown-only, and text-only frontend requirements may fall back to `prd.md`.
+Role selection is required before Lanhu analysis, but it can be preconfigured with `lanhu.role` in `.superpowers/settings.json`. Deprecated `lanhu.frontend.output.format` settings are ignored; frontend always uses the unified `role-prd/` package.
 
 ```text
 lanhu-requirements skill <Lanhu link> 前端 <optional requirement name>
@@ -284,19 +297,17 @@ lanhu-requirements skill --role frontend <Lanhu link> <optional requirement name
 lanhu-requirements skill --role backend <Lanhu link> <optional requirement name>
 ```
 
-If the role is missing or ambiguous and `lanhu.role` is not configured, the skill asks whether to generate a 前端 Lanhu 原始需求证据包 or 后端相关 Lanhu 原始需求证据包 before reading or analyzing Lanhu. If both roles are needed, generate two separate evidence packages by running the skill twice.
+If the role is missing or ambiguous and `lanhu.role` is not configured, the skill asks whether to generate a 前端 Lanhu 需求输入包 or 后端相关 Lanhu 原始需求证据包 before reading or analyzing Lanhu. If both roles are needed, generate two separate packages by running the skill twice.
 
-Maintained source templates live in `role-prd/frontend.md`, `role-prd/backend.md`, and `role-prd/frontend_outputHtml.md`. These templates define fixed PRD evidence package structures and must-cover dimensions; AI may customize content organization and wording inside that structure, but must not change the package structure, section responsibilities, artifact boundaries, or the input shape that later Superpowers steps depend on. `./manage.sh install` generates self-contained Lanhu analyst agents from the shared skeleton and selected role template before installing; installed agents do not read the source files at runtime.
+Maintained source templates live in `role-prd/frontend.md` and `role-prd/backend.md`. `./manage.sh install` generates self-contained Lanhu analyst agents from the shared skeleton and selected role template before installing; installed agents do not read the source files at runtime.
 
-Frontend Markdown evidence packages preserve a low-fidelity XML-like 1:1 original-requirement UI structure for agent/Superpowers consumption. Frontend HTML evidence packages use `index.html` as an evidence reader and `prototype/index.html` as the 1:1 Lanhu original-requirement UI replica for the selected/evidenced requirement range. The prototype uses real HTML controls and should preserve source page regions, control placement, dialogs, drawers, tables, cards, and relative hierarchy, but it does not expand every returned screenshot into a full visual reconstruction by default. Because the HTML prototype contains real controls, the HTML evidence tables should not duplicate prose such as “UI 控件类型”. The prototype may use only simple CSS/JS for reading, review, navigation, basic visibility, and state visualization; concrete interaction flows belong in `index.html` as source facts, not in production logic or workflow implementation.
+All explicit Lanhu original-requirement facts must be preserved. If a source fact does not fit template themes, the analyst may create concrete AI-defined source fact sections such as `计费规则源事实`, `消息通知源事实`, `导入导出源事实`, `通知规则源事实`, or `结算规则源事实`; it must not drop the fact, weaken it into an untraceable summary, or force it into a generic “other/misc” bucket.
 
-All explicit Lanhu original-requirement facts must be preserved. If a source fact does not fit fixed template themes, the analyst may create concrete AI-defined source fact sections such as `计费规则源事实`, `消息通知源事实`, `导入导出源事实`, `通知规则源事实`, or `结算规则源事实`; it must not drop the fact, weaken it into an untraceable summary, or force it into a generic “other/misc” bucket.
-
-For URL-rooted selection that resolves to multiple Lanhu target pages, page fan-out is only an evidence-fidelity strategy. The selected role-and-format analyst is called once per selected page and writes a complete page package under `.lanhu/MM-DD-<requirement-name>/pages/<page-slug>/`. The aggregate package root keeps only a global `index.md` for page package listing, reading order, cross-page relationships, root tree selection summary, selectedTargetPages, aggregated scope summary, and confirmation status. Compact page metadata, `.yaml`, or summary Markdown are not evidence sources and must not be expanded into final HTML by the main session.
+For URL-rooted selection that resolves to multiple Lanhu target pages, page fan-out is only an evidence-fidelity strategy. The selected analyst is called once per selected page and writes a complete page package under `.lanhu/MM-DD-<requirement-name>/pages/<page-slug>/`. The aggregate package root keeps only a global `index.md` for page package listing, reading order, cross-page relationships, root tree selection summary, selectedTargetPages, aggregated scope summary, and confirmation status. Compact page metadata, `.yaml`, or summary Markdown are not evidence sources and must not be expanded into final artifacts by the main session.
 
 The user must resolve any analyst-classified blocking confirmation points, then review and confirm the `.lanhu/.../index.md` entry point before Superpowers continues. Until the confirmation gate is clear and `index.md` is confirmed, `lanhu-requirements` skill is a standalone adapter requirements-intake skill and should not trigger Superpowers completion, review, or verification skills. Missing implementation field names or technical data mappings are non-blocking implementation follow-up unless the product-level field/control meaning or behavior is unclear.
 
-Lanhu output must not include final acceptance criteria, Given/When/Then, test cases, testing points, technical test plans, frontend components, backend API guesses, backend request/response field design, database column design, database impact guesses, implementation guesses, code architecture, affected file analysis, frontend/backend boundary inference, exception/risk inference, or Superpowers plan tasks. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
+Lanhu output must not include final acceptance criteria, Given/When/Then, test cases, testing points, technical test plans, frontend components, backend API guesses, backend request/response field design, database column design, database impact guesses, implementation guesses, code architecture, affected file analysis, frontend/backend boundary inference, exception/risk inference, independent evidence mapping tables, or Superpowers plan tasks. If Lanhu MCP is unavailable, the adapter flow does not fail; the user can paste requirements or continue with normal Superpowers brainstorming.
 
 ## Progressive disclosure
 

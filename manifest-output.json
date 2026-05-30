@@ -15,7 +15,6 @@
       "agents/wiki-researcher.md",
       "agents/source-of-truth-verifier.md",
       "agents/lanhu-frontend-requirements-analyst.md",
-      "agents/lanhu-frontend-html-requirements-analyst.md",
       "agents/lanhu-backend-requirements-analyst.md",
       "skills/break-loop/SKILL.md",
       "skills/wiki-progressive-disclosure/SKILL.md",

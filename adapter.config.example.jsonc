@@ -9,7 +9,6 @@
       "wiki-researcher": "sonnet",
       "source-of-truth-verifier": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
-      "lanhu-frontend-html-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
     },
 

@@ -38,27 +38,15 @@ class RoleConfig:
 ROLE_CONFIGS = (
     RoleConfig(
         role='frontend',
-        label='frontend markdown',
+        label='frontend unified',
         agent_name='lanhu-frontend-requirements-analyst',
         template_path=Path('role-prd/frontend.md'),
-        output_h1='# 前端 Lanhu 原始需求证据包',
-        allowed_content='frontend source UI/layout evidence, source field and control facts, source interaction facts, page state and prompt facts, permission visibility facts, and source-content-specific source fact sections when fixed themes do not fit, without acceptance criteria, tests, implementation details, frontend/backend boundary inference, or risk/exception inference',
-        output_format='markdown',
-        prd_template_name='frontend_evidence_package',
-        primary_artifact='index.md plus prd.md or prds/*.md',
-        fallback_artifact='not applicable',
-    ),
-    RoleConfig(
-        role='frontend',
-        label='frontend html',
-        agent_name='lanhu-frontend-html-requirements-analyst',
-        template_path=Path('role-prd/frontend_outputHtml.md'),
-        output_h1='# 前端 HTML Lanhu 原始需求证据包',
-        allowed_content='frontend HTML evidence reader plus a 1:1 Lanhu original-requirement UI replica prototype, including source page display facts, source field/control facts, interaction facts, state/prompt facts, permission visibility facts, and source-content-specific source fact sections when fixed themes do not fit, without redundant control-type prose, acceptance criteria, tests, implementation details, frontend/backend boundary inference, or risk/exception inference',
-        output_format='html',
-        prd_template_name='frontend_html_evidence_package',
-        primary_artifact='index.md plus index.html plus prototype/index.html',
-        fallback_artifact='index.md plus prd.md when the requirement is text-only and has no page, UI, or interaction surface',
+        output_h1='# 前端 Lanhu 需求输入包',
+        allowed_content='frontend source requirement facts, page/module/control/state/interaction evidence, field and data rules, permission or visibility differences when source evidence states them, system response rules, boundary conditions, source-content-specific fact sections when needed, optional design demo evidence, and open questions; never acceptance criteria, tests, implementation details, frontend/backend boundary inference, or risk/exception inference',
+        output_format='frontend_unified',
+        prd_template_name='frontend_unified_requirement_input_package',
+        primary_artifact='index.md plus role-prd/prd.md plus optional role-prd/design/index.html and role-prd/design/assets/',
+        fallback_artifact='not applicable; frontend always writes role-prd/prd.md, and the design demo is optional',
     ),
     RoleConfig(
         role='backend',
@@ -67,7 +55,7 @@ ROLE_CONFIGS = (
         template_path=Path('role-prd/backend.md'),
         output_h1='# 后端相关 Lanhu 原始需求证据包',
         allowed_content='backend-related source business object facts, business flow facts, business rule facts, business state facts, permission/data visibility facts, data-related source facts, and source-content-specific business source fact sections when fixed themes do not fit, without acceptance criteria, tests, API/database design, implementation details, frontend/backend boundary inference, or risk/exception inference',
-        output_format='markdown',
+        output_format='backend_markdown',
         prd_template_name='backend_evidence_package',
         primary_artifact='index.md plus prd.md or prds/*.md',
         fallback_artifact='not applicable',
@@ -92,9 +80,9 @@ def render_template_block(root: Path, config: RoleConfig) -> str:
     fence = fence_for(content)
     return '\n'.join(
         [
-            f'### {config.label.title()} evidence source template',
+            f'### {config.label.title()} source template',
             '',
-            f'Generated verbatim from `{config.template_path.as_posix()}`. Treat the template content below as the selected evidence contract and the complete {config.label} evidence source template.',
+            f'Generated verbatim from `{config.template_path.as_posix()}`. Treat the template content below as the selected Lanhu package contract and the complete {config.label} source template.',
             '',
             f'{fence}markdown',
             content,
@@ -104,89 +92,34 @@ def render_template_block(root: Path, config: RoleConfig) -> str:
 
 
 def render_format_contract(config: RoleConfig) -> str:
-    if config.output_format == 'html':
+    if config.role == 'frontend':
         return '\n'.join(
             [
-                'This agent is the frontend HTML evidence analyst. It is separate from `lanhu-frontend-requirements-analyst` and must not generate the Markdown-mode frontend evidence package unless the text-only fallback applies.',
+                'This agent is the only frontend Lanhu analyst. The old separate frontend Markdown and frontend HTML package variants are deprecated and must not be used.',
                 '',
-                'Required output contract for `outputPreference.format: html`:',
-                '- Create `index.md` as the package entrypoint, role marker, reading guide, and relationship authority.',
-                '- For page/UI/interaction requirements, write package-root `index.html` as the frontend evidence reader by copying the fixed canonical shell fenced in `role-prd/frontend_outputHtml.md` and replacing only placeholders plus section content slots.',
-                '- For page/UI/interaction requirements, also write `prototype/index.html` as the 1:1 Lanhu original-requirement UI replica for visual layout, page structure, source-region control placement, state probes, dialogs, drawers, and multi-step interaction visualization; simple CSS/JS is allowed only for reading, review, navigation, basic visibility, and state visualization, not business logic, workflow implementation, validation implementation, network calls, persistence, state management, routing, component decomposition, API integration, or technical solution.',
-                '- Do not write a full `prd.md` in normal HTML mode; `index.html` and `prototype/index.html` together are the detailed evidence artifacts.',
-                '- If the requirement is text-only and has no page, field UI, operation, page state, or interaction surface, set `htmlPrdCompliance.fallbackToMarkdown: true`, explain `fallbackReason`, and write `index.md` plus `prd.md` instead of forcing HTML.',
-                '- `index.md` must explain file roles and instruct Superpowers / AI to parse current HTML sections dynamically; it must not hard-code or rely on a fixed list of internal HTML chapters.',
-                '- `index.html` and `prototype/index.html` must link to each other and must be interpreted together. Any conflict between them must be raised as a confirmation question instead of being resolved by assumption.',
-                '- `index.html` is the source-fact authority for concrete interaction flows; `prototype/index.html` may visualize source layout, controls, containers, and states but must not implement business workflows.',
-                '- `index.html` and `prototype/index.html` must avoid external assets except the required Mermaid CDN module script, framework code, production component structure, real API calls, or implementation architecture.',
-                '- Lanhu image resources must follow the selective image analysis policy: analyze only selected/evidenced image regions, emit structured source facts, and do not embed remote Lanhu images, base64 images, or persisted image assets by default.',
-                '- `index.html` and `prototype/index.html` must render Mermaid in the browser with `startOnLoad: false` and explicit DOM-time rendering so hidden navigation sections do not suppress diagrams.',
-                '- Mermaid diagrams must remain visible in the browser; if mindmap is unstable because of CDN version, initialization timing, hidden containers, or complexity, switch to flowchart or split the diagram instead of leaving it invisible.',
-                '- Backend output must never use this agent or write `.html` files.',
+                'Required frontend output contract:',
+                '- Create `index.md` as the `.lanhu/MM-DD-需求名称/` package entrypoint, role marker, file relationship guide, scope confirmation summary, and reading order authority.',
+                '- Always write the main frontend requirements input at `role-prd/prd.md` inside the package or page package.',
+                '- When source evidence includes design稿、页面结构、控件关系、状态切换 or an interaction surface that is clearer by seeing/clicking, write `role-prd/design/index.html` as the optional interactive structure mirror.',
+                '- Put only demo-supporting static files under `role-prd/design/assets/`, and only when the user explicitly requests/authorizes asset preservation or the demo cannot be understood without a local supporting asset.',
+                '- Do not write package-root `prd.md`, `prds/*.md`, package-root `index.html`, `prototype/index.html`, XML-like UI sketches, or any separate frontend HTML detailed artifact.',
+                '- `role-prd/prd.md` does not require fixed topic headings. Organize by page, flow, module, business object, state, permission difference, or another source-driven structure that is clearest.',
+                '- `role-prd/prd.md` must focus on requirement rules, constraints, boundaries, system responses, field/data rules, state triggers, and open questions; avoid repeating layout/control/click-path details that `role-prd/design/index.html` already shows clearly.',
+                '- `role-prd/design/index.html` is a 1:1 interactive structure mirror of source pages, controls, states, dialogs/drawers/tabs/dropdowns, and user operation paths. It is not production frontend implementation and not a second full PRD.',
+                '- Demo placeholder/sample data must be explicitly labeled as sample data used only to show page structure.',
+                '- Original-source omissions, conflicts, and uncertainty must be marked as `原始资料未说明` or `待确认`, never converted into definite product rules.',
+                '- Backend output must never use this frontend contract.',
             ]
         )
     return '\n'.join(
         [
-            f'This agent handles `{config.output_format}` output only.',
+            'This agent handles backend Markdown-only output. Backend output is intentionally unchanged by the frontend package refactor.',
             '',
-            f'Required output contract for `outputPreference.format: {config.output_format}`:',
+            'Required backend output contract:',
             '- Create `index.md` as the package entrypoint, role marker, reading guide, and relationship authority.',
             '- Write either `prd.md` or `prds/*.md` depending on `deliveryBoundaryCount`.',
-            '- Do not write `index.html` or any `.html` file.',
-            '- If the main session passes `outputPreference.format: html` to this Markdown agent, return `status: need_role` or `status: partial` with a caveat asking the main session to route to the HTML frontend analyst instead.',
-        ]
-    )
-
-
-def render_html_compliance_contract(config: RoleConfig) -> str:
-    if config.output_format != 'html':
-        return 'HTML evidence compliance is not applicable for this agent. Return `htmlPrdCompliance.applicable: false` and do not write `.html` files.'
-    return '\n'.join(
-        [
-            'HTML evidence compliance is mandatory for successful non-fallback HTML output:',
-            '- `htmlPrdCompliance.applicable: true`',
-            '- `checkedAgainstFullHtmlSourceTemplate: true`',
-            '- `canonicalIndexHtmlShell: true`',
-            '- `canonicalIndexHtmlShellVersion: lanhu-frontend-html-evidence-index-shell-v1`',
-            '- `evidencePackage: true`',
-            '- `notSuperpowersSpec: true`',
-            '- `doesNotConstrainSuperpowersOutput: true`',
-            '- `selfContained: true` means no external resources except the required Mermaid CDN module script',
-            '- `prototypeArtifactPresent: true`',
-            '- `prototypeVisualLayoutMatchesLanhuEvidence: true`',
-            '- `prototypeIsOneToOneLanhuUiReplica: true`',
-            '- `prototypeControlsRemainInSourceRegions: true`',
-            '- `prototypeRealControlsRepresentSourceRequirements: true`',
-            '- `prototypeSimpleCssJsOnlyForReview: true`',
-            '- `interactionFlowsDocumentedAsSourceFacts: true`',
-            '- `businessWorkflowImplementationDetected: []`',
-            '- `prototypeLayoutApproximationCaveats: []` unless source evidence is insufficient to reproduce exact dimensions or spacing',
-            '- `prototypeDirectoryized: true`',
-            '- `prototypeLinkedFromIndexHtml: true`',
-            '- `indexMdDynamicHtmlParsingGuidance: true`',
-            '- `mermaidModuleScriptPresent: true`',
-            '- `mermaidBlocksBrowserRenderable: true`',
-            '- `onlyAllowedExternalAssetIsMermaidCdn: true`',
-            '- `selectiveImageAnalysisPolicyApplied: true` when image resources are present or evaluated',
-            '- `imageFactsAreStructured: true` when image-derived facts are used',
-            '- `remoteLanhuImagesEmbedded: []`',
-            '- `persistedLanhuImageFiles: []`',
-            '- `fullScreenshotParsingDetected: []`',
-            '- `prdPrototypeConflictQuestionsRaised: true` when conflicts exist, otherwise `false` with no unresolved conflict',
-            '- `redundantControlTypeProseDetected: []`',
-            '- `finalAcceptanceCriteriaDetected: []`',
-            '- `testPlanDetected: []`',
-            '- `implementationPlanDetected: []`',
-            '- `technicalSolutionDetected: []`',
-            '- `frontendBackendBoundaryInferenceDetected: []`',
-            '- `exceptionRiskInferenceDetected: []`',
-            '- `sourceFactsDroppedDetected: []`',
-            '- `aiCreatedSourceFactSections: []` unless AI-defined source fact sections are needed',
-            '- `externalAssetsDetected: []` except the required Mermaid CDN module script must not be reported as a violation',
-            '- `productionImplementationDetected: []`',
-            '- `rawHtmlInjectionDetected: []`',
-            '- `fallbackToMarkdown: false` unless the text-only fallback is used',
-            '- `fallbackReason: null` unless the text-only fallback is used',
+            '- Do not write `role-prd/design/index.html`, package-root `index.html`, `prototype/index.html`, or any `.html` file.',
+            '- If the main session routes frontend-only package fields to this backend agent, ignore those fields and keep backend Markdown-only output.',
         ]
     )
 
@@ -206,7 +139,6 @@ def render_agent(root: Path, config: RoleConfig) -> str:
         '{{PRIMARY_ARTIFACT}}': config.primary_artifact,
         '{{FALLBACK_ARTIFACT}}': config.fallback_artifact,
         '{{FORMAT_CONTRACT}}': render_format_contract(config),
-        '{{HTML_PRD_COMPLIANCE_CONTRACT}}': render_html_compliance_contract(config),
         '{{ROLE_PRD_TEMPLATE_BLOCK}}': render_template_block(root, config),
     }
     rendered = skeleton

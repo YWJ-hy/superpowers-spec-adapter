@@ -178,7 +178,6 @@ multica-superpowers-runtime/
       wiki-curator.md
       finisher.md
       lanhu-frontend-requirements-analyst.md
-      lanhu-frontend-html-requirements-analyst.md
       lanhu-backend-requirements-analyst.md
       shared-wiki-publisher.md
 
@@ -502,8 +501,8 @@ Multica 用户入口：
 - role 必须先确定：frontend 或 backend。
 - 如果 role 缺失且 `.superpowers/settings.json` 没配置，先问用户。
 - 如果用户说全栈，要求先选一个角色，建议分两次生成。
-- frontend 默认 Markdown-only。
-- `.superpowers/settings.json` 可配置 frontend HTML 输出。
+- frontend 始终输出统一 `role-prd/` 包：`role-prd/prd.md`，以及仅在有设计稿或需要交互 demo 时输出的 `role-prd/design/index.html` / `assets/`。
+- 已废弃的 `lanhu.frontend.output.format` 只允许作为兼容性 warning 被忽略，不能再改变 frontend 路由或产物结构。
 - backend 永远 Markdown-only。
 - URL 带 pageId 时，主会话只允许读取 lightweight page tree metadata。
 - 主会话在派发 analyst 前不得调用 full scoped evidence。
@@ -1286,7 +1285,6 @@ shared-wiki-mcp
 - `wiki-curator`
 - `finisher`
 - `lanhu-frontend-requirements-analyst`
-- `lanhu-frontend-html-requirements-analyst`
 - `lanhu-backend-requirements-analyst`
 - `shared-wiki-publisher`
 
@@ -1329,9 +1327,10 @@ shared-wiki-mcp
 - selectedTargetPages
 - per-page analyst dispatch
 - selective image analysis
-- Markdown frontend/backend
-- frontend HTML mode
+- unified frontend `role-prd/` package + backend Markdown package
 - `.lanhu/MM-DD-需求名称/index.md`
+- `.lanhu/MM-DD-需求名称/role-prd/prd.md`
+- optional `.lanhu/MM-DD-需求名称/role-prd/design/index.html`
 - multi-page aggregate package
 - confirmationGate
 - scopeConfirmationSummary
