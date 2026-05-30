@@ -7,12 +7,11 @@ TARGET_INPUT="${1:-${ROOT}/../superpowers}"
 TARGET_INPUT="$(cd "${TARGET_INPUT}" && pwd)"
 
 LANHU_FRONTEND_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-requirements-analyst.md"
-LANHU_FRONTEND_HTML_AGENT="${TARGET_INPUT}/agents/lanhu-frontend-html-requirements-analyst.md"
 LANHU_BACKEND_AGENT="${TARGET_INPUT}/agents/lanhu-backend-requirements-analyst.md"
 LANHU_SKILL="${TARGET_INPUT}/skills/lanhu-requirements/SKILL.md"
 BRAINSTORMING_SKILL="${TARGET_INPUT}/skills/brainstorming/SKILL.md"
 
-for file in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
+for file in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT" "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
   if [[ ! -f "$file" ]]; then
     printf 'Expected installed Lanhu selective image analysis target: %s\n' "$file" >&2
     exit 1
@@ -28,7 +27,7 @@ require_in_file() {
   fi
 }
 
-for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEND_AGENT"; do
+for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
   for required in \
     'Selective image analysis policy' \
     'designInfo.images' \
@@ -53,24 +52,10 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_FRONTEND_HTML_AGENT" "$LANHU_BACKEN
 done
 
 for required in \
-  'selected/evidenced image regions' \
-  'remote Lanhu images' \
-  'base64 images' \
-  'persisted image assets by default' \
-  'selectiveImageAnalysisPolicyApplied: true' \
-  'imageFactsAreStructured: true' \
-  'remoteLanhuImagesEmbedded: []' \
-  'persistedLanhuImageFiles: []' \
-  'fullScreenshotParsingDetected: []' \
-  'selected scoped/evidenced Lanhu requirement range'
-do
-  require_in_file "$LANHU_FRONTEND_HTML_AGENT" "$required"
-done
-
-for required in \
   '图片、截图和 `designInfo.images` 只在具备范围信号时选择性分析' \
-  '默认不保存蓝湖图片文件' \
-  '图片/截图/可视资源 + 标注/箭头/周边说明'
+  '默认不保存蓝湖图片' \
+  'role-prd/design/assets/' \
+  '图片资源是候选证据'
 do
   require_in_file "$LANHU_FRONTEND_AGENT" "$required"
 done
@@ -81,7 +66,8 @@ for required in \
   'selectiveImageAnalysis' \
   'persistedImages: false' \
   'Image files, base64 blobs, remote image references' \
-  'Saving original images requires an explicit user request'
+  'role-prd/design/assets/' \
+  'explicit user request or confirmed offline-audit/demo-support need'
 do
   require_in_file "$LANHU_SKILL" "$required"
 done
@@ -91,9 +77,7 @@ for required in \
   'Do not broaden to design tools for images' \
   'persistedImages: false' \
   'compact `selectiveImageAnalysis` metadata' \
-  'empty `remoteLanhuImagesEmbedded`' \
-  'empty `persistedLanhuImageFiles`' \
-  'empty `fullScreenshotParsingDetected`'
+  'role-prd/design/assets/'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

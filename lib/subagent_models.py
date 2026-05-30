@@ -20,7 +20,6 @@ ADAPTER_AGENT_IDS = frozenset(
         'wiki-researcher',
         'source-of-truth-verifier',
         'lanhu-frontend-requirements-analyst',
-        'lanhu-frontend-html-requirements-analyst',
         'lanhu-backend-requirements-analyst',
     }
 )

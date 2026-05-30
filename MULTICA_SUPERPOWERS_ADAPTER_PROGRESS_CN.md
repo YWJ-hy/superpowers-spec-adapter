@@ -240,7 +240,6 @@ python3 ${MULTICA_SUPERPOWERS_RUNTIME_ROOT}/tools/scripts/wiki_context_render.py
   - `wiki-researcher`
 - 通过 `lib/sync_role_prd.py` 的 `render_agent()` 生成 Lanhu analyst：
   - `lanhu-frontend-requirements-analyst`
-  - `lanhu-frontend-html-requirements-analyst`
   - `lanhu-backend-requirements-analyst`
 - 从 upstream Superpowers prompt 提取：
   - `spec-document-reviewer`

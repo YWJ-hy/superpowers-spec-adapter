@@ -6,7 +6,7 @@ ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TARGET_INPUT="${1:-${ROOT}/overlays}"
 TARGET_DIR="$(cd "${TARGET_INPUT}" && pwd)"
 TMP_PARENT="${CLAUDE_JOB_DIR:-${TMPDIR:-/tmp}}"
-PROJECT_ROOT="$(mktemp -d "${TMP_PARENT%/}/lanhu-html-settings.XXXXXX")"
+PROJECT_ROOT="$(mktemp -d "${TMP_PARENT%/}/lanhu-unified-settings.XXXXXX")"
 trap 'rm -rf "${PROJECT_ROOT}"' EXIT
 
 mkdir -p "${PROJECT_ROOT}/.superpowers"
@@ -30,14 +30,14 @@ python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['role'] == 'frontend'"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['configuredRole'] is None"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['roleSource'] == 'argument'"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['format'] == 'markdown'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['packageKind'] == 'frontend_unified'"
 assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['settingsPath'] is None"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['primaryOutput']['kind'] == 'markdown_prd'"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['primaryOutput']['filename'] == 'prd.md'"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['enabled'] is False"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['filename'] == 'index.html'"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['prototypeFilename'] is None"
-assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['htmlPrd']['companionFiles'] == []"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['primaryOutput']['kind'] == 'frontend_role_prd'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['primaryOutput']['filename'] == 'role-prd/prd.md'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['frontendPackage']['enabled'] is True"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['frontendPackage']['designDemoPath'] == 'role-prd/design/index.html'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['frontendPackage']['assetsDir'] == 'role-prd/design/assets/'"
+assert_json_field "${PROJECT_ROOT}/default-frontend.json" "payload['deprecatedSettings']['ignored'] is False"
 
 python3 - "${PROJECT_ROOT}/.superpowers/settings.json" <<'PY'
 import json
@@ -57,35 +57,32 @@ path.write_text(json.dumps({
 }, indent=2) + "\n", encoding="utf-8")
 PY
 
-python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-frontend.json"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['role'] == 'frontend'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['configuredRole'] == 'frontend'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['roleSource'] == 'argument'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['format'] == 'html'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['settingsPath'] == '.superpowers/settings.json'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['source'] == '.superpowers/settings.json'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['primaryOutput']['kind'] == 'html_prd'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['primaryOutput']['filename'] == 'index.html'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['enabled'] is True"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['prototypeFilename'] == 'prototype/index.html'"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['companionFiles'] == ['prototype/index.html']"
-assert_json_field "${PROJECT_ROOT}/html-frontend.json" "payload['htmlPrd']['fallbackToMarkdownWhenTextOnly'] is True"
+python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/legacy-html-frontend.json"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['role'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['configuredRole'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['roleSource'] == 'argument'"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['packageKind'] == 'frontend_unified'"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['primaryOutput']['kind'] == 'frontend_role_prd'"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['primaryOutput']['filename'] == 'role-prd/prd.md'"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['deprecatedSettings']['lanhu.frontend.output.format'] == 'html'"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "payload['deprecatedSettings']['ignored'] is True"
+assert_json_field "${PROJECT_ROOT}/legacy-html-frontend.json" "'deprecated and ignored' in payload['warnings'][0]"
 
 python3 "${TARGET_DIR}/scripts/lanhu_settings.py" "${PROJECT_ROOT}" > "${PROJECT_ROOT}/configured-role.json"
 assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['role'] == 'frontend'"
 assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['configuredRole'] == 'frontend'"
 assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['roleSource'] == '.superpowers/settings.json'"
-assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['format'] == 'html'"
+assert_json_field "${PROJECT_ROOT}/configured-role.json" "payload['packageKind'] == 'frontend_unified'"
 
-python3 "${TARGET_DIR}/scripts/lanhu_settings.py" backend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/html-backend.json"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['role'] == 'backend'"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['configuredRole'] == 'frontend'"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['roleSource'] == 'argument'"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['format'] == 'markdown'"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['enabled'] is False"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['prototypeFilename'] is None"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "payload['htmlPrd']['companionFiles'] == []"
-assert_json_field "${PROJECT_ROOT}/html-backend.json" "'frontend-only' in payload['warnings'][0]"
+python3 "${TARGET_DIR}/scripts/lanhu_settings.py" backend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/backend.json"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['role'] == 'backend'"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['configuredRole'] == 'frontend'"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['roleSource'] == 'argument'"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['packageKind'] == 'backend_markdown'"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['primaryOutput']['kind'] == 'backend_markdown_prd'"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['backendPackage']['markdownOnly'] is True"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['frontendPackage']['enabled'] is False"
+assert_json_field "${PROJECT_ROOT}/backend.json" "payload['deprecatedSettings']['ignored'] is True"
 
 python3 - "${PROJECT_ROOT}/.superpowers/settings.json" <<'PY'
 import json
@@ -104,14 +101,10 @@ path.write_text(json.dumps({
     }
 }, indent=2) + "\n", encoding="utf-8")
 PY
-if python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/invalid.out" 2>&1; then
-  printf 'Expected invalid lanhu.frontend.output.format to fail\n' >&2
-  exit 1
-fi
-if ! grep -Fq 'Invalid lanhu.frontend.output.format' "${PROJECT_ROOT}/invalid.out"; then
-  printf 'Expected invalid format error message\n' >&2
-  exit 1
-fi
+python3 "${TARGET_DIR}/scripts/lanhu_settings.py" frontend "${PROJECT_ROOT}" > "${PROJECT_ROOT}/unsupported-legacy-format.json"
+assert_json_field "${PROJECT_ROOT}/unsupported-legacy-format.json" "payload['packageKind'] == 'frontend_unified'"
+assert_json_field "${PROJECT_ROOT}/unsupported-legacy-format.json" "payload['deprecatedSettings']['lanhu.frontend.output.format'] == 'markdown+html'"
+assert_json_field "${PROJECT_ROOT}/unsupported-legacy-format.json" "'unsupported legacy value' in payload['warnings'][0]"
 
 python3 - "${PROJECT_ROOT}/.superpowers/settings.json" <<'PY'
 import json
@@ -144,4 +137,4 @@ if ! grep -Fq 'Invalid JSON' "${PROJECT_ROOT}/malformed.out"; then
   exit 1
 fi
 
-printf 'Lanhu HTML settings smoke OK\n'
+printf 'Lanhu unified frontend settings smoke OK\n'

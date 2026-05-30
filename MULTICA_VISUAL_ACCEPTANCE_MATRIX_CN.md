@@ -19,7 +19,6 @@
 | Superpowers 阶段 | Multica assignee |
 |---|---|
 | Lanhu frontend intake | `superpowers-lanhu-frontend-requirements-analyst` |
-| Lanhu frontend HTML intake | `superpowers-lanhu-frontend-html-requirements-analyst` |
 | Lanhu backend intake | `superpowers-lanhu-backend-requirements-analyst` |
 | Brainstorming | `superpowers-brainstorming-agent` |
 | Wiki research | `superpowers-wiki-researcher` |
