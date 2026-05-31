@@ -407,7 +407,7 @@ lanhu-requirements skill --role backend <蓝湖链接> <可选需求命名>
 
 如果蓝湖链接带有明确 `pageId`，adapter 会在角色确认后把该 URL 当作范围入口：先用 `lanhu_get_prd_page_scope` 只获取当前页及子树的轻量 page tree metadata，再结合用户描述选择目标页面。每个选中的页面单独派发 analyst，并由 analyst 用 `lanhu_get_prd_scoped_evidence` 读取 `output_mode: evidence_only` 的单页证据，固定 `include_child_pages: false`、`confirmed_child_page_ids: []`。相邻页面、同文档其它模块、父级流程页、未选中的子页、垃圾站 / 旧页面、导航关联页或 Lanhu AI 认为“相关”的页面不会进入该页面包。
 
-`.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 和 `scopeConfirmationSummary` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 evidence markdown、完整 HTML 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 evidence package，直到 `confirmationGate.status: clear`。缺少后端接口字段名、数据库列名、枚举编码或代码模型属性名不应阻塞 Lanhu 包，除非源证据连产品语义字段/控件含义、可见性、必填/默认/只读、校验、状态、权限、交互或范围都无法确认。
+`.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 和 `scopeConfirmationSummary` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 evidence markdown、完整 HTML 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 evidence package，直到 `confirmationGate.status: clear`。缺少后端接口字段名、数据库列名、枚举编码或代码模型属性名不应阻塞 Lanhu 包，除非源证据连产品语义字段/控件含义、可见性、必填/默认/只读、校验、状态、权限、交互或范围都无法确认。分析师在通读 scoped evidence 时如顺带发现源内部自相矛盾（同一字段/控件/状态/权限/流程被赋予互斥的产品级事实），应中性陈述冲突并作为 `impact: source-fact-conflict` 的阻塞确认点交用户/产品方确认，自己不裁决、不合并，也不写成正文章节或异常/风险推断；仅涉及实现命名（接口字段名、数据库列名、枚举编码）的矛盾落非阻塞 `openQuestions`。
 
 Frontend 统一输出 `frontend-prd/prd.md`，并在存在设计稿或需要交互 demo 时输出 `frontend-prd/design/index.html`。`prd.md` 聚焦规则、约束、边界、系统响应和待确认问题，不固定章节；HTML demo 用真实控件 1:1 映射原始页面结构、控件关系、状态和交互路径，但不是生产前端实现，也不是第二份完整 PRD。用户对原始需求的补充、修正、删减或忽略直接反映到清洗后的有效 PRD 中，不保留过程留痕；如果该修改会影响 analyst 已分析出的其它字段、功能、交互、状态、权限、业务规则或数据语义，必须进入确认门禁让用户决定，不得私自级联修改。
 

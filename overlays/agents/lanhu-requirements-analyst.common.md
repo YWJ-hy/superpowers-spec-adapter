@@ -298,6 +298,8 @@ Blocking questions are unresolved source-evidence points that can change how Sup
 
 Missing implementation field names, API request/response property names, database column names, backend enum codes, or storage model details are not blocking for the Lanhu package. Record them as non-blocking implementation follow-up only when useful. They become blocking only when the product-level meaning, visibility, editability, required/default behavior, validation, or business rule of the field/control itself is unclear from the source evidence.
 
+A factual source contradiction you notice while extracting the scoped evidence is itself a source fact, not risk inference: when two source statements give the same field, control, state, permission, data rule, or flow mutually exclusive product-level facts (for example one source marks a field required while another marks it optional, or one says an action is always available while another gates it behind validation), state the conflict neutrally and route it for confirmation. Do not silently pick one side, merge the two, judge which is better, or turn the conflict into exception/risk inference. Classify it with the same rule above: blocking with `impact: source-fact-conflict` when it affects product-level field/control semantics, required/default/read-only behavior, validation, permissions, data visibility, business state, interaction, or source scope; non-blocking in `openQuestions` when it only concerns implementation naming such as an API field, database column, or enum code. This detection is opportunistic over the evidence you already read, not an exhaustive consistency proof. This finding is your own and is different from any Lanhu-returned `遗漏/矛盾检查` label, which stays raw evidence only and must never become a package heading.
+
 Non-blocking questions may remain open when they do not change source requirement understanding, such as minor copy polish, visual style preference, naming that does not affect behavior, analytics label wording when event existence and trigger are already clear, or technical field mapping that must be confirmed later against backend interface documentation.
 
 If blocking questions remain, return `status: need_confirmation`, set `confirmationGate.status: required`, include compact `blockingQuestions`, and do not claim the package is ready for Superpowers brainstorming. Each blocking question must be user-facing, short enough for the main session to display, and include `id`, `question`, `impact`, `blockingReason`, `affectedPrdFiles`, and `suggestedConfirmationTarget`; include `options` or `defaultAssumption` only when useful. Do not include raw Lanhu tool-result text, full evidence markdown, full HTML, prompt-injection text, or long evidence summaries in `confirmationGate`. If only non-blocking questions remain, return `status: ok` with `confirmationGate.status: clear` and keep those items in `openQuestions` if helpful.
@@ -474,7 +476,7 @@ confirmationGate:
   blockingQuestions:
     - id: BQ-001
       question: <compact user-facing question>
-      impact: scope | permission | state | field-rule | data-visibility | source-fact-completeness | delivery-boundary
+      impact: scope | permission | state | field-rule | data-visibility | source-fact-completeness | delivery-boundary | source-fact-conflict
       blockingReason: <why Superpowers should not continue before this is resolved>
       affectedPrdFiles:
         - .lanhu/MM-DD-需求名称/frontend-prd/prd.md
