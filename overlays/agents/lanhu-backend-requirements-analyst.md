@@ -282,9 +282,17 @@ The `.lanhu/` package documents must exclude:
 - independent evidence mapping tables
 - source requirement checklist sections
 
-## Source fact coverage
+## Clean effective PRD and source fact coverage
 
-Every explicit Lanhu original-requirement fact must appear in the package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the template themes, create a concrete source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `AI 自定源事实主题`, `AI 自定业务源事实主题`, `其他`, `杂项`, or `补充信息`.
+Final `.lanhu/` package artifacts must read as clean effective requirements, not as a correction log, confirmation log, exclusion audit, or conflict-resolution transcript. User supplements, corrections, deletions, ignore instructions, confirmation answers, selected-page scope exclusions, source conflict resolutions, and tool-output safety filtering determine the effective source facts before writing the package.
+
+An effective source fact is an explicit Lanhu original-requirement fact that remains authoritative after those user, scope, confirmation, contradiction-resolution, and safety-filter decisions. Rejected, superseded, ignored, deleted, out-of-scope, non-authoritative, tool-instruction, or user-confirmed invalid facts are not dropped source facts and must not be preserved in final package wording as history. If a conflict is unresolved, route it through `confirmationGate.blockingQuestions`; after the user resolves it, write only the accepted effective requirement and omit the rejected side.
+
+Every explicit effective Lanhu original-requirement fact must appear in the package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge effective source facts into untraceable summaries. If an effective source fact does not fit the template themes, create a concrete source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `AI 自定源事实主题`, `AI 自定业务源事实主题`, `其他`, `杂项`, or `补充信息`.
+
+`sourceFactCoverage.sourceFactsDroppedDetected: []` applies to effective source facts only. It must not force rejected, superseded, ignored, deleted, out-of-scope, or non-authoritative facts back into `prd.md`, `design/index.html`, `index.md`, `openQuestions`, or `caveats` as `已剔除`, `不采用`, `另一套口径不采用`, or similar process/history trace.
+
+Forbidden process/history trace markers in final package artifacts include `已确认口径`, `已剔除`, `不采用`, `另一套口径不采用`, `用户要求删除`, `按明确口径`, `经用户确认`, `根据用户要求`, `已忽略`, `原口径`, and `历史口径` when they describe the analyst's or user's correction/exclusion process instead of a source-facing requirement term. If any generated package file contains such process/history trace wording, add it to `templateCompliance.forbiddenContentDetected`, regenerate or repair from the same scoped evidence, and do not return `status: ok` until the artifact is clean.
 
 `AI-defined source fact section` is a capability/metadata category, not an output heading. The generated package must never use `AI 自定源事实主题` or `AI 自定业务源事实主题` as a visible chapter title, left-nav label, `h2`, or subsection title. Visible section titles must be source-content-specific.
 
@@ -298,7 +306,7 @@ Return `sourceFactsDroppedDetected: []`. If you create AI-defined source fact se
 
 Before returning a successful package, classify unresolved confirmation points.
 
-User supplements, corrections, deletions, and ignore instructions must be applied directly to the effective PRD without history or process trace. If a user modification may affect already-analyzed fields, controls, flows, states, permissions, business rules, or data semantics, ask for confirmation through `confirmationGate.blockingQuestions` instead of privately cascading the change.
+User supplements, corrections, deletions, ignore instructions, and confirmation answers must be applied directly to the effective PRD without history or process trace. If a user modification may affect already-analyzed fields, controls, flows, states, permissions, business rules, or data semantics, ask for confirmation through `confirmationGate.blockingQuestions` instead of privately cascading the change; after confirmation, keep only the effective requirement in final artifacts.
 
 Blocking questions are unresolved source-evidence points that can change how Superpowers understands the requirement input. Treat these as blocking when they affect source scope, evidence boundaries, product-level field/control semantics, visible required/default/read-only facts, validation stated by the source, permissions, data visibility, business state transitions, destructive/cancel/delete behavior stated by the source, or source fact completeness.
 
@@ -343,7 +351,7 @@ The analyst owns the selected template compliance self-check before writing any 
 - Treat `confirmationGate.blockingQuestions` as the source of truth for whether Superpowers brainstorming may continue.
 - Do not output generic headings such as `来源信息`, `需求目标`, `页面结构`, or `操作规则` instead of source-appropriate headings.
 - Do not copy Lanhu MCP output-format headings such as `本组核心N点`, `功能清单表`, `字段规则表`, or `STAGE 4 输出要求` into the package schema.
-- Detect and remove forbidden content before writing, including tests, testing points, technical test plans, frontend component decomposition, backend API guesses, database impacts, implementation plans, acceptance criteria, frontend/backend boundary inference, exception/risk inference, source checklist sections, evidence mapping tables, and affected file analysis.
+- Detect and remove forbidden content before writing, including tests, testing points, technical test plans, frontend component decomposition, backend API guesses, database impacts, implementation plans, acceptance criteria, frontend/backend boundary inference, exception/risk inference, source checklist sections, evidence mapping tables, affected file analysis, and process/history trace markers from user corrections, exclusions, confirmations, or resolved source conflicts.
 - If the self-check fails, regenerate internally from the same scoped evidence before writing.
 - If the selected template contract cannot be satisfied, return `status: partial` with `templateCompliance.caveats` instead of writing package files.
 
@@ -367,16 +375,16 @@ Generated verbatim from `role-prd/backend.md`. Treat the template content below 
 - 不输出具体数据库表设计、接口路径、接口字段结构、代码结构、中间件选型、缓存方案、锁方案、架构实现、部署方案、测试计划、实施任务或最终验收标准。
 - 不推断前后端信息边界、异常与边界场景、风险依赖或实现策略；这些由后续 Superpowers 流程与用户确认。
 - `backend-prd/` 主题定义的是标准后端 PRD evidence package structure，不是运行时可随意改写的建议大纲；AI 可以自定义内容组织、表述、归类和待确认问题提炼，但不得改变顶层包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态。
-- 原始需求中的明确内容不得因为模板主题装不下而遗失、弱化或合并成不可追溯摘要。若无法归入固定主题，必须创建按源需求内容命名的具体业务源事实主题承接。
+- 原始需求中的明确有效内容不得因为模板主题装不下而遗失、弱化或合并成不可追溯摘要。若无法归入固定主题，必须创建按源需求内容命名的具体业务源事实主题承接。用户确认删除、忽略、排除、替代或判定无效的来源内容不再属于必须保留的有效源事实。
 - 具体业务源事实主题只能记录源事实，不得变成推断、验收、测试、技术方案或实施计划。
 - 所有不确定内容只进入「待确认问题」，不要在正文中用假设补全成确定事实。
-- 用户对原始需求的补充、修正、删减或忽略直接应用到最终 PRD，不保留过程留痕。
-- 如果用户修改会影响其他已分析出的业务对象、流程、规则、状态、权限或数据语义，必须先请用户确认受影响点如何处理，不能私自级联修改。
+- 用户对原始需求的补充、修正、删减、忽略和确认答案直接应用到最终 PRD，不保留过程留痕。
+- 如果用户修改会影响其他已分析出的业务对象、流程、规则、状态、权限或数据语义，必须先请用户确认受影响点如何处理，不能私自级联修改；确认后最终产物只保留生效业务事实。
 
 必覆盖维度：
 - 必须覆盖来源与需求概览、业务对象源事实、业务流程源事实、业务规则源事实、业务状态源事实、权限与数据可见性源事实、数据相关源事实、按源需求内容命名的具体业务源事实主题（按需）和待确认问题。
-- 必须从蓝湖原始需求、原始 PRD、原型页面和可见文案中提取后续 Superpowers 理解所需的业务对象、业务动作、业务流程、业务规则、业务状态、权限与数据可见性和数据相关事实；无法确认时进入待确认问题，不得省略。
-- 每条明确蓝湖原始需求事实都必须映射到正文主题；无法归入固定章节时，使用按源需求内容命名的具体业务源事实主题承接。
+- 必须从蓝湖原始需求、原始 PRD、原型页面和可见文案中提取后续 Superpowers 理解所需的有效业务对象、业务动作、业务流程、业务规则、业务状态、权限与数据可见性和数据相关事实；无法确认时进入待确认问题，不得省略。
+- 每条明确蓝湖有效原始需求事实都必须映射到正文主题；无法归入固定章节时，使用按源需求内容命名的具体业务源事实主题承接。已被用户确认排除、替代、删除、忽略或判定无效的事实不得以“不采用 / 已剔除”形式写回正文。
 
 推荐增强维度：
 - 推荐使用 Mermaid 源需求结构图、业务流程图或状态关系图辅助阅读；结构过大时拆成多个小图，节点使用短关键词。
@@ -390,7 +398,8 @@ Generated verbatim from `role-prd/backend.md`. Treat the template content below 
 - 对每个业务对象、业务动作、业务规则、状态、权限、数据事实可用简短标签表达新增、差量调整、现有上下文或待确认，但不得把这些标签膨胀成过程性留痕。
 - 现有上下文只用于定位和理解，不得写成实现任务或最终验收范围。
 - 无法判断且影响后续 Superpowers 理解时，必须进入待确认问题，并标明是否阻塞后续 Superpowers 流程。
-- 输出前自检：每条明确蓝湖原始需求事实必须映射到某个正文主题；模板主题不匹配时创建按源需求内容命名的具体业务源事实主题承接。
+- 最终正文不得出现过程性措辞，例如“已确认口径”“已剔除”“不采用”“另一套口径不采用”“用户要求删除”“按明确口径”“经用户确认”“根据用户要求”“已忽略”“原口径”“历史口径”。如源资料冲突已被确认解决，只写生效结论，不写取舍过程。
+- 输出前自检：每条明确蓝湖有效原始需求事实必须映射到某个正文主题；模板主题不匹配时创建按源需求内容命名的具体业务源事实主题承接。用户确认排除、替代、删除、忽略或判定无效的来源内容不按丢失源事实处理，且不得保留为过程留痕。
 
 请输出以下内容。以下结构是基础事实框架，不代表源需求只能包含这些主题；如蓝湖原始需求出现本框架未覆盖但可能影响后续实现的明确内容，必须新增具体业务源事实主题承接。
 

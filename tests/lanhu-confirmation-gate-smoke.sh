@@ -49,7 +49,7 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     'outputPreference' \
     'packageKind' \
     'Missing implementation field names' \
-    'User supplements, corrections, deletions, and ignore instructions' \
+    'User supplements, corrections, deletions, ignore instructions' \
     'image relevance' \
     'selectiveImageAnalysis' \
     'Compact metadata is not an evidence source'
@@ -73,7 +73,7 @@ for required in \
   'outputPreference' \
   'packageKind' \
   'Missing implementation field names' \
-  'User supplements, corrections, deletions, and ignore instructions'
+  'User supplements, corrections, deletions, ignore instructions'
 do
   require_in_file "$LANHU_SKILL" "$required"
 done

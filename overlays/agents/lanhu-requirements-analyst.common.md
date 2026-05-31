@@ -276,9 +276,17 @@ The `.lanhu/` package documents must exclude:
 - independent evidence mapping tables
 - source requirement checklist sections
 
-## Source fact coverage
+## Clean effective PRD and source fact coverage
 
-Every explicit Lanhu original-requirement fact must appear in the package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge source facts into untraceable summaries. If a source fact does not fit the template themes, create a concrete source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `AI 自定源事实主题`, `AI 自定业务源事实主题`, `其他`, `杂项`, or `补充信息`.
+Final `.lanhu/` package artifacts must read as clean effective requirements, not as a correction log, confirmation log, exclusion audit, or conflict-resolution transcript. User supplements, corrections, deletions, ignore instructions, confirmation answers, selected-page scope exclusions, source conflict resolutions, and tool-output safety filtering determine the effective source facts before writing the package.
+
+An effective source fact is an explicit Lanhu original-requirement fact that remains authoritative after those user, scope, confirmation, contradiction-resolution, and safety-filter decisions. Rejected, superseded, ignored, deleted, out-of-scope, non-authoritative, tool-instruction, or user-confirmed invalid facts are not dropped source facts and must not be preserved in final package wording as history. If a conflict is unresolved, route it through `confirmationGate.blockingQuestions`; after the user resolves it, write only the accepted effective requirement and omit the rejected side.
+
+Every explicit effective Lanhu original-requirement fact must appear in the package. AI may customize content organization, wording, grouping, and open-question extraction, but it must not drop, weaken, or merge effective source facts into untraceable summaries. If an effective source fact does not fit the template themes, create a concrete source fact section named from the source content, such as `计费规则源事实`, `消息通知源事实`, or `导入导出源事实`. Do not use generic catch-all headings such as `AI 自定源事实主题`, `AI 自定业务源事实主题`, `其他`, `杂项`, or `补充信息`.
+
+`sourceFactCoverage.sourceFactsDroppedDetected: []` applies to effective source facts only. It must not force rejected, superseded, ignored, deleted, out-of-scope, or non-authoritative facts back into `prd.md`, `design/index.html`, `index.md`, `openQuestions`, or `caveats` as `已剔除`, `不采用`, `另一套口径不采用`, or similar process/history trace.
+
+Forbidden process/history trace markers in final package artifacts include `已确认口径`, `已剔除`, `不采用`, `另一套口径不采用`, `用户要求删除`, `按明确口径`, `经用户确认`, `根据用户要求`, `已忽略`, `原口径`, and `历史口径` when they describe the analyst's or user's correction/exclusion process instead of a source-facing requirement term. If any generated package file contains such process/history trace wording, add it to `templateCompliance.forbiddenContentDetected`, regenerate or repair from the same scoped evidence, and do not return `status: ok` until the artifact is clean.
 
 `AI-defined source fact section` is a capability/metadata category, not an output heading. The generated package must never use `AI 自定源事实主题` or `AI 自定业务源事实主题` as a visible chapter title, left-nav label, `h2`, or subsection title. Visible section titles must be source-content-specific.
 
@@ -292,7 +300,7 @@ Return `sourceFactsDroppedDetected: []`. If you create AI-defined source fact se
 
 Before returning a successful package, classify unresolved confirmation points.
 
-User supplements, corrections, deletions, and ignore instructions must be applied directly to the effective PRD without history or process trace. If a user modification may affect already-analyzed fields, controls, flows, states, permissions, business rules, or data semantics, ask for confirmation through `confirmationGate.blockingQuestions` instead of privately cascading the change.
+User supplements, corrections, deletions, ignore instructions, and confirmation answers must be applied directly to the effective PRD without history or process trace. If a user modification may affect already-analyzed fields, controls, flows, states, permissions, business rules, or data semantics, ask for confirmation through `confirmationGate.blockingQuestions` instead of privately cascading the change; after confirmation, keep only the effective requirement in final artifacts.
 
 Blocking questions are unresolved source-evidence points that can change how Superpowers understands the requirement input. Treat these as blocking when they affect source scope, evidence boundaries, product-level field/control semantics, visible required/default/read-only facts, validation stated by the source, permissions, data visibility, business state transitions, destructive/cancel/delete behavior stated by the source, or source fact completeness.
 
@@ -337,7 +345,7 @@ The analyst owns the selected template compliance self-check before writing any 
 - Treat `confirmationGate.blockingQuestions` as the source of truth for whether Superpowers brainstorming may continue.
 - Do not output generic headings such as `来源信息`, `需求目标`, `页面结构`, or `操作规则` instead of source-appropriate headings.
 - Do not copy Lanhu MCP output-format headings such as `本组核心N点`, `功能清单表`, `字段规则表`, or `STAGE 4 输出要求` into the package schema.
-- Detect and remove forbidden content before writing, including tests, testing points, technical test plans, frontend component decomposition, backend API guesses, database impacts, implementation plans, acceptance criteria, frontend/backend boundary inference, exception/risk inference, source checklist sections, evidence mapping tables, and affected file analysis.
+- Detect and remove forbidden content before writing, including tests, testing points, technical test plans, frontend component decomposition, backend API guesses, database impacts, implementation plans, acceptance criteria, frontend/backend boundary inference, exception/risk inference, source checklist sections, evidence mapping tables, affected file analysis, and process/history trace markers from user corrections, exclusions, confirmations, or resolved source conflicts.
 - If the self-check fails, regenerate internally from the same scoped evidence before writing.
 - If the selected template contract cannot be satisfied, return `status: partial` with `templateCompliance.caveats` instead of writing package files.
 

@@ -11,7 +11,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 - Store project wiki pages in `.superpowers/wiki/` and optional neutral/portable shared wiki pages in `.shared-superpowers/wiki/` or a GitHub-backed shared-wiki repository accessed through the copyable MCP server
 - Use `index.md` as the entry point
-- Optionally turn Lanhu links into confirmed frontend/backend original-requirement evidence packages under `.lanhu/MM-DD-<requirement-name>/` before Superpowers brainstorming, with `index.md` as the entrypoint and relationship map; Lanhu images are analyzed selectively by evidence signal and are not saved as `.lanhu/` assets by default, and source-internal factual contradictions are surfaced as confirmation questions instead of being silently resolved
+- Optionally turn Lanhu links into confirmed frontend/backend original-requirement evidence packages under `.lanhu/MM-DD-<requirement-name>/` before Superpowers brainstorming, with `index.md` as the entrypoint and relationship map; final artifacts are clean effective requirements without user-correction/exclusion/confirmation history, Lanhu images are analyzed selectively by evidence signal and are not saved as `.lanhu/` assets by default, and source-internal factual contradictions are surfaced as confirmation questions instead of being silently resolved
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output
@@ -284,7 +284,7 @@ Frontend has one package shape only:
 
 `frontend-prd/prd.md` is the main requirements document and does not require fixed headings; it should focus on rules, constraints, system responses, field/data rules, boundaries, and open questions. Optional `frontend-prd/design/index.html` is an interactive structure mirror with real controls and left-nav/right-active-section layout; it is not production frontend code and not a second full PRD. Backend remains Markdown-only with `index.md` + `backend-prd/prd.md` / `backend-prd/prds/*.md`.
 
-User supplements, corrections, deletions, and ignore instructions are applied directly to the cleaned effective PRD without history/process trace. If a user change affects other analyzed fields, functions, interactions, states, permissions, rules, or data semantics, the analyst must ask a blocking confirmation question instead of privately cascading the change.
+User supplements, corrections, deletions, ignore instructions, and confirmation answers are applied directly to the cleaned effective PRD without history/process trace. Rejected, superseded, ignored, deleted, out-of-scope, or non-authoritative facts are not treated as dropped source facts and are not retained as “已剔除 / 不采用 / 已确认口径” notes in final artifacts. If a user change affects other analyzed fields, functions, interactions, states, permissions, rules, or data semantics, the analyst must ask a blocking confirmation question instead of privately cascading the change; after resolution only the effective requirement remains.
 
 Lanhu images, screenshots, and `designInfo.images` are candidate evidence only. Analysts use selective image analysis: they directly analyze an image region only when scoped evidence has a signal such as an annotation, arrow, nearby source text, user request, missing key UI fact, or layout ambiguity. By default the package stores structured source facts, caveats, and confirmation questions rather than image files; it does not write remote image references, base64 images, `.lanhu/.../assets/`, or `.lanhu/.../images/` unless the user explicitly asks for image preservation or confirms an offline-audit/demo-support need. Frontend local demo assets, when confirmed, live under `frontend-prd/design/assets/`.
 
@@ -303,7 +303,7 @@ If the role is missing or ambiguous and `lanhu.role` is not configured, the skil
 
 Maintained source templates live in `role-prd/frontend.md` and `role-prd/backend.md`. `./manage.sh install` generates self-contained Lanhu analyst agents from the shared skeleton and selected role template before installing; installed agents do not read the source files at runtime.
 
-All explicit Lanhu original-requirement facts must be preserved. If a source fact does not fit template themes, the analyst may create concrete AI-defined source fact sections such as `计费规则源事实`, `消息通知源事实`, `导入导出源事实`, `通知规则源事实`, or `结算规则源事实`; it must not drop the fact, weaken it into an untraceable summary, or force it into a generic “other/misc” bucket.
+All explicit effective Lanhu original-requirement facts must be preserved. Effective source facts are the facts that remain authoritative after user corrections/deletions/ignore instructions, confirmation answers, selected-page scope decisions, contradiction resolution, and tool-output safety filtering. If an effective source fact does not fit template themes, the analyst may create concrete AI-defined source fact sections such as `计费规则源事实`, `消息通知源事实`, `导入导出源事实`, `通知规则源事实`, or `结算规则源事实`; it must not drop the fact, weaken it into an untraceable summary, or force it into a generic “other/misc” bucket.
 
 For URL-rooted selection that resolves to multiple Lanhu target pages, page fan-out is only an evidence-fidelity strategy. The selected analyst is called once per selected page and writes a complete page package under `.lanhu/MM-DD-<requirement-name>/pages/<page-slug>/`. The aggregate package root keeps only a global `index.md` for page package listing, reading order, cross-page relationships, root tree selection summary, selectedTargetPages, aggregated scope summary, and confirmation status. Compact page metadata, `.yaml`, or summary Markdown are not evidence sources and must not be expanded into final artifacts by the main session.
 
@@ -473,6 +473,7 @@ The self-test covers:
 - wiki update authorization policy and shared wiki neutrality guards
 - mechanical `wiki_apply_update.py` write and merge behavior with an agent-decided target
 - `wiki-researcher` installation and native skill patch smoke
+- Lanhu effective PRD sanitization smoke for clean artifacts without process/history trace
 - worktree origin metadata native skill patch smoke
 - `wiki_update_check.py` index and format validation
 - index-driven wiki graph traversal
