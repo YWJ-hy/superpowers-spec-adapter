@@ -77,18 +77,18 @@ def resolve_output_preference(project_root: Path, role: str | None) -> dict:
         if deprecated_format not in DEPRECATED_FRONTEND_OUTPUT_VALUES:
             warnings.append(
                 "lanhu.frontend.output.format is deprecated and ignored; "
-                f"frontend now always uses the unified role-prd package, received unsupported legacy value {deprecated_format!r}"
+                f"frontend now always uses the unified frontend-prd package, received unsupported legacy value {deprecated_format!r}"
             )
         else:
             warnings.append(
                 "lanhu.frontend.output.format is deprecated and ignored; "
-                "frontend now always uses the unified role-prd package"
+                "frontend now always uses the unified frontend-prd package"
             )
 
     settings_display = PROJECT_SETTINGS_REL.as_posix() if settings_path else None
     package_kind = "frontend_unified" if effective_role == "frontend" else "backend_markdown"
     primary_kind = "frontend_role_prd" if effective_role == "frontend" else "backend_markdown_prd"
-    primary_filename = "role-prd/prd.md" if effective_role == "frontend" else "prd.md"
+    primary_filename = "frontend-prd/prd.md" if effective_role == "frontend" else "backend-prd/prd.md"
 
     return {
         "role": effective_role,
@@ -103,15 +103,15 @@ def resolve_output_preference(project_root: Path, role: str | None) -> dict:
         },
         "frontendPackage": {
             "enabled": effective_role == "frontend",
-            "prdPath": "role-prd/prd.md",
-            "designDemoPath": "role-prd/design/index.html",
-            "assetsDir": "role-prd/design/assets/",
+            "prdPath": "frontend-prd/prd.md",
+            "designDemoPath": "frontend-prd/design/index.html",
+            "assetsDir": "frontend-prd/design/assets/",
             "designDemoOptional": True,
         },
         "backendPackage": {
             "enabled": effective_role == "backend",
-            "primaryPath": "prd.md",
-            "splitDir": "prds/",
+            "primaryPath": "backend-prd/prd.md",
+            "splitDir": "backend-prd/prds/",
             "markdownOnly": True,
         },
         "deprecatedSettings": {

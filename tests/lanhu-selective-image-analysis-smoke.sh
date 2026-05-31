@@ -54,7 +54,7 @@ done
 for required in \
   '图片、截图和 `designInfo.images` 只在具备范围信号时选择性分析' \
   '默认不保存蓝湖图片' \
-  'role-prd/design/assets/' \
+  'frontend-prd/design/assets/' \
   '图片资源是候选证据'
 do
   require_in_file "$LANHU_FRONTEND_AGENT" "$required"
@@ -66,7 +66,7 @@ for required in \
   'selectiveImageAnalysis' \
   'persistedImages: false' \
   'Image files, base64 blobs, remote image references' \
-  'role-prd/design/assets/' \
+  'frontend-prd/design/assets/' \
   'explicit user request or confirmed offline-audit/demo-support need'
 do
   require_in_file "$LANHU_SKILL" "$required"
@@ -77,7 +77,7 @@ for required in \
   'Do not broaden to design tools for images' \
   'persistedImages: false' \
   'compact `selectiveImageAnalysis` metadata' \
-  'role-prd/design/assets/'
+  'frontend-prd/design/assets/'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done

@@ -25,7 +25,7 @@ adapter 增强这些阶段：
 - 安装 `wiki-researcher` agent，用于从 `.superpowers/wiki/index.md` 和 `.shared-superpowers/wiki/index.md` 开始渐进选择少量相关项目/共享 wiki 页面。
 - 安装 `source-of-truth-verifier` agent，用于在 `writing-plans` 写出完整 draft plan 后，按 `.superpowers/settings.json` 的 `sourceOfTruth` 配置校验接口、生成类型、schema、权限、设计 token 等真实源假设，再让 planning agent 修订 final plan。
 - 可选安装体验：如果用户已配置 lanhu-mcp，可用 `lanhu-requirements` skill 先确认前端/后端角色，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst` 生成 `.lanhu/MM-DD-需求名称/` 蓝湖原始需求证据包。该包是 Superpowers 的需求输入，不是 Superpowers spec，不生成最终验收标准、测试计划、技术方案或实施任务。显式 `pageId` 链接会先由主会话把 URL 当作 `rootScopeUrl`、当前页当作 `rootPageId`，只调用 `lanhu_get_prd_page_scope` 获取当前页及子树的轻量 page tree metadata，再结合用户描述选择 `selectedTargetPages`；主会话在派发前不得调用 `lanhu_get_prd_scoped_evidence` 或读取完整页面 evidence。每个选中页面固定派发一个 analyst，analyst 才使用固定 scoped Lanhu MCP 序列读取自己的页面 evidence。蓝湖图片、截图和 `designInfo.images` 默认只作为候选证据；analyst 仅在标注、箭头、周边说明、用户点名、关键 UI 事实缺失等信号命中时选择性分析图片区域，默认不把图片资产保存到 `.lanhu/`。
-- 蓝湖 frontend 只有一种 `role-prd/` 需求输入包：`role-prd/prd.md` 承载规则、约束、边界、系统响应和待确认问题；当存在设计稿或需要交互 demo 时，`role-prd/design/index.html` 作为可交互结构镜像，用真实控件 1:1 映射原始页面结构、控件关系、状态和交互路径，但不作为生产前端实现或第二份完整 PRD。蓝湖原始需求中的明确事实不得因模板主题装不下而丢失；analyst 可按源需求创建具体的源事实主题承接，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”，但“AI 自定源事实主题”只是能力说明，不应作为实际标题、导航或正文主题输出。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst；图片相关性、是否分析高成本图片区域或是否保存原图也应走同一确认门禁。`confirmationGate.status: clear` 且用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 Superpowers `brainstorming`。
+- 蓝湖 frontend 只有一种 `frontend-prd/` 需求输入包：`frontend-prd/prd.md` 承载规则、约束、边界、系统响应和待确认问题；当存在设计稿或需要交互 demo 时，`frontend-prd/design/index.html` 作为可交互结构镜像，用真实控件 1:1 映射原始页面结构、控件关系、状态和交互路径，但不作为生产前端实现或第二份完整 PRD。蓝湖原始需求中的明确事实不得因模板主题装不下而丢失；analyst 可按源需求创建具体的源事实主题承接，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”，但“AI 自定源事实主题”只是能力说明，不应作为实际标题、导航或正文主题输出。如 analyst 返回 `status: need_confirmation`，主会话只展示紧凑阻塞问题并把用户答案回传 analyst；图片相关性、是否分析高成本图片区域或是否保存原图也应走同一确认门禁。`confirmationGate.status: clear` 且用户确认 `index.md` 和 `scopeConfirmationSummary` 后才进入 Superpowers `brainstorming`。
 - 在 `brainstorming` 阶段轻量披露相关项目 wiki 页面。
 - 在 `writing-plans` 阶段正式选择相关项目 wiki 页面，先参考 adapter 安装目录中的 `contracts/wiki-context-v3.example.jsonc` 作为 AI authoring contract，生成配套 schemaVersion 3 `.wiki-context.json` 约束产物，并要求 plan 写入轻量 `Referenced Project Wiki` 入口。JSON 以 wiki page 为根节点，每个 page 只保留一份来自伴随 `<stem>.index.md` 的有界 `documentContext`，选中的 sections 作为子节点并保留 implementation / test / review / general 分类约束；生成后用 plugin-root `wiki_context_render.py --validate-only --strict --execution-ready --plan-path <plan>` 校验。
 - 在执行阶段只消费 plan 中已经确认的 `Referenced Project Wiki` 和其链接的 `.wiki-context.json`。`writing-plans` 在 final task 稳定后才把 selected wiki sections 绑定到 task，执行 / SDD 只按 `--task-id <stable-task-id>` 渲染该 task 的 wiki 约束，并在进入执行前先做一次 fingerprint preflight；renderer stdout 会由主 agent 捕获，并带 `## Rendered Wiki Constraints for This Task` 等边界标注直接注入当前 task / subagent prompt，不作为 `.claude-*-wiki-task*-impl.md` 或 `.claude-*-source-task*-impl.md` 这类 rendered Markdown 上下文文件持久化。如果 plan 在审核后被手工修改，只刷新 `taskWikiRefs` 和 `taskFingerprint`，不重写 plan。对 `hardConstraint: true` 的 section，执行阶段会通过 `--task-id <stable-task-id> --reread-list --execution-ready` 强制回读当前 task 对应的原始 wiki section 全文（通过 `<!-- wiki-section:xxx -->` 标记提取），并附带有界 `documentContext` 在 `## Hard Wiki Constraint Rereads` 边界下注入 implementer 和 reviewer prompt，确保约束不因摘要信息衰减或 section 脱离页面主语而被误用。
@@ -76,7 +76,7 @@ Superpowers 插件目录
 同时 adapter 会 patch Superpowers 的 native skills：
 
 - `using-superpowers`：声明 adapter workflow boundary。standalone adapter skill 和 adapter maintenance skill 的本地完成，不等于 Superpowers development-task completion；正常 `brainstorming`、`writing-plans`、`executing-plans`、`subagent-driven-development`、`systematic-debugging` 流程仍保留自己的 verification 和后续 `update-wiki` 机制。
-- `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先确认前端/后端 evidence role，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst` 直接生成 `.lanhu/MM-DD-需求名称/` 蓝湖原始需求证据包；主会话只接收 status、confirmationGate、packageDir、indexPath、writtenFiles、sourceFactCoverage、openQuestions、caveats 等轻量摘要，`index.md` 是用户确认和后续读取的入口。如用户直接引用已确认的 `.lanhu/.../index.md` 或已存在证据包，则不默认重新读蓝湖，而是先读 `index.md`，再按其中索引读取同包内 `role-prd/prd.md`、可选 `role-prd/design/index.html`，或后端 `prd.md` / `prds/*.md` 等详细证据来源，作为 Superpowers spec 的需求输入。Lanhu 包不得被复制为 final spec、验收标准、测试计划、技术方案或 implementation plan。
+- `brainstorming`：如果用户给出蓝湖链接且 lanhu-mcp 可用，先确认前端/后端 evidence role，再路由到 `lanhu-frontend-requirements-analyst` 或 `lanhu-backend-requirements-analyst` 直接生成 `.lanhu/MM-DD-需求名称/` 蓝湖原始需求证据包；主会话只接收 status、confirmationGate、packageDir、indexPath、writtenFiles、sourceFactCoverage、openQuestions、caveats 等轻量摘要，`index.md` 是用户确认和后续读取的入口。如用户直接引用已确认的 `.lanhu/.../index.md` 或已存在证据包，则不默认重新读蓝湖，而是先读 `index.md`，再按其中索引读取同包内 `frontend-prd/prd.md`、可选 `frontend-prd/design/index.html`，或后端 `backend-prd/prd.md` / `backend-prd/prds/*.md` 等详细证据来源，作为 Superpowers spec 的需求输入。Lanhu 包不得被复制为 final spec、验收标准、测试计划、技术方案或 implementation plan。
 - `writing-plans`：在拆分任务前调用 `wiki-researcher` 正式选择项目/共享 wiki 页面，读取 `contracts/wiki-context-v3.example.jsonc` 后生成 `docs/superpowers/plans/<plan-stem>.wiki-context.json`，用 `wiki_context_render.py --validate-only --strict --execution-ready --plan-path <plan>` 校验，并要求 plan 写入轻量 `Referenced Project Wiki` 入口；完整 draft plan 写出后调用 `source-of-truth-verifier`，生成 `.source-truth-report.json` 和 `.source-truth-constraints.json`，再修订 final plan 并交给 `plan-document-reviewer`。
 - `plan-document-reviewer`：不重新做真实源调查，只检查 final plan 是否正确消费 verifier 结果，例如 blocked 状态是否阻止执行、`edit: never` 真实源是否没有被实现任务要求修改、完整 report 是否没有变成默认执行上下文。
 - `systematic-debugging`：Phase 1 先复现、收集错误、检查变更并收窄失败边界；只有怀疑项目特定契约、known gotcha、跨层边界或工作流约定时，才用 `phase: debug` 条件式查询 wiki；debug wiki 选择没有页数上限，但仍必须渐进读取并保持小范围。
@@ -100,7 +100,7 @@ Superpowers 插件目录
 | 4 | 导入已有 wiki | `import-wiki` skill | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/`，或用 `--wiki-root shared` 导入 `.shared-superpowers/wiki/` |
 | 4.5 | 可选 GitHub shared wiki MCP | `shared-wiki-mcp` skill | 使用独立 GitHub shared-wiki 仓库时 | 通过 copyable MCP server 读取 shared wiki，并把更新作为 branch + PR 提交 |
 | 5 | 初始化 starter wiki | `init-wiki` skill | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
-| 6 | 可选蓝湖原始需求证据包 | `lanhu-requirements skill <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；如 URL 带 pageId，主会话先读取 URL 当前页及子树的轻量 page tree metadata，并结合用户描述选择目标页面；每个目标页面由 analyst 直接生成 `.lanhu/MM-DD-需求名称/` 或 `pages/<page-slug>/` evidence package 并只向主会话返回路径摘要和确认门禁；图片默认只按标注/箭头/缺失关键事实等信号选择性分析，不保存图片资产；frontend 生成统一 `role-prd/` 包；阻塞确认点清零且用户确认 `index.md` 后作为 Superpowers 需求输入 |
+| 6 | 可选蓝湖原始需求证据包 | `lanhu-requirements skill <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；如 URL 带 pageId，主会话先读取 URL 当前页及子树的轻量 page tree metadata，并结合用户描述选择目标页面；每个目标页面由 analyst 直接生成 `.lanhu/MM-DD-需求名称/` 或 `pages/<page-slug>/` evidence package 并只向主会话返回路径摘要和确认门禁；图片默认只按标注/箭头/缺失关键事实等信号选择性分析，不保存图片资产；frontend 生成统一 `frontend-prd/` 包；阻塞确认点清零且用户确认 `index.md` 后作为 Superpowers 需求输入 |
 | 7 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
 | 8 | 写 implementation plan | Superpowers `writing-plans` | 有已确认 spec 后 | 正式选择项目/共享 wiki 页面，生成 `.wiki-context.json`；写完整 draft plan 后运行 `source-of-truth-verifier`，再修订 final plan 并进入 plan review |
 | 9 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki`、链接的 `.wiki-context.json` 和 task-specific `.source-truth-constraints.json` 渲染结果 |
@@ -113,7 +113,7 @@ Superpowers 插件目录
 
 ```text
 描述需求 / 可选蓝湖链接
-→ 如果使用蓝湖，先确认前端/后端角色；如 URL 带 pageId，主会话先用轻量 page tree metadata 结合用户描述选择目标页面，再按页面路由 analyst 直接生成 .lanhu/MM-DD-需求名称/ 原始需求证据包，frontend 生成统一 role-prd 包（role-prd/prd.md + 可选 role-prd/design/index.html）；主会话只接收路径摘要和紧凑确认门禁，index.md 是入口和文件关系权威来源
+→ 如果使用蓝湖，先确认前端/后端角色；如 URL 带 pageId，主会话先用轻量 page tree metadata 结合用户描述选择目标页面，再按页面路由 analyst 直接生成 .lanhu/MM-DD-需求名称/ 原始需求证据包，frontend 生成统一 frontend-prd 包（frontend-prd/prd.md + 可选 frontend-prd/design/index.html）；主会话只接收路径摘要和紧凑确认门禁，index.md 是入口和文件关系权威来源
 → 如存在阻塞确认点，用户回答后由同一角色 analyst 修复 evidence package，直到 confirmationGate.status: clear
 → 用户确认 .lanhu 证据包的 index.md
 → Superpowers brainstorming
@@ -390,13 +390,18 @@ lanhu-requirements skill --role backend <蓝湖链接> <可选需求命名>
 ```text
 .lanhu/MM-DD-需求名称/
 ├── index.md
-├── prd.md
-└── prds/
-    ├── <源需求边界1>.md
-    └── <源需求边界2>.md
+├── frontend-prd/
+│   ├── prd.md
+│   └── design/
+│       └── index.html      # 可选
+└── backend-prd/
+    ├── prd.md
+    └── prds/
+        ├── <源需求边界1>.md
+        └── <源需求边界2>.md
 ```
 
-单个源需求边界使用 `prd.md`；多个源需求边界使用 `prds/`。是否拆分由源需求事实的连贯性决定，不由页面数量决定。`index.md` 是证据包入口和文件关系权威来源。
+前端使用 `frontend-prd/prd.md`，并按需生成 `frontend-prd/design/index.html`；后端单个源需求边界使用 `backend-prd/prd.md`，多个源需求边界使用 `backend-prd/prds/`。是否拆分由源需求事实的连贯性决定，不由页面数量决定。`index.md` 是轻量入口和文件关系权威来源，不复制详细范围审计表。
 
 如果用户没有提供角色，或同时说“前后端都要 / 全栈”，adapter 会先询问本次生成哪一种 evidence package；在角色明确前，不调用任何 Lanhu analyst agent，也不读取或分析蓝湖。角色明确后才路由到对应的前端或后端专用 agent。需要前端和后端两份 evidence package 时，应分别运行两次命令。
 
@@ -404,9 +409,9 @@ lanhu-requirements skill --role backend <蓝湖链接> <可选需求命名>
 
 `.lanhu/` 文档需要先通过 analyst 的确认门禁，再由用户确认 `index.md` 和 `scopeConfirmationSummary` 后，Superpowers 才基于它进入 `brainstorming`。如果 analyst 返回 `status: need_confirmation`，主会话只展示阻塞问题清单、packageDir 和 indexPath，不读取完整 evidence markdown、完整 HTML 或 Lanhu 原始输出；用户答案会回传同一角色 analyst 更新 evidence package，直到 `confirmationGate.status: clear`。缺少后端接口字段名、数据库列名、枚举编码或代码模型属性名不应阻塞 Lanhu 包，除非源证据连产品语义字段/控件含义、可见性、必填/默认/只读、校验、状态、权限、交互或范围都无法确认。
 
-Frontend 统一输出 `role-prd/prd.md`，并在存在设计稿或需要交互 demo 时输出 `role-prd/design/index.html`。`prd.md` 聚焦规则、约束、边界、系统响应和待确认问题，不固定章节；HTML demo 用真实控件 1:1 映射原始页面结构、控件关系、状态和交互路径，但不是生产前端实现，也不是第二份完整 PRD。
+Frontend 统一输出 `frontend-prd/prd.md`，并在存在设计稿或需要交互 demo 时输出 `frontend-prd/design/index.html`。`prd.md` 聚焦规则、约束、边界、系统响应和待确认问题，不固定章节；HTML demo 用真实控件 1:1 映射原始页面结构、控件关系、状态和交互路径，但不是生产前端实现，也不是第二份完整 PRD。用户对原始需求的补充、修正、删减或忽略直接反映到清洗后的有效 PRD 中，不保留过程留痕；如果该修改会影响 analyst 已分析出的其它字段、功能、交互、状态、权限、业务规则或数据语义，必须进入确认门禁让用户决定，不得私自级联修改。
 
-`role-prd/` 主题定义固定 PRD evidence package 结构和必覆盖维度；AI 可以自定义内容组织和表达，但不能改变包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态。蓝湖原始需求中的明确事实不得因模板主题分类装不下而遗失、弱化或合并成不可追溯摘要；analyst 可以按源需求创建具体源事实主题，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”，但不能把“AI 自定源事实主题 / AI 自定业务源事实主题”当成实际主题标题，也不能用“其他/杂项”泛化兜底。文档中不应包含最终验收标准、Given / When / Then、测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案、代码文件影响、前后端边界推断、异常/风险推断或 Superpowers plan tasks。
+`frontend-prd/` / `backend-prd/` 主题定义固定 PRD evidence package 结构和必覆盖维度；AI 可以自定义内容组织和表达，但不能改变包结构、章节职责、产物边界或后续 Superpowers 依赖的输入形态。蓝湖原始需求中的明确事实不得因模板主题分类装不下而遗失、弱化或合并成不可追溯摘要；analyst 可以按源需求创建具体源事实主题，例如“计费规则源事实”“消息通知源事实”“导入导出源事实”，但不能把“AI 自定源事实主题 / AI 自定业务源事实主题”当成实际主题标题，也不能用“其他/杂项”泛化兜底。文档中不应包含最终验收标准、Given / When / Then、测试点、测试用例、技术测试方案、前端组件拆分、后端接口推测、数据库影响、实现方案、代码文件影响、前后端边界推断、异常/风险推断或 Superpowers plan tasks。
 
 lanhu-mcp 没有安装或不可用时，不影响 adapter 使用；用户可以粘贴需求并按已确认角色生成 `.lanhu/` evidence package，或直接走普通 Superpowers 流程。
 

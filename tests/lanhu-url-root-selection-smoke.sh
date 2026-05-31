@@ -47,7 +47,7 @@ for orchestrator in "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
     'matchingRestrictedToRootTree' \
     'mainAgentReadFullPageEvidenceBeforeDispatch: false' \
     'childPagePolicy: exclude' \
-    'one selected' \
+    'selected page' \
     'include_child_pages: false' \
     'confirmed_child_page_ids: []' \
     'full_package_per_page'

@@ -44,11 +44,12 @@ for agent in "$LANHU_FRONTEND_AGENT" "$LANHU_BACKEND_AGENT"; do
     'raw Lanhu tool-result text' \
     'full PRD markdown' \
     'full HTML' \
-    '是否阻塞后续 Superpowers 流程' \
-    '阻塞原因' \
+    'blocking item must also appear in `confirmationGate.blockingQuestions`' \
+    'If a user modification may affect already-analyzed' \
     'outputPreference' \
     'packageKind' \
     'Missing implementation field names' \
+    'User supplements, corrections, deletions, and ignore instructions' \
     'image relevance' \
     'selectiveImageAnalysis' \
     'Compact metadata is not an evidence source'
@@ -71,7 +72,8 @@ for required in \
   'lanhu.role' \
   'outputPreference' \
   'packageKind' \
-  'Missing implementation field names'
+  'Missing implementation field names' \
+  'User supplements, corrections, deletions, and ignore instructions'
 do
   require_in_file "$LANHU_SKILL" "$required"
 done

@@ -96,8 +96,8 @@ for required in \
   'fixed Lanhu MCP tool sequence' \
   'selective image analysis policy' \
   'broad Lanhu design tools' \
-  'role-prd/prd.md' \
-  'role-prd/design/index.html'
+  'frontend-prd/prd.md' \
+  'frontend-prd/design/index.html'
 do
   require_in_file "$LANHU_SKILL" "$required"
 done

@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-验证 `lanhu-requirements` skill 在当前统一 frontend `role-prd/` 输出契约下的 MCP 调用边界、页面范围控制、确认门禁、模板合规、内容净化和 Superpowers handoff 行为是否正确。
+验证 `lanhu-requirements` skill 在当前统一 frontend `frontend-prd/` 输出契约下的 MCP 调用边界、页面范围控制、确认门禁、模板合规、内容净化和 Superpowers handoff 行为是否正确。
 
 重点验证：
 
@@ -10,7 +10,7 @@
 - URL 带 `pageId` 时，主会话只读 lightweight page tree metadata，不提前读取 full scoped evidence。
 - 只有 `lanhu_resolve_invite_link`、`lanhu_get_prd_page_scope`、`lanhu_get_prd_scoped_evidence` 三类允许工具被使用。
 - scoped evidence 必须受 `scope_policy: pageid_children_only`、`include_child_pages`、`confirmed_child_page_ids`、`output_mode: evidence_only` 等约束。
-- frontend 始终输出统一 `role-prd/` 包，不再存在 frontend HTML 独立 analyst 或第二种 frontend 详细产物。
+- frontend 始终输出统一 `frontend-prd/` 包，不再存在 frontend HTML 独立 analyst 或第二种 frontend 详细产物。
 - backend 维持 Markdown-only。
 - 多页面 fan-out 仍以“每页完整证据包”方式保持证据保真，但详细产物不能再从 compact metadata / `.yaml` / page summaries 合成。
 - `confirmationGate`、`scopeConfirmationSummary`、`requirementScopeJudgment`、`selectiveImageAnalysis` 等 compact metadata 只用于门禁、聚合和用户确认，不是最终 PRD 事实来源。
@@ -160,7 +160,7 @@
 - `pagesRead` 按树顺序列出父页和子页。
 - 每个页面单独 full 分析，并在多页面 fan-out 时调用同一个已选角色 analyst 写入该页完整页面证据包。
 - 每个 `pageNamesArgument` 恰好一个页面名。
-- 前端多页面输出时，每个页面包都有自己的 `index.md` + `role-prd/prd.md`，并且仅在该页存在设计稿或需要交互 demo 时才额外写 `role-prd/design/index.html`；聚合根只写 `index.md`。
+- 前端多页面输出时，每个页面包都有自己的 `index.md` + `frontend-prd/prd.md`，并且仅在该页存在设计稿或需要交互 demo 时才额外写 `frontend-prd/design/index.html`；聚合根只写 `index.md`。
 - 不出现 `page_names: all`。
 - 不出现一次请求父页加多个子页的行为。
 - 不出现根据 compact metadata、`.yaml` 或 summary Markdown 生成最终详细 frontend 产物的行为。
@@ -218,8 +218,8 @@
 
 预期：
 
-- frontend 输出写 `.lanhu/.../index.md` + `role-prd/prd.md`，并且仅在有设计稿或需要交互 demo 时可额外写 `role-prd/design/index.html` / `role-prd/design/assets/`。
-- backend 输出保持 `index.md` + `prd.md` / `prds/*.md`。
+- frontend 输出写 `.lanhu/.../index.md` + `frontend-prd/prd.md`，并且仅在有设计稿或需要交互 demo 时可额外写 `frontend-prd/design/index.html` / `frontend-prd/design/assets/`。
+- backend 输出保持 `index.md` + `backend-prd/prd.md` / `backend-prd/prds/*.md`。
 - backend `writtenFiles` 不包含 `.html`。
 
 准备：目标项目 `.superpowers/settings.json` 仍保留已废弃配置：
@@ -240,13 +240,13 @@
 
 - frontend 仍路由到唯一的 `lanhu-frontend-requirements-analyst`，不会再路由到独立 HTML analyst。
 - `role-prd/frontend.md` 是唯一 frontend 源模板；旧的 `role-prd/frontend_outputHtml.md` 已废弃且不得再被引用。
-- frontend 始终输出统一 `role-prd/` 包：`role-prd/prd.md` 为主文档；只有在有设计稿或明确交互 demo 价值时才写 `role-prd/design/index.html`。
+- frontend 始终输出统一 `frontend-prd/` 包：`frontend-prd/prd.md` 为主文档；只有在有设计稿或明确交互 demo 价值时才写 `frontend-prd/design/index.html`。
 - `lanhu.frontend.output.format` 只产生 deprecated warning，不改变路由、模板或产物结构。
 - frontend 不得写包根 `index.html`、`prototype/index.html`、独立 HTML 详细产物，或依赖 page summaries / `.yaml` 生成最终 HTML。
 - backend 输出保持 Markdown-only，`writtenFiles` 不包含 `.html`。
 - `index.md` 仍是 Superpowers 入口和 PRD 关系权威来源。
 
-### TC-O01：frontend 单交付边界输出 unified `role-prd/`
+### TC-O01：frontend 单交付边界输出 unified `frontend-prd/`
 
 入口：
 
@@ -276,7 +276,7 @@
 验收：
 
 - `index.md` 包含 `PRD 角色：frontend`。
-- `index.md` 指向 `role-prd/prd.md`。
+- `index.md` 指向 `frontend-prd/prd.md`。
 - `index.md` 说明阅读顺序和范围判断摘要。
 - 无包根 `prd.md`、无 `prds/`、无包根 `index.html`。
 
@@ -347,11 +347,11 @@
 
 ### TC-T01：frontend 模板完整性
 
-使用 frontend `role-prd/prd.md` 产物检查：
+使用 frontend `frontend-prd/prd.md` 产物检查：
 
 必须满足：
 
-- 主文件路径固定为 `role-prd/prd.md`。
+- 主文件路径固定为 `frontend-prd/prd.md`。
 - 不要求固定章节标题。
 - 内容组织可按页面、流程、模块、业务对象、状态、权限差异或其它源事实结构组织。
 - 必须聚焦：
@@ -375,7 +375,7 @@
 
 ### TC-T02：frontend HTML demo 分工合规
 
-检查 frontend 包中的 `role-prd/design/index.html`（仅在生成时）：
+检查 frontend 包中的 `frontend-prd/design/index.html`（仅在生成时）：
 
 预期：
 
@@ -383,7 +383,7 @@
 - 使用左侧章节导航 + 右侧激活章节内容布局。
 - 不承担完整 PRD 正文。
 - 不包含生产代码、真实接口、复杂框架脚本。
-- 如引用本地静态资源，仅使用 `role-prd/design/assets/`。
+- 如引用本地静态资源，仅使用 `frontend-prd/design/assets/`。
 
 ### TC-T03：后端模板完整性
 
@@ -634,7 +634,7 @@
 预期：
 
 - 后续 brainstorming 只消费已确认 package。
-- frontend 读取 `index.md`，再按它列出的文件读取 `role-prd/prd.md` 与可选 `role-prd/design/index.html` / `assets/`。
+- frontend 读取 `index.md`，再按它列出的文件读取 `frontend-prd/prd.md` 与可选 `frontend-prd/design/index.html` / `assets/`。
 - 不重新做 Lanhu intake。
 - 不重新选择页面。
 - 不从 compact metadata 生成详细 frontend 产物。
