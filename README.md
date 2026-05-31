@@ -275,20 +275,22 @@ Frontend has one package shape only:
 ```text
 .lanhu/MM-DD-<requirement-name>/
   index.md
-  role-prd/
+  frontend-prd/
     prd.md
     design/                 # optional when source has design or interaction-demo value
       index.html
       assets/
 ```
 
-`role-prd/prd.md` is the main requirements document and does not require fixed headings; it should focus on rules, constraints, system responses, field/data rules, boundaries, and open questions. Optional `role-prd/design/index.html` is an interactive structure mirror with real controls and left-nav/right-active-section layout; it is not production frontend code and not a second full PRD. Backend remains Markdown-only with the existing `index.md` + `prd.md` / `prds/*.md` package.
+`frontend-prd/prd.md` is the main requirements document and does not require fixed headings; it should focus on rules, constraints, system responses, field/data rules, boundaries, and open questions. Optional `frontend-prd/design/index.html` is an interactive structure mirror with real controls and left-nav/right-active-section layout; it is not production frontend code and not a second full PRD. Backend remains Markdown-only with `index.md` + `backend-prd/prd.md` / `backend-prd/prds/*.md`.
 
-Lanhu images, screenshots, and `designInfo.images` are candidate evidence only. Analysts use selective image analysis: they directly analyze an image region only when scoped evidence has a signal such as an annotation, arrow, nearby source text, user request, missing key UI fact, or layout ambiguity. By default the package stores structured source facts, caveats, and confirmation questions rather than image files; it does not write remote image references, base64 images, `.lanhu/.../assets/`, or `.lanhu/.../images/` unless the user explicitly asks for image preservation or confirms an offline-audit/demo-support need. Frontend local demo assets, when confirmed, live under `role-prd/design/assets/`.
+User supplements, corrections, deletions, and ignore instructions are applied directly to the cleaned effective PRD without history/process trace. If a user change affects other analyzed fields, functions, interactions, states, permissions, rules, or data semantics, the analyst must ask a blocking confirmation question instead of privately cascading the change.
+
+Lanhu images, screenshots, and `designInfo.images` are candidate evidence only. Analysts use selective image analysis: they directly analyze an image region only when scoped evidence has a signal such as an annotation, arrow, nearby source text, user request, missing key UI fact, or layout ambiguity. By default the package stores structured source facts, caveats, and confirmation questions rather than image files; it does not write remote image references, base64 images, `.lanhu/.../assets/`, or `.lanhu/.../images/` unless the user explicitly asks for image preservation or confirms an offline-audit/demo-support need. Frontend local demo assets, when confirmed, live under `frontend-prd/design/assets/`.
 
 For explicit `pageId` links, the URL is treated as `rootScopeUrl` and the current page as `rootPageId`, not necessarily as the final target page. The main session first uses only lightweight page tree metadata from `lanhu_get_prd_page_scope`, combines that tree with the user's description to select `selectedTargetPages`, and does not call `lanhu_get_prd_scoped_evidence` before dispatch. Each selected page is routed to exactly one specialized analyst with `childPagePolicy: exclude`; that analyst uses the fixed scoped Lanhu MCP sequence (`lanhu_resolve_invite_link` when needed, `lanhu_get_prd_page_scope`, then `lanhu_get_prd_scoped_evidence` with `scope_policy: pageid_children_only`, `include_child_pages: false`, `confirmed_child_page_ids: []`, and `output_mode: evidence_only`) for its own page only.
 
-Role selection is required before Lanhu analysis, but it can be preconfigured with `lanhu.role` in `.superpowers/settings.json`. Deprecated `lanhu.frontend.output.format` settings are ignored; frontend always uses the unified `role-prd/` package.
+Role selection is required before Lanhu analysis, but it can be preconfigured with `lanhu.role` in `.superpowers/settings.json`. Deprecated `lanhu.frontend.output.format` settings are ignored; frontend always uses the unified `frontend-prd/` package.
 
 ```text
 lanhu-requirements skill <Lanhu link> 前端 <optional requirement name>

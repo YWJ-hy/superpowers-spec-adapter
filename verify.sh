@@ -179,9 +179,9 @@ check_optional_integration_overlays() {
     'Lanhu original-requirement input' \
     'lanhu-frontend-requirements-analyst' \
     'lanhu-backend-requirements-analyst' \
-    'role-prd/prd.md' \
-    'role-prd/design/index.html' \
-    'role-prd/design/assets/' \
+    'frontend-prd/prd.md' \
+    'frontend-prd/design/index.html' \
+    'frontend-prd/design/assets/' \
     'frontend_unified' \
     'backend_markdown' \
     'Deprecated `lanhu.frontend.output.format` is ignored' \
@@ -259,7 +259,7 @@ check_optional_integration_overlays() {
     'prd.md` 不固定主题目录' \
     'HTML demo' \
     '左侧章节导航 + 右侧激活章节内容' \
-    '原始资料未说明' \
+    '待确认问题或确认门禁' \
     '同一类需求事实只保留一个主承载' \
     '不输出验收标准' \
     '不输出实现方案' \
@@ -275,7 +275,7 @@ check_optional_integration_overlays() {
     'role-prd/backend.md' \
     'complete backend markdown source template' \
     '后端相关 Lanhu 原始需求证据包' \
-    '## 二、源需求范围证据判定' \
+    '不强制输出独立的 `源需求范围证据判定` 审计表' \
     '业务对象源事实' \
     '业务流程源事实' \
     '业务规则源事实' \
@@ -290,7 +290,7 @@ check_optional_integration_overlays() {
     fi
   done
 
-  if grep -Fq 'role-prd/design/index.html' "$lanhu_backend_agent" && ! grep -Fq 'must never write `role-prd/design/index.html`' "$lanhu_backend_agent"; then
+  if grep -Fq 'frontend-prd/design/index.html' "$lanhu_backend_agent" && ! grep -Fq 'must never write `frontend-prd/design/index.html`' "$lanhu_backend_agent"; then
     printf 'Backend Lanhu analyst appears to allow frontend design demo output\n' >&2
     exit 1
   fi
@@ -299,8 +299,8 @@ check_optional_integration_overlays() {
     'packageKind' \
     'frontend_unified' \
     'backend_markdown' \
-    'role-prd/prd.md' \
-    'role-prd/design/index.html' \
+    'frontend-prd/prd.md' \
+    'frontend-prd/design/index.html' \
     'lanhu.frontend.output.format is deprecated and ignored'
   do
     if ! grep -Fq "$required" "$lanhu_settings_script"; then
@@ -355,8 +355,8 @@ check_native_skill_residuals() {
     'lanhu-frontend-requirements-analyst' \
     'lanhu-backend-requirements-analyst' \
     '.lanhu/MM-DD-需求名称/' \
-    'role-prd/prd.md' \
-    'role-prd/design/index.html' \
+    'frontend-prd/prd.md' \
+    'frontend-prd/design/index.html' \
     'frontend_unified' \
     'backend_markdown' \
     'Deprecated `lanhu.frontend.output.format` is ignored' \

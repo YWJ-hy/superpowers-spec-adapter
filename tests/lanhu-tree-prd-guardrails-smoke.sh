@@ -134,14 +134,14 @@ for required in \
   'Frontend Unified source template' \
   '前端 Lanhu 需求输入包' \
   '固定输出文件结构' \
-  'role-prd/prd.md' \
-  'role-prd/design/index.html' \
-  'role-prd/design/assets/' \
+  'frontend-prd/prd.md' \
+  'frontend-prd/design/index.html' \
+  'frontend-prd/design/assets/' \
   '`prd.md` 不固定主题目录' \
   'HTML demo' \
   '左侧章节导航 + 右侧激活章节内容' \
   '同一类需求事实只保留一个主承载' \
-  '原始资料未说明' \
+  '待确认问题或确认门禁' \
   '不输出验收标准' \
   '不输出实现方案' \
   '不输出独立证据映射表'
@@ -153,7 +153,7 @@ for required in \
   'lanhu-backend-requirements-analyst' \
   'role-prd/backend.md' \
   'complete backend markdown source template' \
-  '## 二、源需求范围证据判定' \
+  '不强制输出独立的 `源需求范围证据判定` 审计表' \
   '### 2.1 源需求结构图' \
   '业务对象' \
   '业务流程' \
@@ -195,8 +195,8 @@ for required in \
   'packageKind' \
   'frontend_unified' \
   'backend_markdown' \
-  'role-prd/prd.md' \
-  'role-prd/design/index.html' \
+  'frontend-prd/prd.md' \
+  'frontend-prd/design/index.html' \
   'selectiveImageAnalysis' \
   'base64 blobs, remote image references'
 do
@@ -228,8 +228,8 @@ for required in \
   'packageKind' \
   'frontend_unified' \
   'backend_markdown' \
-  'role-prd/prd.md' \
-  'role-prd/design/index.html' \
+  'frontend-prd/prd.md' \
+  'frontend-prd/design/index.html' \
   'selectiveImageAnalysis' \
   'base64 blobs, remote image references'
 do

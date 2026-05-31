@@ -121,8 +121,8 @@ for required in \
   'lanhu-frontend-requirements-analyst' \
   'lanhu-backend-requirements-analyst' \
   '.lanhu/MM-DD-需求名称/' \
-  'role-prd/prd.md' \
-  'role-prd/design/index.html' \
+  'frontend-prd/prd.md' \
+  'frontend-prd/design/index.html' \
   'index.md' \
   'Lanhu MCP is optional' \
   'do not block brainstorming' \

@@ -501,7 +501,7 @@ Multica 用户入口：
 - role 必须先确定：frontend 或 backend。
 - 如果 role 缺失且 `.superpowers/settings.json` 没配置，先问用户。
 - 如果用户说全栈，要求先选一个角色，建议分两次生成。
-- frontend 始终输出统一 `role-prd/` 包：`role-prd/prd.md`，以及仅在有设计稿或需要交互 demo 时输出的 `role-prd/design/index.html` / `assets/`。
+- frontend 始终输出统一 `frontend-prd/` 包：`frontend-prd/prd.md`，以及仅在有设计稿或需要交互 demo 时输出的 `frontend-prd/design/index.html` / `assets/`。
 - 已废弃的 `lanhu.frontend.output.format` 只允许作为兼容性 warning 被忽略，不能再改变 frontend 路由或产物结构。
 - backend 永远 Markdown-only。
 - URL 带 pageId 时，主会话只允许读取 lightweight page tree metadata。
@@ -1327,10 +1327,10 @@ shared-wiki-mcp
 - selectedTargetPages
 - per-page analyst dispatch
 - selective image analysis
-- unified frontend `role-prd/` package + backend Markdown package
+- unified frontend `frontend-prd/` package + backend Markdown package
 - `.lanhu/MM-DD-需求名称/index.md`
-- `.lanhu/MM-DD-需求名称/role-prd/prd.md`
-- optional `.lanhu/MM-DD-需求名称/role-prd/design/index.html`
+- `.lanhu/MM-DD-需求名称/frontend-prd/prd.md`
+- optional `.lanhu/MM-DD-需求名称/frontend-prd/design/index.html`
 - multi-page aggregate package
 - confirmationGate
 - scopeConfirmationSummary

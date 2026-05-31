@@ -61,7 +61,7 @@
 | `superpowers-break-loop-analyst` | 重复失败或调试循环后的复盘 |
 | `superpowers-wiki-curator` | 判断并更新 project/shared wiki |
 | `superpowers-shared-wiki-publisher` | shared wiki 发布 readiness / PR preparation |
-| `superpowers-lanhu-frontend-requirements-analyst` | 蓝湖前端统一 `role-prd/` 需求输入包 |
+| `superpowers-lanhu-frontend-requirements-analyst` | 蓝湖前端统一 `frontend-prd/` 需求输入包 |
 | `superpowers-lanhu-backend-requirements-analyst` | 蓝湖后端需求证据包 |
 
 日常使用时，如果你不确定该 assign 给谁，优先 assign 给：
@@ -314,7 +314,7 @@ Inputs:
 Expected output:
 - 只整理蓝湖原始需求证据包。
 - 输出 `.lanhu/.../index.md` 作为后续 Superpowers 输入入口。
-- frontend 使用统一 `role-prd/` 包：`role-prd/prd.md`，以及仅在有设计稿或需要交互 demo 时输出的 `role-prd/design/index.html`。
+- frontend 使用统一 `frontend-prd/` 包：`frontend-prd/prd.md`，以及仅在有设计稿或需要交互 demo 时输出的 `frontend-prd/design/index.html`。
 - 如果有无法确认的源事实，请列出问题。
 
 Safety:
