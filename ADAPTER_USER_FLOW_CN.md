@@ -157,98 +157,6 @@ Superpowers 插件目录
 ./superpower-adapter/manage.sh verify
 ```
 
-### 4.1.1 可选：构建 Multica-native runtime bundle
-
-如果团队希望在 Multica 中直接承载 Superpowers-compatible workflow runtime，而不是要求用户本地 Claude Code 安装 Superpowers plugin，可以从 adapter 仓库生成 Multica runtime bundle：
-
-```bash
-./manage.sh build-multica-runtime /path/to/superpowers . ./dist/multica-superpowers-runtime
-./manage.sh verify-multica-runtime ./dist/multica-superpowers-runtime
-./manage.sh install-multica-runtime ./dist/multica-superpowers-runtime --dry-run
-```
-
-生成产物包含 Multica workflow definitions、role agents、gates、triggers、schemas、MCP examples、issue templates、preflight contracts、离线 preflight validators、SDD task graph，以及 `dist/tools/scripts/` 下的 adapter 工具层。用户入口是 Multica workflow / issue template / quick action / natural language router / compatibility command；Python 脚本仍然只是 Multica tool runner 的执行层，不是普通用户主入口。当前 bundle 校验能离线检查 runtime capability 声明、WorkflowInvocation 合同和 SDD task graph；`install-multica-runtime` 会用 exact command help matching 探测当前官方 CLI，并用 documented Multica surface 实装运行层：创建 runtime registration issue，通过 issue metadata 存 WorkflowInvocation / gate / schema / runtime state，通过 issue comments/attachments 挂载 runtime contract artifacts，通过 issue assign/rerun 和 issue get/runs/run-messages 承载 fresh role task dispatch 与观察，通过 autopilot schedule/webhook triggers 承载触发器替代层。默认 dry-run；`--apply` 只执行官方 CLI 命令，不猜 undocumented API。
-
-### 4.1.2 可选：接入真实 Multica workspace issue template flow
-
-如果目标是先在真实 Multica 里跑通 Superpowers+adapter 用户入口，而不是继续扩展本地 bundle contract，可用 `multica-bootstrap` 生成 workspace skill pack，并通过官方 Multica CLI 创建/配置兼容 smoke agent、创建模板化 issue、assign 给 agent。完整产品验收不再以单个 `superpowers-adapter-orchestrator` 跑完整流程为标准；必须用 `multica-live-acceptance` 创建 A-H 可视化 stage issues，并分别 assign 给 `superpowers-*` role agents 或 `superpowers-runtime-squad`，让 Multica UI / CLI 能看到 wiki-researcher、brainstorming、spec-document-reviewer、planning、plan-document-reviewer、implementer、reviewers、finisher、debugger、wiki-curator 和 shared-wiki-publisher 的独立 runs。
-
-先 dry-run，确认将生成的 skill pack、issue body 和计划执行的 Multica 命令：
-
-```bash
-./manage.sh multica-bootstrap \
-  --superpowers-source /path/to/superpowers \
-  --target-repo /path/to/project \
-  --skill-pack-dir ./dist/multica-skill-pack \
-  --dry-run
-```
-
-默认 `--issue-template smoke` 是只读任务，只要求 agent 确认 target repo、skill pack 可见性和 project/shared wiki root 状态；不得编辑代码、commit、push 或创建 PR。Multica agent 会从用户写的 issue 标题、正文和后续评论中推导用户偏好语言，用户可见的评论、问题、总结、review findings 和 handoff 应使用该语言；代码、命令、路径、日志和引用证据保持原文。后续可把同一真实 Multica 入口切到具体 Superpowers+adapter 流程：
-
-| issue template | 对应入口 | 典型输入 |
-|---|---|---|
-| `lanhu-intake` | `skills/lanhu-requirements/SKILL.md` | `--lanhu-url` 或 `--requirements-path` |
-| `brainstorming` | `upstream-superpowers/brainstorming.md` | 可选 `--requirements-path` / `--spec-path` |
-| `writing-plans` | `upstream-superpowers/writing-plans.md` | `--spec-path` 或 `--requirements-path` |
-| `execute-plan` | `upstream-superpowers/executing-plans.md` | `--plan-path`，可选 `--wiki-context-path` |
-| `sdd-execution` | `upstream-superpowers/subagent-driven-development.md` | `--plan-path`，可选 `--wiki-context-path` |
-| `systematic-debugging` | `upstream-superpowers/systematic-debugging.md` | `--debug-evidence` 或 `--requirements-path` |
-| `break-loop` | `skills/break-loop/SKILL.md` | `--debug-evidence` |
-| `update-wiki` | `skills/update-wiki/SKILL.md` | `--plan-path` 或 `--requirements-path` 描述已完成工作 |
-| `publish-shared-wiki` | `skills/publish-shared-wiki/SKILL.md` | `--shared-wiki-topic` |
-| `shared-wiki-mcp-pr` | `skills/shared-wiki-mcp/SKILL.md` | `--shared-wiki-topic` |
-
-只创建 issue 的 dry-run 示例：
-
-```bash
-./manage.sh multica-bootstrap create-issue \
-  --target-repo /path/to/project \
-  --issue-template writing-plans \
-  --requirements-path /path/to/project/docs/prd.md \
-  --dry-run
-```
-
-当 `multica auth status`、`multica daemon status`、`multica runtime list` 都正常，且确认有 Claude Code runtime 后，只有在需要导入/更新 skill pack 或跑只读兼容 smoke 时才使用 `multica-bootstrap --apply`：
-
-```bash
-./manage.sh multica-bootstrap \
-  --superpowers-source /path/to/superpowers \
-  --target-repo /path/to/project \
-  --issue-template smoke \
-  --apply
-```
-
-`--apply` 会尝试把 `superpowers-adapter` skill pack 导入 Multica workspace、创建或复用兼容 smoke agent、attach skill、创建模板 issue 并 assign 给 agent，从而触发真实 Multica daemon task。bootstrap 命令本身不会 commit、push、创建 PR、发布 shared wiki 或调用 undocumented API；发布/PR 类模板默认带授权门，只有显式 `--allow-external-side-effects` 时才会把授权写入 issue body。如果当前 Multica CLI 没有提供可自动调用的本地 skill import / skill attach flag，命令会输出需要在 UI 或 CLI 中手动完成的步骤，而不会猜 undocumented API。
-
-完整端到端 live acceptance 使用 `multica-live-acceptance` 先 dry-run 规划，再在 disposable target repo 上用 `--apply` 让 Multica 真实创建和分配 role-agent stage issues：
-
-```bash
-./manage.sh multica-live-acceptance \
-  --target-repo /path/to/disposable/project \
-  --case chain-a \
-  --requirements-path /path/to/disposable/project/docs/prd.md \
-  --plan-path /path/to/disposable/project/.superpowers/plans/feature.md \
-  --wiki-context-path /path/to/disposable/project/.superpowers/plans/feature.wiki-context.json \
-  --observe-runs \
-  --dry-run
-```
-
-```bash
-./manage.sh multica-live-acceptance \
-  --target-repo /path/to/disposable/project \
-  --case all \
-  --requirements-path /path/to/disposable/project/docs/prd.md \
-  --spec-path /path/to/disposable/project/docs/spec.md \
-  --plan-path /path/to/disposable/project/.superpowers/plans/feature.md \
-  --wiki-context-path /path/to/disposable/project/.superpowers/plans/feature.wiki-context.json \
-  --debug-evidence /path/to/disposable/project/docs/debug-evidence.md \
-  --shared-wiki-topic "portable API contracts" \
-  --observe-runs \
-  --apply
-```
-
-可选链路：`chain-a` wiki-aware feature development，`chain-b` Lanhu intake → Superpowers，`chain-c` brainstorming 多轮 → planning，`chain-d` SDD reviewer loop，`chain-e` systematic-debugging → break-loop → update-wiki，`chain-f` shared wiki local readiness，`chain-g` direct role/squad dispatch，`chain-h` blocked/comment/rerun/cancel recovery，`all` 全量 A-H。`multica-live-acceptance` 和 `multica-bootstrap` 都会拒绝 `--agent-name superpowers-adapter-orchestrator`，因为这个 adapter-specific 单 agent 路径已移除。
-
 ### 4.2 初始化 wiki 模板
 
 ```bash
@@ -590,7 +498,6 @@ wiki 结果只作为待验证线索，不是 root cause evidence。所有 wiki-d
 | bug 调试辅助 | Superpowers `systematic-debugging` + `wiki-researcher` | Phase 1 证据收窄后才条件式查少量 wiki，wiki 线索必须继续验证 |
 | 沉淀长期知识 | `update-wiki` skill | 由 agent 在任务后自动审查是否需要执行 |
 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者使用 |
-| Multica workspace issue flow | `./manage.sh multica-bootstrap --superpowers-source /path/to/superpowers --target-repo /path/to/project --issue-template smoke --dry-run`，具体流程切换 `--issue-template`，确认后加 `--apply` | 生成 workspace skill pack，并通过真实 Multica issue assignment 触发 Claude Code agent task |
 
 ---
 

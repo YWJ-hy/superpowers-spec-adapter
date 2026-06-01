@@ -17,11 +17,6 @@ usage() {
   printf '  %s export-manifest <project-root> [output-path] [superpowers-target]\n' "$0" >&2
   printf '  %s self-test <project-root> [superpowers-target]\n' "$0" >&2
   printf '  %s release-check <project-root> [superpowers-target]\n' "$0" >&2
-  printf '  %s build-multica-runtime <superpowers-source-or-url> [adapter-root] <out>\n' "$0" >&2
-  printf '  %s verify-multica-runtime <runtime-root>\n' "$0" >&2
-  printf '  %s install-multica-runtime <runtime-root> [--apply]\n' "$0" >&2
-  printf '  %s multica-bootstrap [bootstrap|create-issue|preflight|prepare-skill-pack] --superpowers-source <path> --target-repo <path> [--issue-template id] [--apply]\n' "$0" >&2
-  printf '  %s multica-live-acceptance --target-repo <path> [--case phase3|phase4|phase5|phase6|all] [--apply]\n' "$0" >&2
   printf '  %s help\n' "$0" >&2
   exit "$exit_code"
 }
@@ -84,21 +79,6 @@ case "$COMMAND" in
     PROJECT_ROOT="$1"
     TARGET_INPUT="${2:-}"
     exec "$SCRIPT_DIR/release-check.sh" "$TARGET_INPUT" "$PROJECT_ROOT"
-    ;;
-  build-multica-runtime)
-    exec "$SCRIPT_DIR/build-multica-runtime.sh" "$@"
-    ;;
-  verify-multica-runtime)
-    exec "$SCRIPT_DIR/verify-multica-runtime.sh" "$@"
-    ;;
-  install-multica-runtime)
-    exec "$SCRIPT_DIR/install-multica-runtime.sh" "$@"
-    ;;
-  multica-bootstrap)
-    exec "$SCRIPT_DIR/multica-bootstrap.sh" "$@"
-    ;;
-  multica-live-acceptance)
-    exec "$SCRIPT_DIR/multica-live-acceptance.sh" "$@"
     ;;
   migrate-wiki-sections)
     require_project_root "${1:-}"

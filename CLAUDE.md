@@ -25,12 +25,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./manage.sh doctor /path/to/project
 ./manage.sh self-test /path/to/project
 ./manage.sh release-check /path/to/project
-./manage.sh build-multica-runtime /path/to/superpowers . ./dist/multica-superpowers-runtime
-./manage.sh verify-multica-runtime ./dist/multica-superpowers-runtime
-./manage.sh install-multica-runtime ./dist/multica-superpowers-runtime --dry-run
-./manage.sh multica-bootstrap --superpowers-source /path/to/superpowers --target-repo /path/to/project --dry-run
-./manage.sh multica-bootstrap create-issue --target-repo /path/to/project --issue-template writing-plans --requirements-path /path/to/project/docs/prd.md --dry-run
-./manage.sh multica-live-acceptance --target-repo /path/to/disposable/project --case chain-a --requirements-path /path/to/project/docs/prd.md --plan-path /path/to/plan.md --dry-run
 ```
 
 单个 smoke / regression 测试：
@@ -40,10 +34,6 @@ bash tests/native-wiki-patch-smoke.sh <installed-superpowers-target>
 bash tests/wiki-update-check-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/bootstrap-wiki-template-import.sh /path/to/project
-bash tests/multica-runtime-build-smoke.sh <superpowers-source-or-installed-target>
-bash tests/multica-runtime-install-dry-run-smoke.sh <superpowers-source-or-installed-target>
-bash tests/multica-bootstrap-dry-run-smoke.sh <superpowers-source-or-installed-target>
-bash tests/multica-live-acceptance-dry-run-smoke.sh <superpowers-source-or-installed-target>
 ```
 
 发布前总检查：
@@ -54,17 +44,17 @@ bash tests/multica-live-acceptance-dry-run-smoke.sh <superpowers-source-or-insta
 
 ## 架构概览
 
-本仓库是 Superpowers 的 adapter 源码，不是业务项目代码。adapter 既可以通过安装 overlay 来增强用户已安装的 Superpowers Claude Code 插件，也可以生成 Multica-native Superpowers-compatible runtime bundle；真实 Multica 运行路径通过 `multica-bootstrap` 把 Superpowers+adapter skill pack 导入 workspace、创建/配置 Claude Code agent，并用 issue assignment 触发 Multica daemon task。
+本仓库是 Superpowers 的 adapter 源码，不是业务项目代码。adapter 通过安装 overlay 来增强用户已安装的 Superpowers Claude Code 插件。
 
 主要分层：
 
 - - `overlays/agents/`：安装到 Superpowers 的 subagent，例如 `wiki-researcher`，负责渐进式选择相关项目 wiki 页面。
 - `overlays/skills/`：安装到 Superpowers 的 skill，负责渐进式读取 wiki 和任务后 update-wiki 审查。
 - `overlays/scripts/`：skill 背后的 Python 执行层，负责 wiki 初始化、导入、更新、索引和 manifest 等文件操作。
-- `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑、Multica runtime bundle 生成/校验逻辑，以及真实 Multica CLI bootstrap；Multica bundle 校验需覆盖 source snapshot、tool manifest 防漏打包、generated trigger/schema contract、artifact-store contract、离线 preflight validators、SDD task graph contract 和 manifest/workflow/preflight/schema/task-graph/tool-manifest 跨 artifact 结构化一致性；`multica_cli_bootstrap.py` 负责生成 workspace skill pack，并通过官方 `multica` CLI 计划或执行 skill import、agent attach、模板化 issue create/assign。
+- `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑。
 - `wiki-template/`：bootstrap 到目标项目 `.superpowers/wiki/` 的标准模板。
 - `tests/`：面向安装后 Superpowers target 和目标项目 root 的 smoke / regression 测试。
-- 根目录 `manage.sh`：统一入口，转发 install、verify、bootstrap-wiki、doctor、self-test、release-check、build/verify-multica-runtime、multica-bootstrap 等操作。
+- 根目录 `manage.sh`：统一入口，转发 install、verify、bootstrap-wiki、doctor、self-test、release-check 等操作。
 
 ## 用户流程模型
 

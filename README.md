@@ -43,98 +43,6 @@ Install-related commands target all unique installed Superpowers Claude Code plu
 
 Current compatibility baseline: Superpowers 5.1.0. `./manage.sh install` warns, but does not block, when the detected target version is newer than the baseline. The compatibility check reads the installed Superpowers target's `package.json` version when available.
 
-### Build a Multica runtime bundle
-
-Multica can consume this adapter as a generated Superpowers-compatible runtime bundle instead of requiring the user to install the Claude Code Superpowers plugin locally:
-
-```bash
-./manage.sh build-multica-runtime /path/to/superpowers . ./dist/multica-superpowers-runtime
-./manage.sh verify-multica-runtime ./dist/multica-superpowers-runtime
-./manage.sh install-multica-runtime ./dist/multica-superpowers-runtime --dry-run
-```
-
-The generated bundle includes patched Superpowers-compatible workflow definitions, Multica role agents, gates, triggers, schemas, MCP examples, issue templates, preflight contracts, an explicit SDD task graph, and the adapter tool layer under `dist/tools/scripts/`. Adapter Python scripts remain Multica tool-runner internals; user entrypoints are Multica workflows, issue templates, quick actions, natural-language routing, or compatibility commands. Trigger artifacts now include machine-readable `issue-template-bindings.json` and `artifact-next-actions.json`, so issue templates and artifact-driven next actions are checked as WorkflowInvocation contracts rather than plain markdown placeholders. The generated validators `artifact_next_action_suggest.py` and `intent_router_suggest.py` can read artifact/gate state or natural-language requests and emit gate-aware next-action/workflow suggestions without auto-executing them. `workflow_invocation_validate.py` also distinguishes the required MCP client capability from concrete optional MCP servers, so Lanhu/shared-wiki/GitHub MCP availability only blocks workflows that depend on those servers. Gate artifacts include `gate-contracts.json`, `gate-transition-contract.json`, `gate_state_validate.py`, `gate_transition_validate.py`, and a concrete `gate-state.schema.json`, so approval/authorization gates declare owner roles, required artifacts, satisfied-by conditions, allowed status transitions, owner/orchestrator advancement rules, evidence requirements, and external side-effect boundaries. Role artifacts include `role-agent-contracts.json` and `role_task_validate.py`, and schema artifacts include `artifact-contracts.json` plus concrete spec/plan/Lanhu/update-wiki/review schemas, so role I/O, fresh-context task dispatch, source artifact injection, declared output boundaries, tool/capability boundaries, and artifact producers/consumers are checked as runtime contracts. Artifact persistence is also declared through `dist/preflight/artifact-store-contract.json` and `artifact_store_validate.py`, which define the `artifacts/superpowers/{workflowId}/{runId}/{artifactType}/{name}` path shape, status enum, SHA-256 checksum requirements for approved/current artifacts, and read/write policy boundaries. `verify-multica-runtime` checks expected runtime artifacts, source snapshots, tool-manifest/script consistency, runtime-root replacement, generated gate/trigger/schema contracts, trigger catalogs, role/artifact/store contracts, offline preflight validators, and task graph contracts before the bundle is treated as releasable. `install-multica-runtime` is the Phase 2 registration planner: it reruns the local verifier, checks Multica CLI/auth/daemon/runtime status, probes commands with exact help-output matching, then implements the runtime layer on documented Multica surfaces. When exact native runtime commands are absent, `--require-native-surfaces` is satisfied by executable substitutes: it creates a runtime registration issue, stores WorkflowInvocation/gate/schema/runtime state through issue metadata, attaches runtime contract artifacts through issue comments/attachments, uses issue assign/rerun plus issue get/run history for role-task dispatch and observation, and records autopilot schedule/webhook triggers as the trigger substitute. It defaults to dry-run; `--apply` is externally visible and only executes documented Multica CLI commands.
-
-### Bootstrap a real Multica workspace flow
-
-To exercise the real Multica execution surface, use `multica-bootstrap` for compatibility smoke/skill-pack setup, then use `multica-live-acceptance` for the product-level visual flow. `multica-bootstrap` prepares the workspace skill pack, imports it into Multica when `--apply` is used, and can still create a single smoke/template issue. Full Superpowers+adapter acceptance is not satisfied by one orchestrator issue: the visual flow must create stage issues assigned to `superpowers-*` role agents or `superpowers-runtime-squad`, so Multica UI/CLI shows independent runs for wiki research, brainstorming, planning, source-of-truth verification, implementation, reviews, debugging, and wiki publishing readiness.
-
-Dry-run first:
-
-```bash
-./manage.sh multica-bootstrap \
-  --superpowers-source /path/to/superpowers \
-  --target-repo /path/to/project \
-  --skill-pack-dir ./dist/multica-skill-pack \
-  --dry-run
-```
-
-The default `--issue-template smoke` is intentionally read-only: it asks the agent to confirm the target repo, skill pack visibility, and project/shared wiki roots, then post a Multica issue comment. Other templates create real Multica issue bodies for the Superpowers+adapter flow while keeping execution in the Multica daemon + Claude Code task path:
-
-| Template | Entrypoint | Required input |
-|---|---|---|
-| `smoke` | root skill pack smoke | `--target-repo` |
-| `lanhu-intake` | `skills/lanhu-requirements/SKILL.md` | `--lanhu-url` or `--requirements-path` |
-| `brainstorming` | `upstream-superpowers/brainstorming.md` | target repo and optional requirements/spec |
-| `writing-plans` | `upstream-superpowers/writing-plans.md` | `--spec-path` or `--requirements-path` |
-| `execute-plan` | `upstream-superpowers/executing-plans.md` | `--plan-path` |
-| `sdd-execution` | `upstream-superpowers/subagent-driven-development.md` | `--plan-path` |
-| `systematic-debugging` | `upstream-superpowers/systematic-debugging.md` | `--debug-evidence` or `--requirements-path` |
-| `break-loop` | `skills/break-loop/SKILL.md` | `--debug-evidence` |
-| `update-wiki` | `skills/update-wiki/SKILL.md` | `--plan-path` or `--requirements-path` |
-| `publish-shared-wiki` | `skills/publish-shared-wiki/SKILL.md` | `--shared-wiki-topic` |
-| `shared-wiki-mcp-pr` | `skills/shared-wiki-mcp/SKILL.md` | `--shared-wiki-topic` |
-
-Example issue-only dry-run:
-
-```bash
-./manage.sh multica-bootstrap create-issue \
-  --target-repo /path/to/project \
-  --issue-template writing-plans \
-  --requirements-path /path/to/project/docs/prd.md \
-  --dry-run
-```
-
-After `multica auth status`, `multica daemon status`, and `multica runtime list` show a Claude Code runtime, run `multica-bootstrap --apply` only when you need to import/update the workspace skill pack or run the read-only compatibility smoke:
-
-```bash
-./manage.sh multica-bootstrap \
-  --superpowers-source /path/to/superpowers \
-  --target-repo /path/to/project \
-  --issue-template smoke \
-  --apply
-```
-
-`--apply` can create/import skills, create/update agents, create issues, and assign issues, so it is externally visible. The bootstrap command itself never commits, pushes, opens PRs, publishes shared wiki changes, or calls undocumented Multica APIs. Publishing/PR templates include an authorization gate unless `--allow-external-side-effects` is explicitly passed, and even then the issue body only records that authorization for the Multica agent task. If the installed Multica CLI does not expose non-interactive local skill import or skill attach flags, the command reports the exact manual step instead of guessing an undocumented API.
-
-For live acceptance, `multica-live-acceptance` plans or creates the A-H visual chains from `MULTICA_VISUAL_ACCEPTANCE_MATRIX_CN.md`. It defaults to dry-run. With `--apply`, it directly creates Multica stage issues and assigns each stage to the mapped role agent/squad, including spec document review, plan document review, implementation review, and finishing roles; it rejects `superpowers-adapter-orchestrator` because that adapter-specific single-agent path has been removed:
-
-```bash
-./manage.sh multica-live-acceptance \
-  --target-repo /path/to/disposable/project \
-  --case chain-a \
-  --requirements-path /path/to/disposable/project/docs/prd.md \
-  --plan-path /path/to/disposable/project/.superpowers/plans/feature.md \
-  --wiki-context-path /path/to/disposable/project/.superpowers/plans/feature.wiki-context.json \
-  --observe-runs \
-  --dry-run
-```
-
-Key visual chains:
-
-| Chain | Purpose |
-|---|---|
-| `chain-a` | Wiki-aware feature development: wiki research → brainstorming → spec review → planning → plan review → implementation → reviews → finishing → update-wiki |
-| `chain-b` | Lanhu intake → Superpowers downstream roles, including document review and finishing |
-| `chain-c` | Multi-turn brainstorming → spec document review → planning → plan document review |
-| `chain-d` | SDD plan review, implementer/reviewer loop, final review, and finishing visibility |
-| `chain-e` | Systematic debugging → break-loop → update-wiki |
-| `chain-f` | Shared wiki local readiness without publish/PR side effects |
-| `chain-g` | Direct role-agent and squad dispatch |
-| `chain-h` | Blocked/comment/rerun/cancel recovery lifecycle |
-| `all` | Full A-H visual acceptance |
-
-
 ### Optional subagent model configuration
 
 By default, `adapter.config.json` is `{}` and the adapter does not change subagent model routing. Adapter agents keep `model: inherit`, and upstream Superpowers prompt templates keep their native `Task tool (general-purpose)` shape.
@@ -373,8 +281,6 @@ docs/superpowers/plans/<plan-stem>.source-truth-constraints.json
 
 The full report is planning/audit context only. Normal execution and SDD must not read or inject the full `*.source-truth-report.json`; after final plan tasks are stable, planning binds schemaVersion 2 `constraintSets` to `globalConstraintRefs` / `taskConstraintRefs` with `taskFingerprint`, then execution runs `source_truth_render.py --fingerprint-preflight` and renders task-specific constraints with `source_truth_render.py --task-id <task-id> --strict --execution-ready`. If the verifier status is `blocked`, execution must return to planning instead of implementing around the conflict.
 
-In Multica, the verifier is also visible as `superpowers-source-of-truth-verifier`, and planning chains should show draft plan → verifier → final plan → plan document review.
-
 ## Referenced Project Wiki
 
 `writing-plans` is patched so each implementation plan records a lightweight selected-wiki entry point in:
@@ -479,8 +385,6 @@ The self-test covers:
 - index-driven wiki graph traversal
 - import skill path handling
 - shared wiki submodule local runner and publish script smoke
-- Multica runtime bundle build/verify smoke, including tool manifest, source snapshot, and generated trigger/schema contract checks
-- Multica bootstrap dry-run smoke, including workspace skill pack generation, planned real CLI commands, issue template bodies, and required-input failures
 
 ## Compatibility
 
