@@ -151,12 +151,7 @@ The constraints artifact must contain only short execution-relevant constraint s
     {
       "taskId": "T1",
       "taskTitle": "Implement generated client usage",
-      "taskFingerprint": {
-        "algorithm": "sha256",
-        "normalization": "superpower-adapter-task-text-v1",
-        "source": "docs/superpowers/plans/example.md#T1",
-        "hash": "0000000000000000000000000000000000000000000000000000000000000000"
-      },
+      "taskFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
       "constraintRefs": [],
       "caveats": []
     }

@@ -172,12 +172,8 @@
     {
       "taskId": "T1",
       "taskTitle": "Implement path-based form updates",
-      "taskFingerprint": {
-        "algorithm": "sha256",
-        "normalization": "superpower-adapter-task-text-v1",
-        "source": "docs/superpowers/plans/example.md#T1",
-        "hash": "0000000000000000000000000000000000000000000000000000000000000000"
-      },
+      // Bare lowercase sha256 hex of the normalized final task text (algorithm/normalization declared once in taskRouting.fingerprintAlgorithm).
+      "taskFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
       "wikiRefs": [
         {
           "sectionRef": {
@@ -195,12 +191,7 @@
     {
       "taskId": "T2",
       "taskTitle": "Add contract coverage",
-      "taskFingerprint": {
-        "algorithm": "sha256",
-        "normalization": "superpower-adapter-task-text-v1",
-        "source": "docs/superpowers/plans/example.md#T2",
-        "hash": "1111111111111111111111111111111111111111111111111111111111111111"
-      },
+      "taskFingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
       "wikiRefs": [],
       "caveats": []
     }

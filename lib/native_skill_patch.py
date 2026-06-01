@@ -211,7 +211,7 @@ If verifier status is `blocked`, do not offer execution handoff. If a mismatch i
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
 
-If the preflight fails because the user edited task text after plan review, stop before code changes and perform a planning-side refresh that only updates `taskWikiRefs` and `taskFingerprint` from the current plan and already-selected wiki sections. Do not rewrite the plan, do not call `wiki-researcher`, do not read new wiki pages, and do not let implementers decide routing. If refresh cannot safely resolve missing task IDs, ambiguous split/merge, insufficient selected sections, or conflicts, ask to return to planning.
+If the preflight fails because task text changed after plan review, stop before code changes and re-run the planning-side binding pass to refresh `taskWikiRefs` and `taskFingerprint` from the current plan and already-selected wiki sections; do not reselect wiki, call `wiki-researcher`, rewrite the plan, or let implementers decide routing, and ask to return to planning if it cannot resolve safely.
 
 For each current task, use the installed adapter renderer with that task's stable ID:
 
@@ -237,7 +237,7 @@ If the preflight fails because the user edited task text after plan review, stop
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
 
-If the preflight fails because the user edited task text after plan review, stop before dispatching subagents and perform a planning-side refresh that only updates `taskWikiRefs` and `taskFingerprint` from the current plan and already-selected wiki sections. Do not rewrite the plan, do not call `wiki-researcher`, do not read new wiki pages, and do not let implementers or reviewers decide routing. If refresh cannot safely resolve missing task IDs, ambiguous split/merge, insufficient selected sections, or conflicts, ask to return to planning.
+If the preflight fails because task text changed after plan review, stop before dispatching subagents and re-run the planning-side binding pass to refresh `taskWikiRefs` and `taskFingerprint` from the current plan and already-selected wiki sections; do not reselect wiki, call `wiki-researcher`, rewrite the plan, or let implementers or reviewers decide routing, and ask to return to planning if it cannot resolve safely.
 
 Before dispatching each implementer, render only that task's selected implementer constraints. Before dispatching reviewers or spec-reviewers, render only that task's selected reviewer constraints:
 

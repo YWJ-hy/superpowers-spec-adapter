@@ -19,7 +19,6 @@ ROLE_CATEGORIES = {
     "reviewer": ("implementation", "test", "review", "general"),
 }
 DESTINATION_KINDS = {"task-bound", "global", "planning-only"}
-TASK_FINGERPRINT_NORMALIZATION = "superpower-adapter-task-text-v1"
 TASK_HEADING_RE = re.compile(r"^### Task\s+([A-Za-z0-9][A-Za-z0-9_-]*):\s*(.+?)\s*$")
 TASK_OR_HIGHER_HEADING_RE = re.compile(r"^#{1,3}\s+")
 HEX_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -150,14 +149,9 @@ def _validate_ref_list(data: dict[str, Any], refs: list[Any], field: str) -> lis
 
 
 def _validate_task_fingerprint(task_ref: dict[str, Any], field: str) -> None:
-    fingerprint = _as_dict(task_ref.get("taskFingerprint"), f"{field}.taskFingerprint")
-    if fingerprint.get("algorithm") != "sha256":
-        raise ValidationError(f"{field}.taskFingerprint.algorithm must be sha256")
-    if fingerprint.get("normalization") != TASK_FINGERPRINT_NORMALIZATION:
-        raise ValidationError(f"{field}.taskFingerprint.normalization must be {TASK_FINGERPRINT_NORMALIZATION}")
-    hash_value = fingerprint.get("hash")
-    if not isinstance(hash_value, str) or not HEX_SHA256_RE.match(hash_value):
-        raise ValidationError(f"{field}.taskFingerprint.hash must be a 64-character lowercase sha256 hex digest")
+    fingerprint = task_ref.get("taskFingerprint")
+    if not isinstance(fingerprint, str) or not HEX_SHA256_RE.match(fingerprint):
+        raise ValidationError(f"{field}.taskFingerprint must be a 64-character lowercase sha256 hex digest")
 
 
 def _validate_execution_ready(data: dict[str, Any]) -> None:
@@ -509,9 +503,9 @@ def fingerprint_preflight(data: dict[str, Any], plan_path: Path) -> str:
         if not sidecar:
             errors.append(f"plan task missing from taskWikiRefs: {task_id}")
             continue
-        fingerprint = _as_dict(sidecar.get("taskFingerprint"), f"taskWikiRefs[{task_id}].taskFingerprint")
-        if fingerprint.get("hash") != task["hash"]:
-            errors.append(f"fingerprint mismatch for {task_id}: expected {fingerprint.get('hash')}, current {task['hash']}")
+        fingerprint = sidecar.get("taskFingerprint")
+        if fingerprint != task["hash"]:
+            errors.append(f"fingerprint mismatch for {task_id}: expected {fingerprint}, current {task['hash']}")
 
     for task_id in sorted(set(sidecar_tasks) - set(plan_tasks)):
         errors.append(f"taskWikiRefs contains task not found in plan: {task_id}")

@@ -79,12 +79,7 @@ for position, (start, task_id, title) in enumerate(starts):
     tasks.append({
         "taskId": task_id,
         "taskTitle": title,
-        "taskFingerprint": {
-            "algorithm": "sha256",
-            "normalization": "superpower-adapter-task-text-v1",
-            "source": f"docs/superpowers/plans/example.md#{task_id}",
-            "hash": hashlib.sha256(normalize(text).encode("utf-8")).hexdigest(),
-        },
+        "taskFingerprint": hashlib.sha256(normalize(text).encode("utf-8")).hexdigest(),
         "constraintRefs": ([{"constraintRef": "STC2", "reason": "T1 wires generated client usage."}] if task_id == "T1" else []),
         "caveats": [],
     })

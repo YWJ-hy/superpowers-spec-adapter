@@ -207,12 +207,7 @@ cat > "$CONTEXT" <<JSON
     {
       "taskId": "T1",
       "taskTitle": "Implement path-based form updates",
-      "taskFingerprint": {
-        "algorithm": "sha256",
-        "normalization": "superpower-adapter-task-text-v1",
-        "source": "${PLAN}#T1",
-        "hash": "${T1_HASH}"
-      },
+      "taskFingerprint": "${T1_HASH}",
       "wikiRefs": [
         {
           "sectionRef": {
@@ -230,12 +225,7 @@ cat > "$CONTEXT" <<JSON
     {
       "taskId": "T2",
       "taskTitle": "Add contract coverage",
-      "taskFingerprint": {
-        "algorithm": "sha256",
-        "normalization": "superpower-adapter-task-text-v1",
-        "source": "${PLAN}#T2",
-        "hash": "${T2_HASH}"
-      },
+      "taskFingerprint": "${T2_HASH}",
       "wikiRefs": [],
       "caveats": []
     }
