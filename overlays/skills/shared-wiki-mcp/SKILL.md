@@ -44,6 +44,7 @@ Expected tools:
 - `shared_wiki_tree`
 - `shared_wiki_read`
 - `shared_wiki_read_section`
+- `shared_wiki_read_sections`
 - `shared_wiki_search`
 - `shared_wiki_validate_patch`
 - `shared_wiki_create_patch_pr`
@@ -55,7 +56,7 @@ If the tools are unavailable, tell the user to build and configure the MCP serve
 1. Call `shared_wiki_status` first.
 2. If status is healthy enough for reads, call `shared_wiki_tree`.
 3. Use `shared_wiki_read` for root/directory indexes and leaf companion `xxx.index.md` files.
-4. Use `shared_wiki_read_section` for selected sections from leaf `xxx.md` files; do not read whole leaf documents unless the user explicitly asks for a manual audit.
+4. Use `shared_wiki_read_section` for one selected section from a leaf `xxx.md` file. When multiple selected sections need to be read, prefer `shared_wiki_read_sections` with `includeDocumentContext: true`; keep strict/default error handling for hard constraints and use singular reads only for one section or older MCP servers without the batch tool. Do not read whole leaf documents unless the user explicitly asks for a manual audit.
 5. Use `shared_wiki_search` for a bounded keyword search when index navigation is insufficient.
 6. Do not scan the whole repo unless the user explicitly asks for an audit.
 7. Treat `displayPath` as a logical `.shared-superpowers/wiki/...` path, not a local file path outside this MCP workflow.

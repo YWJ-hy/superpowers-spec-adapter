@@ -11,7 +11,18 @@ from pathlib import Path
 from source_truth_common import SourceTruthError, classify_path, load_source_truth_settings
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     parser = argparse.ArgumentParser(description="Inspect sourceOfTruth settings and classify repo-relative paths.")
     parser.add_argument("project_root", help="Target project root")
     parser.add_argument("--show-policy", action="store_true", help="Include normalized policy in output")

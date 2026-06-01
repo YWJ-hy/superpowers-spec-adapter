@@ -5,6 +5,7 @@ import { statusTool } from './tools/status.js';
 import { treeTool } from './tools/tree.js';
 import { readTool } from './tools/read.js';
 import { readSectionTool } from './tools/readSection.js';
+import { readSectionsTool } from './tools/readSections.js';
 import { searchTool } from './tools/search.js';
 import { validatePatchTool } from './tools/validatePatch.js';
 import { createPatchPrTool } from './tools/createPatchPr.js';
@@ -42,6 +43,20 @@ export function createServer(config: SharedWikiConfig): McpServer {
     }),
     annotations: { readOnlyHint: true, idempotentHint: true },
   }, async (input) => toResult(await readSectionTool(config, input)));
+
+  server.registerTool('shared_wiki_read_sections', {
+    description: 'Read multiple marked sections across indexed leaf shared wiki pages in one ordered batch, optionally with bounded document context.',
+    inputSchema: z.object({
+      sections: z.array(z.object({
+        path: z.string().min(1),
+        section: z.string().min(1),
+        includeDocumentContext: z.boolean().optional(),
+      })).min(1).max(100),
+      includeDocumentContext: z.boolean().optional(),
+      errorMode: z.enum(['strict', 'partial']).optional(),
+    }),
+    annotations: { readOnlyHint: true, idempotentHint: true },
+  }, async (input) => toResult(await readSectionsTool(config, input)));
 
   server.registerTool('shared_wiki_search', {
     description: 'Search indexed shared wiki markdown pages with bounded snippets.',

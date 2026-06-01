@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import argparse
 import json
 from collections import Counter
@@ -204,7 +206,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main(argv: list[str] | None = None) -> int:
+    _configure_stdio()
     args = parse_args(argv)
     inventory = build_inventory(args.project_root, args.analysis_hint.strip())
     if args.json:

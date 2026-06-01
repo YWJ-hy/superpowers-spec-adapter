@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import argparse
 from pathlib import Path
 
@@ -144,7 +146,18 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     args = parse_args()
     target_rel = args.target
     title = args.title.strip()

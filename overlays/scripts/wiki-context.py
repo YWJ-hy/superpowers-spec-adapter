@@ -69,7 +69,18 @@ def resolve_file(project_root: Path, selector: str, value: str, is_category: boo
     return matches[0] if matches else None
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", help="Read one indexed wiki page file relative to a wiki root or root-prefixed")
     parser.add_argument("--category", help="Compatibility alias: read an indexed directory index relative to a wiki root")

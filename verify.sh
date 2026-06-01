@@ -463,14 +463,14 @@ check_native_skill_residuals() {
   done
 
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' 'compare the current MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_sections' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' '--batch-jsonl' 'preserve the original --reread-list order' 'batch tool is unavailable' 'Do not fallback to singular reads for section errors' 'Compare the batch MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
+  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' 'shared_wiki_read_sections' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' '--batch-jsonl' 'preserve the original --reread-list order' 'batch tool is unavailable' 'Do not fallback to singular reads for section errors' 'Compare the batch MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
     if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1

@@ -93,7 +93,18 @@ def generate_indexes(project_root: Path, wiki_root_selector: str) -> int:
     return process_all(project_root, wiki_root_selector)
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> None:
+    _configure_stdio()
     parser = argparse.ArgumentParser(description="Wiki section migration helper.")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--inventory", metavar="PROJECT_ROOT", help="List indexed leaf pages with metadata")

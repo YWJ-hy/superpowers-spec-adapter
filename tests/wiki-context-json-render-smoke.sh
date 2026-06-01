@@ -309,6 +309,10 @@ assert_contains "reviewer render" 'Check that no project-specific environment na
 REREAD_T1="$(python3 "$SCRIPT" "$CONTEXT" --task-id T1 --reread-list --strict --execution-ready)"
 assert_contains "T1 reread list" 'path-based-update' "$REREAD_T1"
 assert_contains "T1 reread list" 'contract-review' "$REREAD_T1"
+assert_contains "T1 reread list" '"source": "github_mcp"' "$REREAD_T1"
+assert_contains "T1 reread list" '"wikiPath": "frontend/contracts.md"' "$REREAD_T1"
+assert_contains "T1 reread list" '"revision"' "$REREAD_T1"
+assert_contains "T1 reread list" '"commitSha": "abcdef1234567890"' "$REREAD_T1"
 assert_not_contains "T1 reread list" 'deep-path' "$REREAD_T1"
 
 REREAD_T2="$(python3 "$SCRIPT" "$CONTEXT" --task-id T2 --reread-list --strict --execution-ready)"

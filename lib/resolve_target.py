@@ -67,7 +67,18 @@ def resolve_targets(base: Path, explicit: str | None) -> list[dict[str, object]]
     raise SystemExit('Could not resolve a Superpowers target. Pass an explicit path or install the plugin first.')
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     args = sys.argv[1:]
     all_targets = bool(args and args[0] == '--all')
     if all_targets:

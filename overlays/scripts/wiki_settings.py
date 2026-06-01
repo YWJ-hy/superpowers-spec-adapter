@@ -11,7 +11,18 @@ from pathlib import Path
 from wiki_common import PROJECT_SETTINGS_REL, WIKI_RESEARCH_PHASES, load_wiki_research_max_pages
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     parser = argparse.ArgumentParser(description="Inspect wiki research settings.")
     parser.add_argument("project_root", help="Target project root")
     parser.add_argument("--phase", choices=WIKI_RESEARCH_PHASES, help="Return only the configured/default maxWikiPages for this phase")

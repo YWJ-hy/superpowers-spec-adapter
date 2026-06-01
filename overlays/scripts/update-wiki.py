@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import argparse
 import re
 from pathlib import Path
@@ -91,7 +93,18 @@ def refresh_root(root_desc, project_root: Path, authorized_update: bool, authori
     return graph.warnings
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     parser = argparse.ArgumentParser(description="Refresh indexed wiki page references.")
     parser.add_argument("--wiki-root", choices=["project", "shared", "all-existing"], default="project", help="Wiki root to refresh")
     parser.add_argument("--authorized-update", action="store_true", help="The user authorized updating existing wiki index pages")

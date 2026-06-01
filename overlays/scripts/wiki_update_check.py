@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import argparse
 import json
 from pathlib import Path
@@ -235,7 +237,18 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     args = build_parser().parse_args()
     result = check_wiki_tree(args.wiki_root)
     if args.summary or args.changed_file:

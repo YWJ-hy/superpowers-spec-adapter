@@ -135,7 +135,18 @@ def process_all(project_root: Path, wiki_root_selector: str) -> int:
     return count
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> None:
+    _configure_stdio()
     parser = argparse.ArgumentParser(description="Generate section index files.")
     parser.add_argument("file_path", nargs="?", help="Wiki file path (relative to wiki root or absolute)")
     parser.add_argument("--all", action="store_true", help="Process all indexed leaf pages")

@@ -371,7 +371,18 @@ def format_failures(failures: list[PatchFailure], mode: str) -> str:
     return '\n'.join(lines)
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> int:
+    _configure_stdio()
     if len(sys.argv) != 3:
         raise SystemExit('Usage: subagent_model_patch.py <install|uninstall|verify> <superpowers-dir>')
 

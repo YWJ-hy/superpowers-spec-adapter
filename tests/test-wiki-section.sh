@@ -102,6 +102,26 @@ cat > "$TMP/.superpowers/wiki/frontend/hook-guidelines.index.md" << 'WIKI'
 | parent-section | Parent Section | soft |
 WIKI
 
+cat > "$TMP/.superpowers/wiki/frontend/type-safety.md" << 'WIKI'
+# Type Safety
+
+<!-- wiki-section:type-imports -->
+## Type Imports
+
+使用 `import type` 保持运行时代码干净。
+<!-- /wiki-section:type-imports -->
+WIKI
+
+cat > "$TMP/.superpowers/wiki/frontend/type-safety.index.md" << 'WIKI'
+# Type Safety
+
+> 中文类型安全规则。
+
+| section | 描述 | 约束强度 |
+|---|---|---|
+| type-imports | Type Imports | hard |
+WIKI
+
 cat > "$TMP/.superpowers/wiki/frontend/with-code-block.md" << 'WIKI'
 # Code Block Test
 
@@ -197,6 +217,41 @@ assert_exit_code "nonexistent section exits 1" 1 \
   python3 "$SCRIPTS/wiki_read_section.py" \
   "frontend/hook-guidelines.md" "nonexistent" \
   --wiki-root project --project-root "$TMP"
+
+printf '\nTest: batch JSONL section reads\n'
+
+BATCH_INPUT="$TMP/rereads.jsonl"
+cat > "$BATCH_INPUT" <<'JSONL'
+{"root":"project","source":"local","localPath":"frontend/hook-guidelines.md","sectionId":"path-based-update","reread":{"includeDocumentContext":true}}
+{"root":"project","source":"local","localPath":"frontend/type-safety.md","sectionId":"type-imports","reread":{"includeDocumentContext":true}}
+JSONL
+BATCH_OUT=$(python3 "$SCRIPTS/wiki_read_section.py" --batch-jsonl --project-root "$TMP" --include-document-context < "$BATCH_INPUT")
+assert_contains "batch contains first section" "updateByPath(path, value)" "$BATCH_OUT"
+assert_contains "batch contains second section" "import type" "$BATCH_OUT"
+assert_contains "batch preserves unicode" "中文类型安全规则" "$BATCH_OUT"
+assert_contains "batch labels root" "Root: \`project\`" "$BATCH_OUT"
+if [[ "$BATCH_OUT" == *"updateByPath(path, value)"*"import type"* ]]; then
+  printf '  ✓ batch preserves input order\n'
+  PASS=$((PASS + 1))
+else
+  printf '  ✗ batch preserves input order\n'
+  FAIL=$((FAIL + 1))
+fi
+
+BAD_BATCH="$TMP/bad-rereads.jsonl"
+cat > "$BAD_BATCH" <<'JSONL'
+{"root":"project","source":"local","localPath":"frontend/hook-guidelines.md","sectionId":"missing-section"}
+JSONL
+BAD_BATCH_OUT="$TMP/bad-batch.out"
+if python3 "$SCRIPTS/wiki_read_section.py" --batch-jsonl --project-root "$TMP" --include-document-context < "$BAD_BATCH" > /dev/null 2> "$BAD_BATCH_OUT"; then
+  printf '  ✗ batch missing section exits 1\n'
+  FAIL=$((FAIL + 1))
+else
+  printf '  ✓ batch missing section exits 1\n'
+  PASS=$((PASS + 1))
+fi
+assert_contains "batch error has item index" "batch item 1" "$(cat "$BAD_BATCH_OUT")"
+assert_contains "batch error has available sections" "Available sections: path-based-update, deep-path, parent-section, child-section" "$(cat "$BAD_BATCH_OUT")"
 
 printf '\nTest: validation (unclosed markers)\n'
 

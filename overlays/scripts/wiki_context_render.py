@@ -424,7 +424,17 @@ def render_reread_list(data: dict[str, Any], task_id: str | None = None) -> str:
             if not section.get("hardConstraint") or not section.get("reread"):
                 continue
             section_id = section.get("sectionId") or section.get("section_name")
-            lines.append(json.dumps({"displayPath": page.get("displayPath"), "sectionId": section_id, "reread": section.get("reread")}, ensure_ascii=False, sort_keys=True))
+            entry = {
+                "root": page.get("root"),
+                "source": page.get("source"),
+                "displayPath": page.get("displayPath"),
+                "localPath": page.get("localPath"),
+                "wikiPath": page.get("wikiPath"),
+                "revision": page.get("revision"),
+                "sectionId": section_id,
+                "reread": section.get("reread"),
+            }
+            lines.append(json.dumps({key: value for key, value in entry.items() if value is not None}, ensure_ascii=False, sort_keys=True))
     if lines:
         return "\n".join(lines)
     if task_id:

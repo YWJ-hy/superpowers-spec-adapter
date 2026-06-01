@@ -206,7 +206,18 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main() -> None:
+    _configure_stdio()
     args = parse_args()
     root = Path(args.root).resolve()
     target_root = Path(args.target_root).resolve() if args.target_root else None

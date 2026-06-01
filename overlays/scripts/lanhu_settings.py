@@ -144,7 +144,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parsed
 
 
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (OSError, ValueError):
+            pass
+
 def main(argv: list[str]) -> int:
+    _configure_stdio()
     args = parse_args(argv)
     project_root = repo_root(Path(args.project_root))
     try:
