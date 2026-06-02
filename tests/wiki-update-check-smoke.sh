@@ -14,9 +14,11 @@ import json, sys
 payload = json.loads(sys.argv[1])
 if payload.get('status') not in {'valid', 'warning', 'invalid'}:
     raise SystemExit(f"Unexpected status: {payload.get('status')}")
-for key in ['filesChecked', 'warnings', 'errors', 'oversizedPages', 'roots', 'mechanicalOnly']:
+for key in ['filesChecked', 'warnings', 'errors', 'roots', 'mechanicalOnly']:
     if key not in payload:
         raise SystemExit(f"Missing key: {key}")
+if 'oversizedPages' in payload:
+    raise SystemExit('Unexpected oversizedPages key after size-threshold removal')
 if payload.get('mechanicalOnly') is not True:
     raise SystemExit('Expected mechanicalOnly=true')
 for forbidden in ['nextSteps', 'signals']:
@@ -46,29 +48,25 @@ wiki = Path(sys.argv[1])
 body = '# Large Page\n\n' + '\n'.join(f'- durable rule {i}' for i in range(260)) + '\n'
 (wiki / 'large.md').write_text(body, encoding='utf-8')
 PY
-oversized_json="$(cd "${TMP_PROJECT}" && python3 "${TARGET_INPUT}/scripts/wiki_update_check.py" --json)"
-python3 - <<'PY' "${oversized_json}"
+large_json="$(cd "${TMP_PROJECT}" && python3 "${TARGET_INPUT}/scripts/wiki_update_check.py" --json)"
+python3 - <<'PY' "${large_json}"
 import json, sys
 payload = json.loads(sys.argv[1])
+if 'oversizedPages' in payload:
+    raise SystemExit('Unexpected oversizedPages entry after size-threshold removal')
+if any('Oversized indexed wiki page' in warning for warning in payload.get('warnings', [])):
+    raise SystemExit('Unexpected oversized warning after size-threshold removal')
 if payload.get('status') != 'warning':
-    raise SystemExit(f"Expected warning status for oversized page, got {payload.get('status')}")
-pages = payload.get('oversizedPages')
-if not pages:
-    raise SystemExit('Expected oversizedPages entry')
-page = pages[0]
-for key in ['path', 'lines', 'chars', 'level']:
-    if key not in page:
-        raise SystemExit(f"Missing oversized page key: {key}")
-if page.get('path') != '.superpowers/wiki/large.md':
-    raise SystemExit(f"Unexpected oversized path: {page.get('path')}")
+    raise SystemExit(f"Expected warning status for missing section markers, got {payload.get('status')}")
+if not any('Leaf page over 100 lines without section markers' in warning for warning in payload.get('warnings', [])):
+    raise SystemExit('Expected structural marker warning for long unmarked leaf page')
 for forbidden in ['nextSteps', 'signals']:
     if forbidden in payload:
         raise SystemExit(f"Unexpected semantic recommendation key: {forbidden}")
 PY
-oversized_text="$(cd "${TMP_PROJECT}" && python3 "${TARGET_INPUT}/scripts/wiki_update_check.py")"
-case "${oversized_text}" in
-  *"Oversized pages:"* ) : ;;
-  *) printf 'Expected oversized pages section from wiki_update_check\n' >&2; exit 1 ;;
+large_text="$(cd "${TMP_PROJECT}" && python3 "${TARGET_INPUT}/scripts/wiki_update_check.py")"
+case "${large_text}" in
+  *"Oversized pages:"* ) printf 'Unexpected oversized pages section from wiki_update_check\n' >&2; exit 1 ;;
 esac
 
 candidate_output="$(cd "${PROJECT_ROOT}" && python3 "${TARGET_INPUT}/scripts/wiki_select_target.py" --wiki-root all --json)"

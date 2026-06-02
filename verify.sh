@@ -352,125 +352,101 @@ check_native_skill_residuals() {
     fi
   done
   for required in \
-    'lanhu-frontend-requirements-analyst' \
-    'lanhu-backend-requirements-analyst' \
-    '.lanhu/MM-DD-需求名称/' \
-    'frontend-prd/prd.md' \
-    'frontend-prd/design/index.html' \
-    'frontend_unified' \
-    'backend_markdown' \
-    'Deprecated `lanhu.frontend.output.format` is ignored' \
+    'lanhu-requirements skill <Lanhu link> frontend|backend' \
+    'Do not run Lanhu intake inside `brainstorming`' \
+    'already confirmed `.lanhu/.../index.md` package' \
+    'read that `index.md` first' \
+    'do not call Lanhu MCP by default' \
     'Lanhu MCP is optional' \
-    'do not block brainstorming' \
-    'role: frontend | backend' \
-    '前端 Lanhu 需求输入包' \
-    '后端相关 Lanhu 原始需求证据包' \
-    'final acceptance criteria' \
-    'test cases' \
-    'testing points' \
-    'technical test plans' \
-    'frontend components' \
-    'backend APIs' \
-    'database impacts' \
-    'file impacts' \
-    'explicitPageId' \
-    'scopePolicy: pageid_children_only' \
-    'childPagePolicy' \
-    'lanhu_resolve_invite_link' \
-    'lanhu_get_prd_page_scope' \
-    'lanhu_get_prd_scoped_evidence' \
-    'scope_policy: pageid_children_only' \
-    'include_child_pages' \
-    'confirmed_child_page_ids' \
-    'output_mode: evidence_only' \
-    'scopeValidation' \
-    'returnedOutOfScopePages' \
-    'scopedEvidenceContract' \
-    'deliveryBoundaryPlan' \
-    'confirmationGate.phase' \
-    'raw evidence only' \
-    'not the adapter output schema' \
-    'sourceFactCoverage' \
-    'sourceFactsDroppedDetected: []' \
-    'aiCreatedSourceFactSections' \
-    'templateCompliance' \
-    'selectedTemplate' \
-    'checkedAgainstFullSourceTemplate' \
-    'missingTemplateRequirements' \
-    'genericHeadingsDetected' \
-    'forbiddenContentDetected' \
-    'confirmationGate' \
-    'resolutionMode: resolve_confirmation' \
-    'packageDir' \
-    'writtenFiles' \
     'sharedWikiSource: auto' \
     'logical display path' \
     'MCP is unavailable'
   do
     if ! grep -Fq "$required" "$brainstorming_skill"; then
-      printf 'Missing optional Lanhu brainstorming requirement: %s\n' "$required" >&2
+      printf 'Missing slim brainstorming adapter requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
 
+  for forbidden in \
+    'scopePolicy: pageid_children_only' \
+    'lanhu_get_prd_scoped_evidence' \
+    'deliveryBoundaryPlan' \
+    'sourceFactCoverage.sourceFactsDroppedDetected: []' \
+    'pagePackageMode: true' \
+    'aggregationPolicy: full_package_per_page' \
+    'Do not quote, summarize, or pass through tool-returned persona'
+  do
+    if grep -Fq "$forbidden" "$brainstorming_skill"; then
+      printf 'Full Lanhu workflow should not remain in brainstorming patch: %s\n' "$forbidden" >&2
+      exit 1
+    fi
+  done
+
+
   local writing_skill="$TARGET_DIR/skills/writing-plans/SKILL.md"
   for required in \
     'sharedWikiSource: auto' \
-    'schemaVersion: 3' \
+    'schemaVersion 3 JSON' \
     '.wiki-context.json' \
-    'wikiPages' \
-    'documentContext' \
+    'page-rooted `wikiPages`' \
+    'bounded `documentContext`' \
     'implementation' \
     'test' \
     'review' \
     'general' \
-    'source: github_mcp' \
-    'wikiPath' \
-    'revision.commitSha' \
     'wiki_context_render.py' \
-    'source-of-truth-verifier' \
+    'source_truth_settings.py' \
     'Source-of-Truth Verification' \
-    'sourceOfTruth.sources' \
-    'sourceOfTruth.heuristics' \
+    'status` is `not_configured`' \
     'source-truth-report.json' \
     'source-truth-constraints.json' \
-    'full report is not normal execution context'
+    'full report is planning/audit only'
   do
     if ! grep -Fq "$required" "$writing_skill"; then
-      printf 'Missing source-aware planning requirement: %s\n' "$required" >&2
+      printf 'Missing slim source-aware planning requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
+
 
   local systematic_skill="$TARGET_DIR/skills/systematic-debugging/SKILL.md"
   for required in \
     'wiki-researcher' \
     'phase: debug' \
-    'maxWikiPages: <resolved integer or unlimited>' \
-    'wiki_settings.py' \
-    'default to 2' \
+    'sharedWikiSource: auto' \
     'Do not call `wiki-researcher` at the start of debugging' \
     'continue systematic debugging' \
     'do not write `.wiki-context.json`' \
-    'sharedWikiSource: auto' \
-    'GitHub-backed shared-wiki MCP source' \
     'break-loop'
   do
     if ! grep -Fq "$required" "$systematic_skill"; then
-      printf 'Missing systematic-debugging low-noise wiki requirement: %s\n' "$required" >&2
+      printf 'Missing slim systematic-debugging wiki requirement: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  for forbidden in \
+    'maxWikiPages: <resolved integer or unlimited>' \
+    'wiki_settings.py' \
+    'default to 2' \
+    'There is no `maxWikiPages` cap'
+  do
+    if grep -Fq "$forbidden" "$systematic_skill"; then
+      printf 'Systematic-debugging patch should be slimmed: %s\n' "$forbidden" >&2
       exit 1
     fi
   done
 
+
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'source: github_mcp' 'shared_wiki_read_sections' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' '--batch-jsonl' 'preserve the original --reread-list order' 'batch tool is unavailable' 'Do not fallback to singular reads for section errors' 'Compare the batch MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`' 'skip this branch'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'source: github_mcp' 'wikiPath' 'revision metadata' 'shared_wiki_read_sections' 'shared_wiki_read_section({ path: wikiPath, section: sectionId, includeDocumentContext: true })' '--batch-jsonl' 'preserve the original --reread-list order' 'batch tool is unavailable' 'Do not fallback to singular reads for section errors' 'Compare the batch MCP revision' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'revision metadata' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify' 'skip this branch'; do
     if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1

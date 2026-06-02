@@ -36,29 +36,49 @@ forbid_in_file() {
   fi
 }
 
-for orchestrator in "$LANHU_SKILL" "$BRAINSTORMING_SKILL"; do
-  for required in \
-    'rootScopeUrl' \
-    'rootPageId' \
-    'rootScopeTree' \
-    'selectedTargetPages' \
-    'lightweight URL-rooted page' \
-    'main session must not call `lanhu_get_prd_scoped_evidence`' \
-    'matchingRestrictedToRootTree' \
-    'mainAgentReadFullPageEvidenceBeforeDispatch: false' \
-    'childPagePolicy: exclude' \
-    'selected page' \
-    'include_child_pages: false' \
-    'confirmed_child_page_ids: []' \
-    'full_package_per_page'
-  do
-    require_in_file "$orchestrator" "$required"
-  done
+for required in \
+  'rootScopeUrl' \
+  'rootPageId' \
+  'rootScopeTree' \
+  'selectedTargetPages' \
+  'lightweight URL-rooted page' \
+  'main session must not call `lanhu_get_prd_scoped_evidence`' \
+  'matchingRestrictedToRootTree' \
+  'mainAgentReadFullPageEvidenceBeforeDispatch: false' \
+  'childPagePolicy: exclude' \
+  'selected page' \
+  'include_child_pages: false' \
+  'confirmed_child_page_ids: []' \
+  'full_package_per_page'
+do
+  require_in_file "$LANHU_SKILL" "$required"
+done
 
-  forbid_in_file "$orchestrator" 'target page is always included'
-  forbid_in_file "$orchestrator" 'If child pages exist, ask the user whether to include them before reading page content'
-  forbid_in_file "$orchestrator" 'use `include_child_pages: true`'
-  forbid_in_file "$orchestrator" 'role-and-format'
+for forbidden in \
+  'target page is always included' \
+  'If child pages exist, ask the user whether to include them before reading page content' \
+  'use `include_child_pages: true`' \
+  'role-and-format'
+do
+  forbid_in_file "$LANHU_SKILL" "$forbidden"
+done
+
+for required in \
+  'lanhu-requirements skill <Lanhu link> frontend|backend' \
+  'Do not run Lanhu intake inside `brainstorming`' \
+  'already confirmed `.lanhu/.../index.md` package'
+do
+  require_in_file "$BRAINSTORMING_SKILL" "$required"
+done
+
+for forbidden in \
+  'rootScopeUrl' \
+  'rootScopeTree' \
+  'selectedTargetPages' \
+  'main session must not call `lanhu_get_prd_scoped_evidence`' \
+  'full_package_per_page'
+do
+  forbid_in_file "$BRAINSTORMING_SKILL" "$forbidden"
 done
 
 for required in \

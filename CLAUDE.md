@@ -49,7 +49,7 @@ bash tests/bootstrap-wiki-template-import.sh /path/to/project
 主要分层：
 
 - - `overlays/agents/`：安装到 Superpowers 的 subagent，例如 `wiki-researcher`，负责渐进式选择相关项目 wiki 页面。
-- `overlays/skills/`：安装到 Superpowers 的 skill，负责渐进式读取 wiki 和任务后 update-wiki 审查。
+- `overlays/skills/`：安装到 Superpowers 的 skill，负责显式入口（如 Lanhu/import/init/shared-wiki MCP）和任务后 update-wiki 审查。
 - `overlays/scripts/`：skill 背后的 Python 执行层，负责 wiki 初始化、导入、更新、索引和 manifest 等文件操作。
 - `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑。
 - `wiki-template/`：bootstrap 到目标项目 `.superpowers/wiki/` 的标准模板。
@@ -62,9 +62,9 @@ Superpowers 是主工作流，adapter 只增强 Superpowers：
 
 1. 用户安装 adapter，adapter 把 agent、skill、script overlay 写入已安装的 Superpowers 插件目录，并维护 hook 兼容配置。
 2. 用户在目标项目 bootstrap `.superpowers/wiki/`。
-3. 用户在 Claude Code 等工具中通过 `init-wiki`、`import-wiki` skills 初始化或导入项目 wiki。
-4. Superpowers `brainstorming` 通过 `wiki-researcher` 轻量披露相关项目 wiki 页面，`writing-plans` 正式选择并写入 `Referenced Project Wiki`。
-5. 执行阶段只消费 plan 中的 `Referenced Project Wiki`，任务完成后如果产生 durable implementation knowledge，由 `update-wiki` skill 审查并回写 `.superpowers/wiki/`。
+3. 用户在 Claude Code 等工具中通过 `init-wiki`、`import-wiki` skills 初始化或导入项目 wiki；如有蓝湖链接，显式调用 `lanhu-requirements` skill 生成并确认 `.lanhu/.../index.md` 证据包。
+4. Superpowers `brainstorming` 通过 `wiki-researcher` 轻量披露相关项目 wiki 页面，`writing-plans` 正式选择并写入 `Referenced Project Wiki`；source-of-truth 仅在配置或用户显式要求时运行。
+5. 执行阶段只消费 plan 中的 `Referenced Project Wiki` 和已链接的约束 sidecar，任务完成后如果产生 durable implementation knowledge，由 `update-wiki` skill 审查并回写 `.superpowers/wiki/` 或通过授权的 shared-wiki MCP PR 路径处理 `.shared-superpowers/wiki/`。
 
 不要把 `python3 superpowers/scripts/*.py` 描述成普通用户的主要入口；它们是 skill / agent 的执行层。
 

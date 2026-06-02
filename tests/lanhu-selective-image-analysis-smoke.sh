@@ -73,13 +73,23 @@ do
 done
 
 for required in \
+  'lanhu-requirements skill <Lanhu link> frontend|backend' \
+  'Do not run Lanhu intake inside `brainstorming`' \
+  'already confirmed `.lanhu/.../index.md` package'
+do
+  require_in_file "$BRAINSTORMING_SKILL" "$required"
+done
+
+for forbidden in \
   'selective image analysis' \
   'Do not broaden to design tools for images' \
   'persistedImages: false' \
-  'compact `selectiveImageAnalysis` metadata' \
-  'frontend-prd/design/assets/'
+  'compact `selectiveImageAnalysis` metadata'
 do
-  require_in_file "$BRAINSTORMING_SKILL" "$required"
+  if grep -Fq "$forbidden" "$BRAINSTORMING_SKILL"; then
+    printf 'Expected %s to omit embedded Lanhu selective image analysis text: %s\n' "$BRAINSTORMING_SKILL" "$forbidden" >&2
+    exit 1
+  fi
 done
 
 printf 'Lanhu selective image analysis smoke OK\n'

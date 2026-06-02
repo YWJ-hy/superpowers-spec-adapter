@@ -12,7 +12,6 @@ from pathlib import Path
 from wiki_common import (
     build_wiki_index_graph,
     display_wiki_path,
-    rel_posix,
     repo_root,
     selected_wiki_roots,
     shared_wiki_neutrality_violations,
@@ -25,13 +24,6 @@ WARNING = "warning"
 INVALID = "invalid"
 UPDATE_PREFIX = "## Update: "
 REQUIRED_UPDATE_HEADERS = ["### Why", "### Rules / Contracts", "### Validation / Notes"]
-OVERSIZED_THRESHOLDS = [
-    (800, 40000, "critical"),
-    (500, 24000, "large"),
-    (250, 12000, "notice"),
-]
-
-
 def update_block_ranges(lines: list[str]) -> list[tuple[int, int]]:
     starts = [i for i, line in enumerate(lines) if line.startswith(UPDATE_PREFIX)]
     ranges: list[tuple[int, int]] = []
@@ -58,23 +50,16 @@ def has_unclosed_fence(text: str) -> bool:
     return open_fence is not None
 
 
-def oversized_level(lines_count: int, chars_count: int) -> str | None:
-    for line_threshold, char_threshold, level in OVERSIZED_THRESHOLDS:
-        if lines_count >= line_threshold or chars_count >= char_threshold:
-            return level
-    return None
 
-
-def check_file(project_root: Path, root_desc, path: Path, *, leaf: bool) -> tuple[list[str], list[str], dict | None]:
+def check_file(project_root: Path, root_desc, path: Path, *, leaf: bool) -> tuple[list[str], list[str]]:
     wiki_root = root_desc.path
     warnings: list[str] = []
     errors: list[str] = []
-    oversized: dict | None = None
     rel = display_wiki_path(root_desc, path)
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
-        return warnings, [f"Could not read {rel}: {exc}"], oversized
+        return warnings, [f"Could not read {rel}: {exc}"]
 
     if not text.strip():
         warnings.append(f"Empty indexed wiki page: {rel}")
@@ -86,18 +71,6 @@ def check_file(project_root: Path, root_desc, path: Path, *, leaf: bool) -> tupl
 
     lines = text.splitlines()
     lines_count = len(lines)
-    chars_count = len(text)
-    level = oversized_level(lines_count, chars_count)
-    if leaf and level:
-        oversized = {
-            "path": rel,
-            "relativePath": rel_posix(wiki_root.resolve(), path),
-            "root": root_desc.name,
-            "lines": lines_count,
-            "chars": chars_count,
-            "level": level,
-        }
-        warnings.append(f"Oversized indexed wiki page: {rel} ({lines_count} lines, {chars_count} chars, {level})")
 
     if leaf:
         for start, end in update_block_ranges(lines):
@@ -122,7 +95,7 @@ def check_file(project_root: Path, root_desc, path: Path, *, leaf: bool) -> tupl
             if missing_in_index:
                 warnings.append(f"Section index stale for {rel}: sections {', '.join(sorted(missing_in_index))} not in {path.stem}.index.md")
 
-    return warnings, errors, oversized
+    return warnings, errors
 
 
 def check_root(project_root: Path, root_desc) -> dict:
@@ -130,19 +103,15 @@ def check_root(project_root: Path, root_desc) -> dict:
     graph = build_wiki_index_graph(wiki_root)
     warnings = [f"{root_desc.display_path}: {warning}" for warning in graph.warnings]
     errors: list[str] = []
-    oversized_pages: list[dict] = []
-
     for index in graph.indexes:
-        index_warnings, index_errors, _ = check_file(project_root, root_desc, index, leaf=False)
+        index_warnings, index_errors = check_file(project_root, root_desc, index, leaf=False)
         warnings.extend(index_warnings)
         errors.extend(index_errors)
 
     for leaf in graph.leaves:
-        leaf_warnings, leaf_errors, oversized = check_file(project_root, root_desc, leaf, leaf=True)
+        leaf_warnings, leaf_errors = check_file(project_root, root_desc, leaf, leaf=True)
         warnings.extend(leaf_warnings)
         errors.extend(leaf_errors)
-        if oversized:
-            oversized_pages.append(oversized)
 
     if not graph.leaves:
         warnings.append(f"No indexed leaf wiki pages found in {root_desc.display_path}")
@@ -156,7 +125,6 @@ def check_root(project_root: Path, root_desc) -> dict:
         "filesChecked": len(graph.files),
         "indexesChecked": len(graph.indexes),
         "leavesChecked": len(graph.leaves),
-        "oversizedPages": oversized_pages,
         "warnings": warnings,
         "errors": errors,
     }
@@ -183,7 +151,6 @@ def check_wiki_tree(selector: str) -> dict:
     root_results = [check_root(root, root_desc) for root_desc in root_descs]
     warnings = [*missing_warnings, *(warning for item in root_results for warning in item["warnings"])]
     errors = [error for item in root_results for error in item["errors"]]
-    oversized_pages = [page for item in root_results for page in item["oversizedPages"]]
     status = aggregate_status(root_results, missing_warnings, errors)
     project_wiki_root = root / ".superpowers" / "wiki"
     return {
@@ -193,7 +160,6 @@ def check_wiki_tree(selector: str) -> dict:
         "filesChecked": sum(item["filesChecked"] for item in root_results),
         "indexesChecked": sum(item["indexesChecked"] for item in root_results),
         "leavesChecked": sum(item["leavesChecked"] for item in root_results),
-        "oversizedPages": oversized_pages,
         "warnings": warnings,
         "errors": errors,
         "mechanicalOnly": True,
@@ -212,12 +178,6 @@ def render_text(result: dict) -> str:
         lines.extend(["", "Roots:"])
         for root_result in result["roots"]:
             lines.append(f"- {root_result['displayPath']}: {root_result['filesChecked']} files checked")
-    if result["oversizedPages"]:
-        lines.extend(["", "Oversized pages:"])
-        lines.extend(
-            f"- {page['path']} ({page['lines']} lines, {page['chars']} chars, {page['level']})"
-            for page in result["oversizedPages"]
-        )
     if result["warnings"]:
         lines.extend(["", "Warnings:"])
         lines.extend(f"- {warning}" for warning in result["warnings"])

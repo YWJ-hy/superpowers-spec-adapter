@@ -79,26 +79,31 @@ do
 done
 
 for required in \
-  'status: need_confirmation' \
-  'confirmationGate' \
-  'blockingQuestions' \
-  'resolutionMode: resolve_confirmation' \
-  'previousPackageDir' \
-  'confirmationAnswers' \
-  'Do not let the main session reclassify or bypass `confirmationGate`' \
-  'status: ok' \
-  'confirmationGate.status: clear' \
-  'lanhu.role' \
-  'outputPreference' \
-  'packageKind' \
-  'Missing implementation field names'
+  'lanhu-requirements skill <Lanhu link> frontend|backend' \
+  'Do not run Lanhu intake inside `brainstorming`' \
+  'already confirmed `.lanhu/.../index.md` package' \
+  'read that `index.md` first'
 do
   require_in_file "$BRAINSTORMING_SKILL" "$required"
 done
 
+for forbidden in \
+  'status: need_confirmation' \
+  'resolutionMode: resolve_confirmation' \
+  'previousPackageDir' \
+  'Do not let the main session reclassify or bypass `confirmationGate`' \
+  'Missing implementation field names'
+do
+  if grep -Fq "$forbidden" "$BRAINSTORMING_SKILL"; then
+    printf 'Expected %s to omit embedded Lanhu confirmation gate text: %s\n' "$BRAINSTORMING_SKILL" "$forbidden" >&2
+    exit 1
+  fi
+done
+
 for required in \
-  'resolve analyst-classified blocking requirement questions' \
-  'cleared confirmation gate'
+  'Adapter Workflow Boundary' \
+  'lanhu-requirements' \
+  'Standalone adapter skills have their own local workflow boundary'
 do
   require_in_file "$USING_SUPERPOWERS_SKILL" "$required"
 done

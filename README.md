@@ -11,12 +11,12 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 
 - Store project wiki pages in `.superpowers/wiki/` and optional neutral/portable shared wiki pages in `.shared-superpowers/wiki/` or a GitHub-backed shared-wiki repository accessed through the copyable MCP server
 - Use `index.md` as the entry point
-- Optionally turn Lanhu links into confirmed frontend/backend original-requirement evidence packages under `.lanhu/MM-DD-<requirement-name>/` before Superpowers brainstorming, with `index.md` as the entrypoint and relationship map; final artifacts are clean effective requirements without user-correction/exclusion/confirmation history, Lanhu images are analyzed selectively by evidence signal and are not saved as `.lanhu/` assets by default, and source-internal factual contradictions are surfaced as confirmation questions instead of being silently resolved
+- Optionally turn Lanhu links into confirmed frontend/backend original-requirement evidence packages under `.lanhu/MM-DD-<requirement-name>/` through the explicit `lanhu-requirements` skill before Superpowers brainstorming; `brainstorming` consumes only user-confirmed `.lanhu/.../index.md` packages and does not run Lanhu intake itself
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
-- Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output
+- Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output; new Lanhu intake is handled only by the explicit `lanhu-requirements` skill
 - Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed schemaVersion 3 `.wiki-context.json` constraints with page-level bounded `documentContext`, nested sections, and final task-bound `taskWikiRefs` / `globalWikiRefs` / `taskFingerprint`
-- Install `agents/source-of-truth-verifier.md` and patch `writing-plans` so complete draft plans are checked against configured project source-of-truth before final plan review
+- Install `agents/source-of-truth-verifier.md` and patch `writing-plans` so complete draft plans are checked against configured or explicitly requested project source-of-truth before final plan review
 - Patch Superpowers `systematic-debugging` so it may conditionally use `wiki-researcher` after evidence narrows the suspected project contract or component, without making wiki lookup a default prerequisite or imposing a wiki page cap
 - Let implementation and review consume plan `Referenced Project Wiki`, task-scoped `.wiki-context.json` renders via `--task-id`, and task-specific `.source-truth-constraints.json` output by capturing renderer stdout and injecting labeled task/role constraint blocks directly into prompts instead of persisting rendered Markdown context files, reselecting wiki pages, or reading full planning reports at execution time
 - Patch Superpowers `using-git-worktrees` and `finishing-a-development-branch` so worktree tasks can merge back to the branch that created them
@@ -128,7 +128,7 @@ mcp/shared-wiki/
 
 Copy that directory locally, run `npm install && npm run build`, configure `repoUrl` such as `https://github.com/YWJ-hy/shared-wiki.git` with the repository's default branch such as `master`, and add the built server to Claude Code MCP config. The MCP server exposes indexed read/search tools plus patch validation and branch+PR creation. It never merges PRs. Normal brainstorming, planning, and narrowed debugging still use `wiki-researcher` as the unified progressive disclosure path; when the MCP server is configured, it can serve as `wiki-researcher`'s GitHub-backed shared wiki source.
 
-Use the installed `shared-wiki-mcp` skill when you explicitly want to inspect or submit shared wiki PRs through MCP:
+Use the installed `shared-wiki-mcp` skill when you explicitly want to inspect GitHub-backed shared wiki, check MCP status, or manually submit shared wiki PRs through MCP. Normal task completion can still let `update-wiki` choose the GitHub MCP validate-patch + branch/PR path when durable knowledge belongs in shared wiki and the user authorizes the update scope:
 
 ```text
 shared-wiki-mcp skill
@@ -221,7 +221,7 @@ Lanhu output must not include final acceptance criteria, Given/When/Then, test c
 
 ## Progressive disclosure
 
-The default selection path is the installed `wiki-researcher` agent. The installed `wiki-progressive-disclosure` skill is a reference and fallback guide for manual troubleshooting; normal Superpowers `brainstorming` and `writing-plans` do not require calling it.
+The default and only formal selection path is the installed `wiki-researcher` agent. The former `wiki-progressive-disclosure` fallback skill is removed; normal Superpowers `brainstorming` and `writing-plans` use `wiki-researcher` plus strict schemaVersion 3 `.wiki-context.json` validation.
 
 Progressive wiki reading still follows these rules:
 
@@ -252,7 +252,7 @@ It starts from existing project/shared root indexes, follows index links progres
 
 ## Source-of-truth verification
 
-`writing-plans` is patched to use Scheme B for facts that should come from real project contracts: it writes a complete draft implementation plan first, then dispatches `source-of-truth-verifier`, revises/finalizes the plan from that result, and only then runs the normal plan document review. This verifier is independent from `plan-document-reviewer`: it checks concrete assumptions about interfaces, generated types, schemas, permissions, design tokens, and other configured truth sources; the plan reviewer checks whether the final plan consumed that result correctly.
+`writing-plans` conditionally uses Scheme B for facts that should come from real project contracts: it writes a complete draft implementation plan first, checks whether `sourceOfTruth` is configured or explicitly requested, then dispatches `source-of-truth-verifier` only when needed. The verifier is independent from `plan-document-reviewer`: it checks concrete assumptions about interfaces, generated types, schemas, permissions, design tokens, and other configured truth sources; the plan reviewer checks whether the final plan consumed that result correctly.
 
 Configure the verifier in the target project `.superpowers/settings.json`:
 
@@ -272,7 +272,7 @@ Configure the verifier in the target project `.superpowers/settings.json`:
 
 `heuristics` defaults to `false`, so calls/usages/mocks are not treated as truth unless explicitly configured. `paths` use gitignore-style syntax, including `**`, leading `/`, trailing `/`, `!` negation, and later-rule override. `truth` sources require `edit: never` or `edit: ask`; `evidence` and `ignore` do not use `edit`.
 
-The verifier writes two sidecars next to the plan:
+When enabled, the verifier writes two sidecars next to the plan:
 
 ```text
 docs/superpowers/plans/<plan-stem>.source-truth-report.json
@@ -316,7 +316,7 @@ During `systematic-debugging`, do not write `.wiki-context.json`, update `.super
 
 ## Update wiki
 
-For normal use in Claude Code or similar tools, rely on the installed `update-wiki` skill. The skill is auto-triggered when implementation, debugging, review, or discussion may have produced durable knowledge, but it defaults to skipping wiki edits unless the knowledge is reusable outside the immediate code context. The agent filters out local business logic and code-obvious implementation details, reads indexed wiki pages, checks semantic duplicates, chooses target ownership, checks whether the target leaf page is oversized or overloaded, edits only durable wiki knowledge, refreshes indexes, and reports an explicit skip reason when nothing durable should be recorded. `update-wiki` is adapter maintenance and durable-knowledge review; its local wiki validation does not replace Superpowers implementation verification.
+For normal use in Claude Code or similar tools, rely on the installed `update-wiki` skill. The skill is auto-triggered when implementation, debugging, review, or discussion may have produced durable knowledge, but it defaults to skipping wiki edits unless the knowledge is reusable outside the immediate code context. The agent filters out local business logic and code-obvious implementation details, reads indexed wiki pages, checks semantic duplicates, chooses target ownership, checks semantic ownership shape when a page no longer has a clear owner, edits only durable wiki knowledge, refreshes indexes, and reports an explicit skip reason when nothing durable should be recorded. Large wiki files are acceptable under the strict two-layer index structure; line or character count alone is not a split trigger. `update-wiki` is adapter maintenance and durable-knowledge review; its local wiki validation does not replace Superpowers implementation verification.
 
 Shared wiki content must stay neutral and portable across sibling projects. Put system-specific identifiers, internal URLs, environment names, local paths, deployment instance details, and current-system-only business rules in `.superpowers/wiki/` instead, or rewrite them with neutral terms before writing shared wiki.
 
@@ -339,7 +339,7 @@ Wiki writes are controlled per root by settings. `.superpowers/settings.json` co
 
 Allowed authorization values are `skip`, `ask`, and `refuse`. Missing settings use the defaults above, so existing wiki page updates remain automatic by default while creating a new wiki document asks the user by default. Mechanical scripts enforce `ask` with `--authorized-update` or `--authorized-create`; `refuse` blocks the write even if a flag is passed. `sharedNeutrality` is mainly for `.shared-superpowers/settings.json`: configured terms and regex patterns reject known system identifiers in shared-wiki paths, bodies, imports, and refreshed indexes. See `wiki-settings.example.jsonc` for a copyable commented example.
 
-Oversized page reports are mechanical signals only. When a leaf wiki page is too large, the agent should split by ownership, usually into sibling leaf pages in the same directory; use a topic directory with its own `index.md` only when the original page has become a collection of stable subtopics.
+The mechanical validator no longer reports wiki pages as oversized. Split only when ownership is semantically overloaded: a page covers unrelated owners, the companion index no longer matches the page, or a durable candidate has no natural section under the existing owner.
 
 Execution-layer helpers are mainly useful for adapter development or debugging. They are mechanical helpers only:
 

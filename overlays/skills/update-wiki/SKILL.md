@@ -190,22 +190,17 @@ If the knowledge depends on those identifiers, write it to `.superpowers/wiki/` 
 
 The shared root may also configure `wiki.sharedNeutrality.blockedTerms` and `wiki.sharedNeutrality.blockedPatterns` in `.shared-superpowers/settings.json`. Mechanical scripts reject matching shared-wiki paths, page bodies, imports, and refreshed indexes; this guard catches known identifiers but does not replace your semantic neutrality check.
 
-### 7. Check whether the target page is too large
+### 7. Check target ownership shape
 
-Before editing the chosen leaf page, check whether it is already mechanically large or semantically overloaded.
+Do not split or reject a wiki page because it is mechanically large. With the required two-layer index structure, a cohesive leaf wiki page may be long as long as its companion index and section markers keep constraints independently citable.
 
-Treat a page as mechanically large when it has:
-- 250+ lines or 12k+ characters: review whether the page still has one clear owner.
-- 500+ lines or 24k+ characters: prefer splitting before appending, unless the page is a single cohesive contract/reference.
-- 800+ lines or 40k+ characters: do not append unrelated content; review split boundaries first.
-
-Treat a page as semantically overloaded when:
+Before editing the chosen leaf page, only check whether the target ownership is semantically overloaded:
 - it covers multiple unrelated modules, workflows, contracts, or design decisions;
 - you cannot summarize its owner in one sentence;
-- the new candidate can only be appended to the end instead of fitting an existing section;
-- the index summary no longer represents the page's main content.
+- the new candidate has no fitting existing or new section under that owner;
+- the companion index summary no longer represents the page's main content.
 
-If the page is overloaded, split by ownership into indexed leaf wiki pages. Do not split by arbitrary chunks or create `part-1` / `part-2` pages.
+If the page is semantically overloaded, split by ownership into indexed leaf wiki pages. Do not split by arbitrary chunks, line count, character count, or create `part-1` / `part-2` pages.
 
 Prefer sibling leaf pages in the current directory when splitting a small number of peer owners. Create a topic directory with its own `index.md` only when the original page has become a collection of stable subtopics, when there are three or more child topics, or when local navigation/overview constraints are needed.
 

@@ -5,8 +5,8 @@
     "description": "Pluggable overlay that adds wiki-researcher-driven project wiki selection, bug retrospective handoff, and update-wiki workflow to Superpowers without making Trellis a runtime dependency."
   },
   "target": {
-    "repoRoot": "C:\\projects\\iho-otc-ui",
-    "superpowersPath": "C:\\Users\\ywjhy\\.claude\\plugins\\cache\\claude-plugins-official\\superpowers\\5.1.0",
+    "repoRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.WQ0tKtRKXQ",
+    "superpowersPath": "/Users/yewenjie/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0",
     "exists": true
   },
   "installState": {
@@ -17,7 +17,6 @@
       "agents/lanhu-frontend-requirements-analyst.md",
       "agents/lanhu-backend-requirements-analyst.md",
       "skills/break-loop/SKILL.md",
-      "skills/wiki-progressive-disclosure/SKILL.md",
       "skills/update-wiki/SKILL.md",
       "skills/import-wiki/SKILL.md",
       "skills/init-wiki/SKILL.md",
@@ -60,10 +59,10 @@
     "skills/finishing-a-development-branch/SKILL.md": true
   },
   "wikiState": {
-    "wikiRoot": "C:\\projects\\iho-otc-ui\\.superpowers\\wiki",
+    "wikiRoot": "/var/folders/1g/hmzvbzgs2b90kt2v77gqxng40000gn/T/tmp.WQ0tKtRKXQ/.superpowers/wiki",
     "exists": true,
     "entryIndexExists": true,
-    "ignoreFileExists": false,
+    "ignoreFileExists": true,
     "defaultIgnoredDirectories": [
       "draft",
       "archive",
@@ -77,7 +76,8 @@
     ],
     "rawView": {
       "indexFiles": [
-        "component-usage-guidelines/index.md",
+        "backend/api/index.md",
+        "backend/index.md",
         "frontend/examples/index.md",
         "frontend/index.md",
         "guides/index.md",
@@ -92,15 +92,18 @@
         "updates/index.md"
       ],
       "leafFiles": [
-        "component-usage-guidelines/select-components.index.md",
-        "component-usage-guidelines/select-components.md",
-        "directory-structure.index.md",
-        "directory-structure.md",
+        "backend/api/contract.md",
+        "backend/data-access.md",
+        "backend/error-handling.md",
         "frontend/component-guidelines.md",
+        "frontend/component.md",
+        "frontend/data-fetching.md",
         "frontend/examples/example.md",
         "frontend/hook-guidelines.md",
+        "frontend/state-management.md",
         "frontend/type-safety.md",
         "guides/debugging.md",
+        "guides/release-readiness.md",
         "imported/external-import-self-test.md",
         "imported-skill-path-smoke/path-smoke.md",
         "platform/api/contract.md",
@@ -110,34 +113,39 @@
       ],
       "tree": [
         {
-          "path": "component-usage-guidelines",
+          "path": "backend",
           "type": "dir",
           "depth": 1
         },
         {
-          "path": "component-usage-guidelines/index.md",
+          "path": "backend/api",
+          "type": "dir",
+          "depth": 2
+        },
+        {
+          "path": "backend/api/contract.md",
+          "type": "file",
+          "depth": 3
+        },
+        {
+          "path": "backend/api/index.md",
+          "type": "file",
+          "depth": 3
+        },
+        {
+          "path": "backend/data-access.md",
           "type": "file",
           "depth": 2
         },
         {
-          "path": "component-usage-guidelines/select-components.index.md",
+          "path": "backend/error-handling.md",
           "type": "file",
           "depth": 2
         },
         {
-          "path": "component-usage-guidelines/select-components.md",
+          "path": "backend/index.md",
           "type": "file",
           "depth": 2
-        },
-        {
-          "path": "directory-structure.index.md",
-          "type": "file",
-          "depth": 1
-        },
-        {
-          "path": "directory-structure.md",
-          "type": "file",
-          "depth": 1
         },
         {
           "path": "frontend",
@@ -146,6 +154,16 @@
         },
         {
           "path": "frontend/component-guidelines.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/component.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/data-fetching.md",
           "type": "file",
           "depth": 2
         },
@@ -175,6 +193,11 @@
           "depth": 2
         },
         {
+          "path": "frontend/state-management.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
           "path": "frontend/type-safety.md",
           "type": "file",
           "depth": 2
@@ -191,6 +214,11 @@
         },
         {
           "path": "guides/index.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "guides/release-readiness.md",
           "type": "file",
           "depth": 2
         },
@@ -313,7 +341,8 @@
     },
     "effectiveView": {
       "indexFiles": [
-        "component-usage-guidelines/index.md",
+        "backend/api/index.md",
+        "backend/index.md",
         "frontend/index.md",
         "guides/index.md",
         "imported/index.md",
@@ -327,14 +356,17 @@
         "updates/index.md"
       ],
       "leafFiles": [
-        "component-usage-guidelines/select-components.index.md",
-        "component-usage-guidelines/select-components.md",
-        "directory-structure.index.md",
-        "directory-structure.md",
+        "backend/api/contract.md",
+        "backend/data-access.md",
+        "backend/error-handling.md",
         "frontend/component-guidelines.md",
+        "frontend/component.md",
+        "frontend/data-fetching.md",
         "frontend/hook-guidelines.md",
+        "frontend/state-management.md",
         "frontend/type-safety.md",
         "guides/debugging.md",
+        "guides/release-readiness.md",
         "imported/external-import-self-test.md",
         "imported-skill-path-smoke/path-smoke.md",
         "platform/api/contract.md",
@@ -344,34 +376,39 @@
       ],
       "tree": [
         {
-          "path": "component-usage-guidelines",
+          "path": "backend",
           "type": "dir",
           "depth": 1
         },
         {
-          "path": "component-usage-guidelines/index.md",
+          "path": "backend/api",
+          "type": "dir",
+          "depth": 2
+        },
+        {
+          "path": "backend/api/contract.md",
+          "type": "file",
+          "depth": 3
+        },
+        {
+          "path": "backend/api/index.md",
+          "type": "file",
+          "depth": 3
+        },
+        {
+          "path": "backend/data-access.md",
           "type": "file",
           "depth": 2
         },
         {
-          "path": "component-usage-guidelines/select-components.index.md",
+          "path": "backend/error-handling.md",
           "type": "file",
           "depth": 2
         },
         {
-          "path": "component-usage-guidelines/select-components.md",
+          "path": "backend/index.md",
           "type": "file",
           "depth": 2
-        },
-        {
-          "path": "directory-structure.index.md",
-          "type": "file",
-          "depth": 1
-        },
-        {
-          "path": "directory-structure.md",
-          "type": "file",
-          "depth": 1
         },
         {
           "path": "frontend",
@@ -384,12 +421,27 @@
           "depth": 2
         },
         {
+          "path": "frontend/component.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/data-fetching.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
           "path": "frontend/hook-guidelines.md",
           "type": "file",
           "depth": 2
         },
         {
           "path": "frontend/index.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "frontend/state-management.md",
           "type": "file",
           "depth": 2
         },
@@ -410,6 +462,11 @@
         },
         {
           "path": "guides/index.md",
+          "type": "file",
+          "depth": 2
+        },
+        {
+          "path": "guides/release-readiness.md",
           "type": "file",
           "depth": 2
         },
