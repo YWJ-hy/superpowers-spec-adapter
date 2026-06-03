@@ -17,7 +17,7 @@ You may:
 - Read the linked `.wiki-context.json` when provided.
 - Read `.superpowers/settings.json` and use its `sourceOfTruth` configuration.
 - Read files matched by configured `truth` and `evidence` sources.
-- Produce a full planning/audit report and a lightweight execution-constraints artifact.
+- Write the full planning/audit report JSON and the lightweight execution-constraints sidecar JSON to their configured output paths yourself.
 
 You must not:
 - Modify source files, generated files, wiki pages, or the plan.
@@ -69,15 +69,43 @@ If `settingsPath` is missing or has no `sourceOfTruth.sources`, return `status: 
 
 ## Output Artifacts
 
-Return a compact summary in the chat and provide JSON contents for the main agent to write.
+Write both JSON artifacts to disk yourself with the Write tool; do not return their full contents in the chat. The full report's `assumptions[]` / `findings[]` must never transit the main agent's context.
 
 Full report path: `docs/superpowers/plans/<plan-stem>.source-truth-report.json`.
-This is a planning/audit artifact only.
+This is a planning/audit artifact only. Write it yourself; the main agent does not read it during normal planning.
 
 Lightweight constraints path: `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`.
-Execution consumes this through `source_truth_render.py` after the main planning flow binds constraints to finalized task IDs.
+Write it yourself with the verified `constraintSets` and `status`, but leave final execution routing unbound: do not set `taskRouting.status: confirmed`, and do not write `globalConstraintRefs`, `taskConstraintRefs`, or `taskFingerprint`. Execution consumes this through `source_truth_render.py` after the main planning flow binds constraints to finalized task IDs.
 
-The constraints artifact must contain only short execution-relevant constraint sets needed by implementers/reviewers. Do not include full reasoning, long excerpts, or full checked source inventories there. The verifier produces `constraintSets`; it does not own final execution routing. After final task headings stabilize, the main planning flow assigns each set a `destination`, writes `globalConstraintRefs` / `taskConstraintRefs`, and computes `taskFingerprint` entries. Audit-only findings stay in the full report and should be omitted from the lightweight constraints artifact.
+The constraints artifact must contain only short execution-relevant constraint sets needed by implementers/reviewers. Do not include full reasoning, long excerpts, or full checked source inventories there. The verifier produces `constraintSets`; it does not own final execution routing. After final task headings stabilize, the main planning flow reads this sidecar back from disk, assigns each set a `destination`, writes `globalConstraintRefs` / `taskConstraintRefs`, and computes `taskFingerprint` entries. Audit-only findings stay in the full report and should be omitted from the lightweight constraints artifact.
+
+If you cannot write a file (sandboxed path or write error), fall back to returning that file's JSON inline so the main agent can write it, and say so explicitly so the main agent verifies the file exists.
+
+## Return Envelope
+
+Return only this bounded envelope to the main agent — never the full `assumptions[]` / `findings[]` arrays:
+
+```json
+{
+  "status": "passed",
+  "outputReportPath": "docs/superpowers/plans/<plan-stem>.source-truth-report.json",
+  "outputConstraintsPath": "docs/superpowers/plans/<plan-stem>.source-truth-constraints.json",
+  "filesWritten": true,
+  "summary": {
+    "assumptionsChecked": 0,
+    "truthMismatches": 0,
+    "evidenceGaps": 0,
+    "blockingFindings": 0
+  },
+  "constraintSetSummaries": [
+    {"constraintId": "STC1", "title": "Generated clients are authoritative", "hardConstraint": true}
+  ],
+  "topBlockingDeltas": [],
+  "caveats": []
+}
+```
+
+`constraintSetSummaries` lists only `constraintId`, `title`, and `hardConstraint` — not `destination` or routing, which the main planning flow assigns after task headings stabilize. Cap `topBlockingDeltas` at 5 short one-line strings and `caveats` at 3, keeping each under ~120 characters. Set `filesWritten: false` and inline the affected file's JSON only on the write-failure fallback above.
 
 ## Full Report Shape
 

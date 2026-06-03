@@ -272,7 +272,7 @@ Configure the verifier in the target project `.superpowers/settings.json`:
 
 `heuristics` defaults to `false`, so calls/usages/mocks are not treated as truth unless explicitly configured. `paths` use gitignore-style syntax, including `**`, leading `/`, trailing `/`, `!` negation, and later-rule override. `truth` sources require `edit: never` or `edit: ask`; `evidence` and `ignore` do not use `edit`.
 
-When enabled, the verifier writes two sidecars next to the plan:
+When enabled, the verifier writes two sidecars next to the plan itself and returns only a bounded verdict envelope to the planning agent, so the full report never enters the planning context:
 
 ```text
 docs/superpowers/plans/<plan-stem>.source-truth-report.json
