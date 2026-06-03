@@ -112,6 +112,7 @@ Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section
 - 多个 heading 描述同一约束主题时合并为一个 section
 - 一个 heading 包含多个独立约束时拆分为多个 section
 - 支持嵌套 section（父 section 包含子 section）
+- hard-constraint section 在执行期会被**全文 reread**(含其标记 span 内的嵌套子 section,无长度上限),因此 hard 标记应紧包"规范规则 + 其 do/don't"。好做法 / 坏做法 / 常见错误属于同一约束单元,必须留在 hard 标记内,不得移出、不得有损摘要(尤其坏做法 / 禁止项是约束边界);只有与合规无关的背景 / 缘由 / 长篇示例画廊可放到页级 `documentContext` 概览或独立 soft 兄弟 section,避免每个 task、每个 role 反复全量注入大 section。嵌套子 section 只为独立引用,不会缩小父 section 的 reread(父 span 仍含子)。
 - 每个叶子文档都必须有伴随的 `<stem>.index.md`，短文档和单一主题文档也不能跳过
 - `<stem>.index.md` 必须包含文档级语义概览和 section 表格；`wiki_generate_section_index.py` 只负责刷新表格并保留已有概览
 - planning 中选中的 wiki context 从 `writing-plans` 常驻块内联的 schemaVersion 3 骨架写入 `.wiki-context.json`，仅在内联骨架无法覆盖某个结构或 `--validate-only --strict` 报结构错误时才回退查阅安装后的 `contracts/wiki-context-v3.example.jsonc`，然后用 plugin-root `wiki_context_render.py --validate-only --strict` 校验；JSON 使用 page-rooted `wikiPages`，每个 page 只携带一份来自 `<stem>.index.md` 的有界 `documentContext`（标题 / 概览 / source metadata），sections 作为子节点保留 `relevanceTo`、hard constraint、reread、source anchors、caveats 和 implementation / test / review / general 分类约束；每个 `hardConstraint` section 必带 `reread` 块，否则 `--execution-ready` 校验失败；`appliesTo` 仅作为 legacy/optional metadata，不用于执行期路由；不得为了恢复上下文而注入 sibling sections 或整页正文
@@ -129,7 +130,7 @@ Wiki 叶子文档使用 `<!-- wiki-section:section-id -->` / `<!-- /wiki-section
 - `paths` 使用 gitignore-style 语法，必须覆盖 `**`、前导 `/`、尾随 `/`、`!` 否定和后规则覆盖。
 - `truth` 必须配置 `edit: never | ask`；`evidence` / `ignore` 不配置 `edit`。
 - 完整 `.source-truth-report.json` 只用于 planning/audit，不得成为 implementer/reviewer 默认上下文。
-- `source-of-truth-verifier` 自己用 Write 把完整 report 和 constraints sidecar 写到 `outputReportPath` / `outputConstraintsPath`，只向主 agent 返回有界 verdict envelope（status、输出路径、summary 计数、constraintSet 标题、blocking deltas、短 caveats），完整 `assumptions[]` / `findings[]` 不进入主 agent 上下文；写文件失败时回退为返回该文件 JSON 由主 agent 写入并校验存在。constraints sidecar 仍是两阶段产物：verifier 只写原始 `constraintSets`，不写 `taskRouting.status: confirmed` / `globalConstraintRefs` / `taskConstraintRefs` / `taskFingerprint`，由主 planning flow 在 final task 稳定后读回绑定。该自写行为必须在安装后的 Superpowers 集成路径确认 subagent 能写到 repo-relative 路径，不能只以脚本执行为准。
+- `source-of-truth-verifier` 自己用 Write 把 constraints sidecar 写到 `outputConstraintsPath`，并仅在有 findings 或 status 为 needs_revision/blocked 时把完整 report 写到 `outputReportPath`（干净通过时跳过 report，`outputReportPath` 置 null），只向主 agent 返回有界 verdict envelope（status、输出路径、summary 计数、constraintSet 标题、blocking deltas、短 caveats），完整 `assumptions[]` / `findings[]` 不进入主 agent 上下文；写文件失败时回退为返回该文件 JSON 由主 agent 写入并校验存在。constraints sidecar 仍是两阶段产物：verifier 只写原始 `constraintSets`，不写 `taskRouting.status: confirmed` / `globalConstraintRefs` / `taskConstraintRefs` / `taskFingerprint`，由主 planning flow 在 final task 稳定后读回绑定。该自写行为必须在安装后的 Superpowers 集成路径确认 subagent 能写到 repo-relative 路径，不能只以脚本执行为准。
 - execution/SDD 只能先通过 `source_truth_render.py --fingerprint-preflight --strict --execution-ready --plan-path <plan>` 校验 task binding，再通过 `source_truth_render.py --task-id <task-id> --role <role> --strict --execution-ready` 注入当前 task/role 的 `.source-truth-constraints.json` 轻量结果；注入应捕获 renderer stdout，并带 source sidecar、task id、role 和 preflight 状态边界标注直接放入 task/subagent prompt，正常执行不得写成 `.claude-*-source-task*-impl.md` 等 rendered Markdown 上下文文件。
 
 ### Plugin-root 脚本执行边界

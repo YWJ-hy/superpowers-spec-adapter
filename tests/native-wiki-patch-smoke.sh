@@ -36,7 +36,7 @@ if [[ ! -f "${TARGET_INPUT}/agents/source-of-truth-verifier.md" ]]; then
   printf 'Expected installed source-of-truth-verifier agent\n' >&2
   exit 1
 fi
-for required in 'sourceOfTruth' 'heuristics' 'truth' 'evidence' 'ignore' 'source-truth-report.json' 'source-truth-constraints.json' 'schemaVersion": 2' 'constraintSets' 'taskConstraintRefs' 'globalConstraintRefs' 'taskFingerprint' 'planning/audit artifact only' 'consumes only this constraints sidecar' 'source_truth_render.py'; do
+for required in 'sourceOfTruth' 'heuristics' 'truth' 'evidence' 'ignore' 'source-truth-report.json' 'source-truth-constraints.json' 'schemaVersion": 2' 'constraintSets' 'taskConstraintRefs' 'globalConstraintRefs' 'taskFingerprint' 'planning/audit artifact only' 'consumes only this constraints sidecar' 'Write the full report only when' 'source_truth_render.py'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/agents/source-of-truth-verifier.md"; then
     printf 'Expected installed source-of-truth-verifier text: %s\n' "$required" >&2
     exit 1

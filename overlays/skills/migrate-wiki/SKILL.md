@@ -35,6 +35,7 @@ When analyzing a wiki document to decide section boundaries:
 3. **Split compound headings.** If one `##` heading contains multiple independent constraint topics, split into multiple sections.
 4. **Section ID = semantic key.** Use IDs like `path-based-update`, `query-hook-pattern`, `error-boundary-rules` — not heading translations like `section-2` or `di-er-jie`.
 5. **Nesting for hierarchy.** Use nested sections when a broad topic contains independently citable sub-topics.
+6. **Keep `hard` sections tight around the rule.** A `hard` section is reread in full at execution (including any nested child sections inside its markers, with no length limit). Per rule 2, keep the normative rule together with its do/don't examples (`规则` + `示例` + `常见错误`) inside one hard section — never externalize or lossily summarize the anti-pattern, since "don't" cases are the constraint boundary. Move only compliance-irrelevant background/rationale or long example galleries into the document overview or a separate `soft` section, so a large hard section does not bloat every task's reread. Nesting is for independent citability, not for shrinking a parent's reread.
 
 ## User Input
 

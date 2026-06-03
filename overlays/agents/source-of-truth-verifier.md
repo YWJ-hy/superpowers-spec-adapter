@@ -69,12 +69,12 @@ If `settingsPath` is missing or has no `sourceOfTruth.sources`, return `status: 
 
 ## Output Artifacts
 
-Write both JSON artifacts to disk yourself with the Write tool; do not return their full contents in the chat. The full report's `assumptions[]` / `findings[]` must never transit the main agent's context.
+Always write the lightweight constraints sidecar to disk yourself with the Write tool. Write the full report only when there is something to audit: when `status` is `needs_revision` or `blocked`, or when `findings[]` is non-empty. When `status` is `passed` and `findings[]` is empty, skip the full report entirely and write only the constraints sidecar — the common pass case is then a single file. Never return either file's full contents in the chat; the full report's `assumptions[]` / `findings[]` must never transit the main agent's context.
 
-Full report path: `docs/superpowers/plans/<plan-stem>.source-truth-report.json`.
-This is a planning/audit artifact only. Write it yourself; the main agent does not read it during normal planning.
+Full report path (conditional): `docs/superpowers/plans/<plan-stem>.source-truth-report.json`.
+This is a planning/audit artifact only. When you write it, do so yourself; the main agent does not read it during normal planning. When you skip it, set `sourceTruthReportPath` to null in the constraints sidecar and `outputReportPath` to null in the return envelope.
 
-Lightweight constraints path: `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`.
+Lightweight constraints path (always written): `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`.
 Write it yourself with the verified `constraintSets` and `status`, but leave final execution routing unbound: do not set `taskRouting.status: confirmed`, and do not write `globalConstraintRefs`, `taskConstraintRefs`, or `taskFingerprint`. Execution consumes this through `source_truth_render.py` after the main planning flow binds constraints to finalized task IDs.
 
 The constraints artifact must contain only short execution-relevant constraint sets needed by implementers/reviewers. Do not include full reasoning, long excerpts, or full checked source inventories there. The verifier produces `constraintSets`; it does not own final execution routing. After final task headings stabilize, the main planning flow reads this sidecar back from disk, assigns each set a `destination`, writes `globalConstraintRefs` / `taskConstraintRefs`, and computes `taskFingerprint` entries. Audit-only findings stay in the full report and should be omitted from the lightweight constraints artifact. At execution time the renderer (`source_truth_render.py`) consumes only this constraints sidecar; the full report is never machine-read, so never move an execution-required fact into the report-only `assumptions[]` / `findings[]`.
@@ -88,7 +88,7 @@ Return only this bounded envelope to the main agent — never the full `assumpti
 ```json
 {
   "status": "passed",
-  "outputReportPath": "docs/superpowers/plans/<plan-stem>.source-truth-report.json",
+  "outputReportPath": null,
   "outputConstraintsPath": "docs/superpowers/plans/<plan-stem>.source-truth-constraints.json",
   "filesWritten": true,
   "summary": {
@@ -105,7 +105,7 @@ Return only this bounded envelope to the main agent — never the full `assumpti
 }
 ```
 
-`constraintSetSummaries` lists only `constraintId`, `title`, and `hardConstraint` — not `destination` or routing, which the main planning flow assigns after task headings stabilize. Cap `topBlockingDeltas` at 5 short one-line strings and `caveats` at 3, keeping each under ~120 characters. Set `filesWritten: false` and inline the affected file's JSON only on the write-failure fallback above.
+`constraintSetSummaries` lists only `constraintId`, `title`, and `hardConstraint` — not `destination` or routing, which the main planning flow assigns after task headings stabilize. `outputReportPath` is null whenever you skipped the full report (status `passed` with empty `findings[]`, as shown above); set it to the report path only when you actually wrote the report. Cap `topBlockingDeltas` at 5 short one-line strings and `caveats` at 3, keeping each under ~120 characters. Set `filesWritten: false` and inline the affected file's JSON only on the write-failure fallback above.
 
 ## Full Report Shape
 
@@ -188,4 +188,4 @@ Return only this bounded envelope to the main agent — never the full `assumpti
 }
 ```
 
-Do not write `appliesTo` in schemaVersion 2. Use `destination.kind: "global"` for truly plan-wide constraints such as “do not edit generated clients”; use `destination.kind: "task-bound"` for constraints that the main planning flow should bind to specific finalized task IDs. Keep each constraint one short line.
+Do not write `appliesTo` in schemaVersion 2. Use `destination.kind: "global"` for truly plan-wide constraints such as “do not edit generated clients”; use `destination.kind: "task-bound"` for constraints that the main planning flow should bind to specific finalized task IDs. Keep each constraint one short line. Set `sourceTruthReportPath` to null when no full report was written (status `passed` with empty `findings[]`).

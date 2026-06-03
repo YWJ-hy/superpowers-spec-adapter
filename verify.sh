@@ -102,6 +102,7 @@ check_source_truth_overlays() {
     'source-truth-constraints.json' \
     'planning/audit artifact only' \
     'consumes only this constraints sidecar' \
+    'Write the full report only when' \
     'source_truth_render.py'
   do
     if ! grep -Fq "$required" "$verifier_agent"; then

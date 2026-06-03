@@ -219,7 +219,7 @@ Project wiki 与 shared wiki 分别读取自己的 settings：
 
 `truth + edit: never` 表示 plan 不能要求实现 agent 修改这些真实源；如果需求中字段缺失或契约不匹配，应提示用户缺了什么或回到真实源生成链路。`truth + edit: ask` 表示必须先询问用户：是修订 plan，还是把修改真实源纳入本次任务。`evidence` 只能作为线索，不能单独证明事实成立；`ignore` 不参与校验。
 
-当 source-of-truth 分支启用时，`source-of-truth-verifier` 会自己写出完整 `.source-truth-report.json` 和轻量 schemaVersion 2 `.source-truth-constraints.json`，并只向主 agent 返回有界 verdict envelope，完整 report 不进入主 agent 上下文。完整 report 只用于 planning/audit；final task 稳定后由 planning flow 读回 constraints sidecar 并把 `constraintSets` 绑定到 `globalConstraintRefs` / `taskConstraintRefs` / `taskFingerprint`。正常执行阶段只有在 plan 链接 constraints sidecar 时才先用 `source_truth_render.py --fingerprint-preflight` 校验绑定，再用 `source_truth_render.py --task-id <task-id> --role <role> --strict --execution-ready` 渲染当前 task/role 的 constraints，不读取完整 report，也不使用 legacy `appliesTo` 或 task string 路由。
+当 source-of-truth 分支启用时，`source-of-truth-verifier` 会自己写出轻量 schemaVersion 2 `.source-truth-constraints.json`，并仅在有 findings 或 status 为 needs_revision/blocked 时另写完整 `.source-truth-report.json`（干净通过时跳过 report，envelope 的 `outputReportPath` 为 null），只向主 agent 返回有界 verdict envelope，完整 report 不进入主 agent 上下文。完整 report 只用于 planning/audit；final task 稳定后由 planning flow 读回 constraints sidecar 并把 `constraintSets` 绑定到 `globalConstraintRefs` / `taskConstraintRefs` / `taskFingerprint`。正常执行阶段只有在 plan 链接 constraints sidecar 时才先用 `source_truth_render.py --fingerprint-preflight` 校验绑定，再用 `source_truth_render.py --task-id <task-id> --role <role> --strict --execution-ready` 渲染当前 task/role 的 constraints，不读取完整 report，也不使用 legacy `appliesTo` 或 task string 路由。
 
 ### 4.5 可选：同步 / 发布 shared wiki submodule
 
@@ -389,7 +389,7 @@ Detailed wiki context: `docs/superpowers/plans/<plan-stem>.wiki-context.json`
 
 `writing-plans` 会先写出包含具体实现假设的完整 draft plan，再检查 `.superpowers/settings.json` 的 `sourceOfTruth` 是否配置，或用户是否显式要求真实源校验。只有启用该分支时才调用 `source-of-truth-verifier`；verifier 读取 draft plan、可选 `.wiki-context.json` 和 `.superpowers/settings.json` 的 `sourceOfTruth` 配置，只校验配置允许的 truth/evidence/ignore 来源，不把接口调用、mock、fixture、组件用法或已有 wrapper 默认当成真实源。未配置且未显式要求时跳过 verifier 和 sidecar。为减小常驻上下文，`writing-plans` 注入块只保留条件触发、`source_truth_settings.py --show-policy` 探针、`not_configured` skip 规则，以及指向按需引用契约 `contracts/source-truth-verification.md` 的强制引用；verifier dispatch 输入、有界 envelope 契约、两阶段 constraints 绑定和校验命令的完整细节都放在该契约，未配置的计划不加载。
 
-verifier 自己把两个产物写到磁盘，只向主 agent 返回一个有界 verdict envelope（status、两个输出路径、summary 计数、constraintSet 标题、blocking deltas、短 caveats），完整 report 的 assumptions / findings 不进入主 agent 上下文：
+verifier 自己把 constraints sidecar 写到磁盘（完整 report 仅在有 findings 或 status 为 needs_revision/blocked 时另写；干净通过时跳过、`outputReportPath` 为 null），只向主 agent 返回一个有界 verdict envelope（status、输出路径、summary 计数、constraintSet 标题、blocking deltas、短 caveats），完整 report 的 assumptions / findings 不进入主 agent 上下文：
 
 ```text
 docs/superpowers/plans/<plan-stem>.source-truth-report.json

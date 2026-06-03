@@ -137,6 +137,20 @@ PY
 python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --validate-only --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
 python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --fingerprint-preflight --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
 
+# Q1: on a clean pass the verifier skips the full report, so the constraints sidecar carries
+# sourceTruthReportPath: null. That must still validate, preflight, and render.
+python3 - "$TMP_DIR/constraints-v2.json" "$TMP_DIR/constraints-noreport.json" <<'PY'
+import json, sys
+from pathlib import Path
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+payload["sourceTruthReportPath"] = None
+Path(sys.argv[2]).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+PY
+python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-noreport.json" --validate-only --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
+python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-noreport.json" --fingerprint-preflight --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
+python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-noreport.json" --task-id T1 --role implementer --strict --execution-ready >"$TMP_DIR/noreport-t1.md"
+require_text 'Do not edit generated service clients.' "$TMP_DIR/noreport-t1.md"
+
 python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --task-id T1 --role implementer --strict --execution-ready >"$TMP_DIR/t1-implementer.md"
 require_text '## Source-of-Truth Constraints' "$TMP_DIR/t1-implementer.md"
 require_text 'Task ID: `T1`' "$TMP_DIR/t1-implementer.md"

@@ -233,6 +233,7 @@ When editing a wiki page that already uses `<!-- wiki-section:xxx -->` markers:
 When creating a new wiki page that will contain multiple independent constraint topics:
 - Add section markers from the start.
 - Each section should be an independently citable constraint unit.
+- For hard-constraint sections (mandatory rules — 必须/禁止/MUST/MUST NOT), keep the rule and its do/don't examples together inside the markers, but keep the section tight: it is reread in full at execution (including nested children, no length limit), so put only compliance-irrelevant background/rationale in the document overview or a separate soft section. Never externalize or lossily summarize the "don't"/anti-pattern content.
 
 After editing or creating a page with section markers, regenerate the per-document section index:
 

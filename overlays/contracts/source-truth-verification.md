@@ -23,16 +23,20 @@ After the complete draft plan contains concrete implementation assumptions, disp
   `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`.
 
 The verifier checks configured `sourceOfTruth.sources` only; `sourceOfTruth.heuristics` defaults
-false.
+false. The constraints sidecar is always written; the full report is written only when there is
+something to audit (status `needs_revision` / `blocked`, or non-empty findings). On a clean pass the
+report is skipped and you get a single file.
 
 ## 2. Consume only the bounded envelope
 
-The verifier writes both files itself and returns only a bounded verdict envelope (status, output
-paths, summary counts, constraintSet titles, blocking deltas, short caveats); it does not return the
-full report contents into your context. The full report is planning/audit only, not normal
-execution context; do not read it during planning unless you must resolve a specific finding. If
-the verifier reports it could not write the files (`filesWritten: false`), it returns each file's
-JSON inline — write those files yourself and confirm they exist on disk before continuing.
+The verifier writes the constraints sidecar itself (and the full report only when there are findings
+to audit) and returns only a bounded verdict envelope (status, output paths, summary counts,
+constraintSet titles, blocking deltas, short caveats); it does not return the full report contents
+into your context. When the report was skipped, `outputReportPath` is null and no report file exists
+— do not try to open it. The full report is planning/audit only, not normal execution context; do
+not read it during planning unless you must resolve a specific finding. If the verifier reports it
+could not write the files (`filesWritten: false`), it returns each file's JSON inline — write those
+files yourself and confirm they exist on disk before continuing.
 
 ## 3. Bind execution constraints after task stabilization
 
