@@ -19,6 +19,7 @@
     "skills/publish-shared-wiki/SKILL.md",
     "skills/shared-wiki-mcp/SKILL.md",
     "contracts/wiki-context-v3.example.jsonc",
+    "contracts/source-truth-verification.md",
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
     "scripts/wiki_context_render.py",

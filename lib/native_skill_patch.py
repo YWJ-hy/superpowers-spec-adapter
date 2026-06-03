@@ -144,7 +144,47 @@ planSummary: <plan goal and likely task areas>
 
 `wiki-researcher` selects candidate pages and sections only. It must not create `taskWikiRefs`, compute `taskFingerprint`, invent future task IDs, or use legacy `appliesTo` for execution routing. Wiki selection remains strict and progressive: use indexed wiki structure and companion section indexes; do not use unmigrated wiki pages or broad tree scans as formal planning constraints.
 
-Before writing the sidecar, read `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/wiki-context-v3.example.jsonc`. Write selected constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.json` as schemaVersion 3 JSON (`schemaVersion: 3`) with page-rooted `wikiPages` tree, one bounded `documentContext` per page, nested selected sections, categorized constraints (`implementation`, `test`, `review`, `general`), hard constraint status, source metadata, and final `destination`. Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
+Author the sidecar from the compact skeleton below; read the full `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/wiki-context-v3.example.jsonc` only as a fallback when you cannot resolve a shape from this skeleton or when `--validate-only --strict` reports a structural error you cannot fix from it. Write selected constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.json` as schemaVersion 3 JSON (`schemaVersion: 3`) with a page-rooted `wikiPages` tree, one bounded `documentContext` per page (page-level only, never per-section), nested selected sections, categorized constraints (`implementation`, `test`, `review`, `general`), hard constraint status, source metadata, and final `destination`.
+
+```jsonc
+{
+  "schemaVersion": 3,
+  "kind": "superpower-adapter.wiki-context",
+  "wikiPages": [
+    {
+      "root": ".superpowers/wiki",                       // or .shared-superpowers/wiki
+      "source": "local",                                 // local | github_mcp
+      "displayPath": "domain/billing.md",
+      "localPath": ".superpowers/wiki/domain/billing.md", // github_mcp: drop localPath, set wikiPath + revision
+      "documentContext": {                               // page-level only, from <stem>.index.md
+        "title": "Billing",
+        "overview": "<bounded 1-3 sentence page overview>",
+        "contextSource": "domain/billing.index.md"
+      },
+      "sections": [
+        {
+          "sectionId": "rounding-rule",
+          "relevanceTo": "<why this section constrains the plan>",
+          "hardConstraint": true,
+          "destination": {"kind": "task-bound", "reason": "<why>"},
+          "constraints": {"implementation": ["<rule>"], "test": [], "review": [], "general": []},
+          "reread": {                                    // REQUIRED whenever hardConstraint is true
+            "root": ".superpowers/wiki",
+            "source": "local",
+            "localPath": ".superpowers/wiki/domain/billing.md", // github_mcp: wikiPath + revision
+            "sectionId": "rounding-rule",
+            "includeDocumentContext": true
+          },
+          "sourceAnchors": ["<short quote or heading>"]
+        }
+      ]
+    }
+  ]
+  // taskRouting / globalWikiRefs / taskWikiRefs / taskFingerprint are added later, after task stabilization.
+}
+```
+
+Every `hardConstraint: true` section MUST carry a `reread` block (`root`, `source`, `localPath` or `wikiPath`, `sectionId`, `includeDocumentContext`) so execution can reread the full authoritative section text; `--execution-ready` validation fails without it. `github_mcp` pages MUST record `source: github_mcp`, `wikiPath`, and `revision` instead of a local file path. Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
 
 After complete draft plan, source-of-truth handling if configured, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by writing `globalWikiRefs`, `taskWikiRefs`, and `taskFingerprint`. Validate execution readiness with:
 
@@ -164,15 +204,7 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <rep
 
 If `status` is `not_configured` and the user did not explicitly request source-of-truth verification, skip this branch and do not create a not-configured sidecar.
 
-If sourceOfTruth is configured or explicitly requested, dispatch the `source-of-truth-verifier` after the complete draft plan contains concrete implementation assumptions. Provide draft plan path, linked `.wiki-context.json` path if present, `.superpowers/settings.json`, and the output paths `docs/superpowers/plans/<plan-stem>.source-truth-report.json` and `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`. The verifier writes both files itself and returns only a bounded verdict envelope (status, output paths, summary counts, constraintSet titles, blocking deltas, short caveats); it does not return the full report contents into your context. The verifier checks configured `sourceOfTruth.sources` only; `sourceOfTruth.heuristics` defaults false. The full report is planning/audit only, not normal execution context; do not read it during planning unless you must resolve a specific finding.
-
-After verifier-driven revisions and final task stabilization, read the verifier-written `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json` back and bind execution constraints through `globalConstraintRefs`, `taskConstraintRefs`, and `taskFingerprint`; do not use legacy `appliesTo`, task title strings, or draft IDs for execution routing. Validate when a constraints sidecar exists:
-
-```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --validate-only --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
-```
-
-Add a lightweight `## Source-of-Truth Verification` section only when verification ran. Include status, constraints sidecar path, truth source count, blocking count, binding status, and short caveats; do not paste the full report. If verifier status is `blocked`, do not offer execution handoff.
+If `sourceOfTruth` is configured or explicitly requested, you MUST read and follow `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/source-truth-verification.md` before dispatching the verifier. That contract defines the verifier dispatch inputs, the bounded verdict envelope you consume (the verifier self-writes the report/constraints files and returns only that envelope; keep the full report out of planning context), the two-phase constraints binding after task stabilization, the `source_truth_render.py --validate-only --strict` check, and the lightweight `## Source-of-Truth Verification` plan section. Do not inline that whole contract or the full report back into planning context.
 ''',
     ),
     PatchSpec(

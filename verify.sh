@@ -101,6 +101,7 @@ check_source_truth_overlays() {
     'source-truth-report.json' \
     'source-truth-constraints.json' \
     'planning/audit artifact only' \
+    'consumes only this constraints sidecar' \
     'source_truth_render.py'
   do
     if ! grep -Fq "$required" "$verifier_agent"; then
@@ -126,6 +127,34 @@ check_source_truth_overlays() {
       exit 1
     fi
   done
+  # Source-of-truth dispatch/binding detail is deferred out of the always-loaded writing-plans patch
+  # into this on-demand reference contract; verify it still carries the moved detail.
+  local source_truth_ref="$TARGET_DIR/contracts/source-truth-verification.md"
+  if [[ ! -f "$source_truth_ref" ]]; then
+    printf 'Missing source-truth verification reference contract: %s\n' "$source_truth_ref" >&2
+    exit 1
+  fi
+  for required in \
+    'source-of-truth-verifier' \
+    'source-truth-report.json' \
+    'source-truth-constraints.json' \
+    'bounded verdict envelope' \
+    'full report is planning/audit only' \
+    'globalConstraintRefs' \
+    'taskConstraintRefs' \
+    'taskFingerprint' \
+    'source_truth_render.py'
+  do
+    if ! grep -Fq -- "$required" "$source_truth_ref"; then
+      printf 'Missing deferred source-truth reference detail: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  # The execution renderer must never machine-read the planning/audit report.
+  if grep -Fq -- 'report' "$render_script"; then
+    printf 'source_truth_render.py must not reference the report; it consumes only the constraints sidecar\n' >&2
+    exit 1
+  fi
   printf 'Source-truth overlay checks OK\n'
 }
 
@@ -399,9 +428,7 @@ check_native_skill_residuals() {
     'source_truth_settings.py' \
     'Source-of-Truth Verification' \
     'status` is `not_configured`' \
-    'source-truth-report.json' \
-    'source-truth-constraints.json' \
-    'full report is planning/audit only'
+    'contracts/source-truth-verification.md'
   do
     if ! grep -Fq "$required" "$writing_skill"; then
       printf 'Missing slim source-aware planning requirement: %s\n' "$required" >&2

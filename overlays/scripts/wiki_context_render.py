@@ -174,6 +174,10 @@ def _validate_execution_ready(data: dict[str, Any]) -> None:
         if section.get("hardConstraint") or relevance == "direct":
             if kind == "planning-only":
                 raise ValidationError(f"hard/direct section {key} cannot have planning-only destination")
+        # Hard constraints are authoritative and must be reread in full at execution time, not
+        # only distilled into planning bullets. render_reread_list() silently skips hard sections
+        # that lack a reread block, so requiring it here is a load-bearing backstop: do not relax it
+        # to save planning tokens (guarded by tests/wiki-context-json-render-smoke.sh HARD_NO_REREAD).
         if section.get("hardConstraint"):
             reread = section.get("reread")
             if not isinstance(reread, dict) or not reread:
