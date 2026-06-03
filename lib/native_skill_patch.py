@@ -166,7 +166,7 @@ Author the sidecar from the compact skeleton below; read the full `__SUPERPOWER_
           "sectionId": "rounding-rule",
           "relevanceTo": "<why this section constrains the plan>",
           "hardConstraint": true,
-          "destination": {"kind": "task-bound", "reason": "<why>"},
+          "destination": {"kind": "task-bound", "reason": "<why>"}, // task-bound | global | planning-only (soft only)
           "constraints": {"implementation": ["<rule>"], "test": [], "review": [], "general": []},
           "reread": {                                    // REQUIRED whenever hardConstraint is true
             "root": ".superpowers/wiki",
@@ -186,7 +186,7 @@ Author the sidecar from the compact skeleton below; read the full `__SUPERPOWER_
 
 Every `hardConstraint: true` section MUST carry a `reread` block (`root`, `source`, `localPath` or `wikiPath`, `sectionId`, `includeDocumentContext`) so execution can reread the full authoritative section text; `--execution-ready` validation fails without it. `github_mcp` pages MUST record `source: github_mcp`, `wikiPath`, and `revision` instead of a local file path. Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
 
-After complete draft plan, source-of-truth handling if configured, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by writing `globalWikiRefs`, `taskWikiRefs`, and `taskFingerprint`. Validate execution readiness with:
+After complete draft plan, source-of-truth handling if configured, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by writing `globalWikiRefs`, `taskWikiRefs`, and `taskFingerprint`. Assign each section's `destination` then: `planning-only` for soft context the task text already embodies (not injected at execution/review; never for `hardConstraint`/`direct`), `global` for rules every task and reviewer needs, else `task-bound`. For a reviewer-only check, keep it `task-bound` and put it in the `review` constraint category instead of re-stating it to the implementer. Validate execution readiness with:
 
 ```bash
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --validate-only --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
