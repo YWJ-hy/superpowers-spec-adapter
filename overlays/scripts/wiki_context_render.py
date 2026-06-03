@@ -174,6 +174,12 @@ def _validate_execution_ready(data: dict[str, Any]) -> None:
         if section.get("hardConstraint") or relevance == "direct":
             if kind == "planning-only":
                 raise ValidationError(f"hard/direct section {key} cannot have planning-only destination")
+        if section.get("hardConstraint"):
+            reread = section.get("reread")
+            if not isinstance(reread, dict) or not reread:
+                raise ValidationError(
+                    f"hard-constraint section {key} must include a reread block so execution can reread the full section text"
+                )
         section_destinations[key] = str(kind)
 
     global_refs = _as_list(data.get("globalWikiRefs"), "globalWikiRefs")

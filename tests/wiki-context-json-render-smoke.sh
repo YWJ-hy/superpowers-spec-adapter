@@ -413,6 +413,20 @@ if python3 "$SCRIPT" "$BAD_DESTINATION" --validate-only --strict --execution-rea
 fi
 assert_contains "bad destination failure" 'planning-only' "$(cat /tmp/wiki-context-bad-destination.out)"
 
+HARD_NO_REREAD="$TMP/hard-no-reread.wiki-context.json"
+python3 - <<'PY' "$CONTEXT" "$HARD_NO_REREAD"
+import json, sys
+src, dst = sys.argv[1:3]
+data = json.load(open(src, encoding='utf-8'))
+del data['wikiPages'][0]['sections'][0]['reread']
+open(dst, 'w', encoding='utf-8').write(json.dumps(data))
+PY
+if python3 "$SCRIPT" "$HARD_NO_REREAD" --validate-only --strict --execution-ready --plan-path "$PLAN" >/tmp/wiki-context-hard-no-reread.out 2>&1; then
+  printf 'Expected hard-constraint section without reread to fail execution-ready validation\n' >&2
+  exit 1
+fi
+assert_contains "hard no reread failure" 'reread' "$(cat /tmp/wiki-context-hard-no-reread.out)"
+
 PLAN_EDITED="$TMP/plan-edited.md"
 python3 - <<'PY' "$PLAN" "$PLAN_EDITED"
 from pathlib import Path
