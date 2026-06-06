@@ -281,7 +281,7 @@ bash tests/shared-wiki-submodule-smoke.sh
 - 如涉及 wiki 披露主流程，验收重点是 `wiki-researcher`、plan 中的轻量 `Referenced Project Wiki`，以及其链接的 `.wiki-context.json` 约束产物；`wiki-progressive-disclosure` 已移除，不是验收标志
 - 如涉及 `systematic-debugging` wiki 辅助，验收重点是证据收窄后才条件式调用 `phase: debug`、少量读取 wiki、不把 wiki 当 root cause evidence、不生成 `.wiki-context.json`、不更新 wiki
 - 如涉及 Superpowers worktree 收尾流程，验收重点是安装后的 `using-git-worktrees` 是否把 origin metadata 写入 linked worktree private git-dir，以及 `finishing-a-development-branch` 是否基于该 metadata 提供合并回原始分支的选项；不要把该临时 metadata 写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区
-- 如涉及合并后 `update-wiki` 提醒，验收重点是安装后的 `PostToolUse` hook（`hooks/post-merge-update-wiki`）在把开发分支合并进集成分支（含绕开 `finishing-a-development-branch` 的裸 `git merge` / `git merge --continue` / `gh pr merge`）后注入 `update-wiki` 提醒，对「主干/默认分支同步进当前分支」、冲突未完成（`MERGE_HEAD`）、无 `.superpowers/wiki/` 静默，且提醒不声称实现已通过验证；`tests/post-merge-update-wiki-hook-smoke.sh` 只证明判定逻辑，最终仍应在 Claude Code 中真实合并后确认提醒出现
+- 如涉及合并后 `update-wiki` 提醒，验收重点是安装后的 `PostToolUse` hook（`hooks/post-merge-update-wiki`）在把开发分支合并进集成分支（含绕开 `finishing-a-development-branch` 的裸 `git merge` / `git merge --continue` / `gh pr merge`）后注入 `update-wiki` 提醒，对「主干/默认分支同步进当前分支」、冲突未完成（`MERGE_HEAD`）、abort/非合并静默；它不按本地 wiki 存在与否 gate（finalize 合并一律触发，由 update-wiki 内置 gate 决定写/skip，覆盖全局 MCP shared wiki 这种本地零标记的情况），且提醒不声称实现已通过验证；`tests/post-merge-update-wiki-hook-smoke.sh` 只证明判定逻辑，最终仍应在 Claude Code 中真实合并后确认提醒出现
 - adapter 能成功安装到 Superpowers 插件目录
 - `verify` / 相关测试通过
 - 如影响用户流程，已在 Claude Code 等工具中从 skill 入口验证

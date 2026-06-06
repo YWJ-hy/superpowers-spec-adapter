@@ -15,7 +15,11 @@
 # - Skip the one common non-finalize shape: merging the trunk/default branch INTO
 #   the current branch (sync direction). When worktree-origin.json is present it
 #   is used for an exact direction check; otherwise a trunk-name heuristic applies.
-# - Only remind in a project that has a `.superpowers/wiki/`; stay silent otherwise.
+# - Do NOT gate on local wiki presence: fire on every finalize merge and let the
+#   update-wiki skill's built-in gate decide whether anything should persist (it
+#   defaults to skip and handles project wiki, local shared wiki, and remote MCP
+#   shared wiki). Rationale: shared wiki may be a globally-configured MCP server
+#   with no local footprint, so any filesystem gate would miss it.
 # - Never break the session: any error or missing dependency exits 0 with no output.
 
 set -uo pipefail
@@ -178,13 +182,6 @@ def main():
     repo_dir = cwd
     if repo_subdir:
         repo_dir = repo_subdir if os.path.isabs(repo_subdir) else os.path.join(cwd, repo_subdir)
-
-    # Wiki gate: only remind for projects that actually maintain a project wiki.
-    if not (
-        os.path.isdir(os.path.join(cwd, ".superpowers", "wiki"))
-        or os.path.isdir(os.path.join(repo_dir, ".superpowers", "wiki"))
-    ):
-        emit_nothing()
 
     # Conflict guard: do not nag while a merge is unfinished/conflicted.
     if git(repo_dir, "rev-parse", "-q", "--verify", "MERGE_HEAD") is not None:

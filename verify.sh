@@ -521,7 +521,6 @@ check_post_merge_hook() {
     'MERGE_HEAD' \
     'worktree-origin.json' \
     'refs/remotes/origin/HEAD' \
-    '.superpowers' \
     'gh' \
     'merge'
   do

@@ -86,10 +86,14 @@ assert_silent "git status" "$REPO" "non-merge git command"
 assert_silent "git commit -m done" "$REPO" "commit is not a merge"
 assert_silent "git merge --abort" "$REPO" "merge --abort"
 
-# --- Missing project wiki -> always silent ----------------------------------
-NOWIKI="$WORK/nowiki"
-git_init "$NOWIKI"
-assert_silent "git merge feature" "$NOWIKI" "no .superpowers/wiki present"
+# --- No local wiki markers -> still fires -----------------------------------
+# The hook does not gate on local wiki presence: shared wiki may be a globally
+# configured MCP server with no local .superpowers/ or .shared-superpowers/
+# footprint. A finalize merge must still fire; update-wiki's own gate decides
+# whether anything should persist (and skips cleanly when there is no wiki).
+NOMARKERS="$WORK/nomarkers"
+git_init "$NOMARKERS"
+assert_fires "git merge feature" "$NOMARKERS" "no local wiki markers (shared wiki may be global MCP)"
 
 # --- Worktree origin metadata: exact direction check ------------------------
 # The user's case: a worktree created from an iteration branch (not main),

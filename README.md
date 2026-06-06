@@ -23,7 +23,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Keep standalone adapter skills such as `import-wiki`, `init-wiki`, and `lanhu-requirements` outside Superpowers completion/review/verification skills until they explicitly hand off to the next Superpowers workflow step
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
 - Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki
-- Install a `PostToolUse` hook (`hooks/post-merge-update-wiki`) that reminds the agent to run `update-wiki` after a Bash command merges a development branch into its integration branch (bare `git merge`, `git merge --continue`, or `gh pr merge`, including `git -C <dir> merge`), so durable-knowledge review still happens when work is merged outside `finishing-a-development-branch`; it keys off the merge action rather than a fixed target branch, skips trunk-into-branch sync merges (using worktree origin metadata when present, else a `main`/`master`/default-branch heuristic), conflicted merges (`MERGE_HEAD` present), and projects without `.superpowers/wiki/`, and cannot observe merges performed in the GitHub web UI
+- Install a `PostToolUse` hook (`hooks/post-merge-update-wiki`) that reminds the agent to run `update-wiki` after a Bash command merges a development branch into its integration branch (bare `git merge`, `git merge --continue`, or `gh pr merge`, including `git -C <dir> merge`), so durable-knowledge review still happens when work is merged outside `finishing-a-development-branch`; it keys off the merge action rather than a fixed target branch, skips trunk-into-branch sync merges (using worktree origin metadata when present, else a `main`/`master`/default-branch heuristic), conflicted merges (`MERGE_HEAD` present), and `git merge --abort`/non-merge commands. It does not gate on local wiki presence — shared wiki may be a globally-configured MCP server with no local footprint, so it fires on any finalize merge and lets `update-wiki`'s own gate decide whether anything persists — and cannot observe merges performed in the GitHub web UI
 - Reinstall the same overlay after upgrading `superpowers/`
 
 ## Install
@@ -313,10 +313,9 @@ The hook keys off the merge action, not a fixed target branch, so it works wheth
 
 - sync merges that bring the trunk/default branch *into* the current branch — detected exactly via `worktree-origin.json` `originalBranch` when present, otherwise via a `main`/`master`/`origin/HEAD` heuristic;
 - merges still in progress or conflicted (`MERGE_HEAD` present);
-- `git merge --abort`/`--quit` and non-merge commands;
-- projects without a `.superpowers/wiki/` directory.
+- `git merge --abort`/`--quit` and non-merge commands.
 
-The reminder is advisory and explicitly does not assert that implementation is verified or complete; `update-wiki` still decides whether anything durable should persist. Because the hook observes local tool calls, it cannot see merges performed in the GitHub web UI. Removing the adapter (`./manage.sh uninstall`) drops the `PostToolUse` registration and leaves the native `SessionStart` hook untouched.
+The hook deliberately does **not** gate on local wiki presence. Shared wiki may be a globally-configured shared-wiki MCP server with no local `.superpowers/` or `.shared-superpowers/` footprint, so any filesystem gate would miss it. Instead the hook fires on any finalize merge and lets `update-wiki`'s own gate decide: that skill starts from skip, reads project wiki, local shared wiki, and remote MCP shared wiki only when present, and persists nothing when there is no durable knowledge or no wiki at all. The reminder is therefore advisory and explicitly does not assert that implementation is verified or complete. Because the hook observes local tool calls, it cannot see merges performed in the GitHub web UI. Removing the adapter (`./manage.sh uninstall`) drops the `PostToolUse` registration and leaves the native `SessionStart` hook untouched.
 
 ## Break the bug loop
 
