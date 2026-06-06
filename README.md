@@ -23,6 +23,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Keep standalone adapter skills such as `import-wiki`, `init-wiki`, and `lanhu-requirements` outside Superpowers completion/review/verification skills until they explicitly hand off to the next Superpowers workflow step
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
 - Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki
+- Install a `PostToolUse` hook (`hooks/post-merge-update-wiki`) that reminds the agent to run `update-wiki` after a Bash command merges a development branch into its integration branch (bare `git merge`, `git merge --continue`, or `gh pr merge`, including `git -C <dir> merge`), so durable-knowledge review still happens when work is merged outside `finishing-a-development-branch`; it keys off the merge action rather than a fixed target branch, skips trunk-into-branch sync merges (using worktree origin metadata when present, else a `main`/`master`/default-branch heuristic), conflicted merges (`MERGE_HEAD` present), and projects without `.superpowers/wiki/`, and cannot observe merges performed in the GitHub web UI
 - Reinstall the same overlay after upgrading `superpowers/`
 
 ## Install
@@ -303,6 +304,19 @@ Implementation and review consume this plan section and linked sidecar context i
 The adapter also patches Superpowers `using-git-worktrees` and `finishing-a-development-branch`. When a new linked worktree is created, the source branch, source worktree, and source HEAD are recorded as transient metadata in the new worktree's private git-dir under `superpower-adapter/worktree-origin.json`.
 
 That metadata is not written to `plan.md`, `spec.md`, `.superpowers/`, or the repository working tree. At finishing time, Superpowers can offer an explicit option to merge the feature branch back into the original branch from the original worktree, which is safer for nested feature work and multiple concurrent sessions.
+
+## Post-merge wiki reminder
+
+Knowledge review can be lost when work is accepted outside `finishing-a-development-branch` — for example when a task is paused for manual testing and later finished with a bare `git merge` back to `main` or an iteration branch. To close that gap, the adapter installs a `PostToolUse` hook (`hooks/post-merge-update-wiki`, registered against the `Bash` tool in `hooks/hooks.json`).
+
+The hook keys off the merge action, not a fixed target branch, so it works whether work merges back into `main` or an iteration branch. After a Bash command runs, it injects a system-reminder asking the agent to review durable knowledge with `update-wiki` when the command was `git merge <branch>`, `git merge --continue`, or `gh pr merge` (including `git -C <dir> merge`). It stays silent for:
+
+- sync merges that bring the trunk/default branch *into* the current branch — detected exactly via `worktree-origin.json` `originalBranch` when present, otherwise via a `main`/`master`/`origin/HEAD` heuristic;
+- merges still in progress or conflicted (`MERGE_HEAD` present);
+- `git merge --abort`/`--quit` and non-merge commands;
+- projects without a `.superpowers/wiki/` directory.
+
+The reminder is advisory and explicitly does not assert that implementation is verified or complete; `update-wiki` still decides whether anything durable should persist. Because the hook observes local tool calls, it cannot see merges performed in the GitHub web UI. Removing the adapter (`./manage.sh uninstall`) drops the `PostToolUse` registration and leaves the native `SessionStart` hook untouched.
 
 ## Break the bug loop
 

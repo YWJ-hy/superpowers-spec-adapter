@@ -506,6 +506,44 @@ check_native_skill_residuals() {
   printf 'Native skill residual checks OK\n'
 }
 
+check_post_merge_hook() {
+  local hook_script="$TARGET_DIR/hooks/post-merge-update-wiki"
+  if [[ ! -f "$hook_script" ]]; then
+    printf 'Missing post-merge update-wiki hook script: %s\n' "$hook_script" >&2
+    exit 1
+  fi
+  for required in \
+    'update-wiki' \
+    'hookSpecificOutput' \
+    'additionalContext' \
+    'PostToolUse' \
+    'tool_input' \
+    'MERGE_HEAD' \
+    'worktree-origin.json' \
+    'refs/remotes/origin/HEAD' \
+    '.superpowers' \
+    'gh' \
+    'merge'
+  do
+    if ! grep -Fq -- "$required" "$hook_script"; then
+      printf 'Missing post-merge hook behavior: %s\n' "$required" >&2
+      exit 1
+    fi
+  done
+  # The reminder must not assert completion (respects update-wiki maintenance boundary).
+  if ! grep -Fq 'not assert that implementation is verified or complete' "$hook_script"; then
+    printf 'Post-merge hook reminder must not assert implementation completion\n' >&2
+    exit 1
+  fi
+  # The PostToolUse command must be registered in the Claude Code hooks config.
+  # (hook_patch.py verify is the authoritative JSON check; this is a sanity grep.)
+  if ! grep -Fq 'post-merge-update-wiki' "$TARGET_DIR/hooks/hooks.json"; then
+    printf 'Missing PostToolUse registration for post-merge-update-wiki in hooks.json\n' >&2
+    exit 1
+  fi
+  printf 'Post-merge update-wiki hook checks OK\n'
+}
+
 verify_target() {
   TARGET_DIR="$1"
   printf 'Verifying superpower-adapter in %s\n' "$TARGET_DIR"
@@ -530,6 +568,7 @@ PY
   check_source_truth_overlays
   check_optional_integration_overlays
   check_native_skill_residuals
+  check_post_merge_hook
 }
 
 for target_dir in "${TARGET_DIRS[@]}"; do

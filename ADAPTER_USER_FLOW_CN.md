@@ -84,7 +84,7 @@ Superpowers 插件目录
 - `using-git-worktrees`：创建 worktree 时把原始分支、原始 worktree 和原始 HEAD 记录到新 worktree 的 private git-dir metadata。
 - `finishing-a-development-branch`：metadata 有效时，提供明确合并回创建 worktree 前原始分支的收尾选项。
 
-当前流程不安装 SessionStart hook；`wiki-researcher` 会在 `brainstorming` 和 `writing-plans` 阶段按需读取 `.superpowers/wiki/` 和 `.shared-superpowers/wiki/`，并可在 `systematic-debugging` Phase 1 证据收窄后作为低噪音调试辅助被条件式调用。worktree origin metadata 是本地临时协调状态，不写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区。
+当前流程不安装 SessionStart hook，但会安装一个 PostToolUse hook（matcher 为 `Bash`，脚本 `hooks/post-merge-update-wiki`）：当某次 Bash 命令把开发分支合并进其集成分支（裸 `git merge`、`git merge --continue` 或 `gh pr merge`，含 `git -C <dir> merge`）时，hook 注入一条 `update-wiki` 提醒，让主 agent 在收尾前审查是否产生 durable knowledge。它只针对「工作被接受/合并」这个动作，不依赖固定目标分支名——所以无论合回 `main` 还是迭代分支都生效；唯一被跳过的是「把主干/默认分支合进当前分支」的同步方向（存在 worktree origin metadata 时按 `originalBranch` 精确判向，否则按 `main`/`master`/默认分支启发式判断），冲突未完成（存在 `MERGE_HEAD`）或项目没有 `.superpowers/wiki/` 时也静默。这条提醒只补上「合并即接受」这一步的知识沉淀，覆盖用户绕开 `finishing-a-development-branch` 直接合并的情况，不代表实现已通过验证，也无法捕获在 GitHub 网页上点击 Merge 的合并。`wiki-researcher` 会在 `brainstorming` 和 `writing-plans` 阶段按需读取 `.superpowers/wiki/` 和 `.shared-superpowers/wiki/`，并可在 `systematic-debugging` Phase 1 证据收窄后作为低噪音调试辅助被条件式调用。worktree origin metadata 是本地临时协调状态，不写入 `plan.md`、`spec.md`、`.superpowers/` 或仓库工作区。
 
 ---
 
@@ -105,7 +105,7 @@ Superpowers 插件目录
 | 9 | 执行 plan | `executing-plans` / `subagent-driven-development` | 有 plan 时 | 按 plan 执行，并消费 `Referenced Project Wiki`、链接的 `.wiki-context.json` 和 task-specific `.source-truth-constraints.json` 渲染结果 |
 | 9.5 | worktree 收尾 | `finishing-a-development-branch` | 使用 Superpowers worktree 开发后 | metadata 有效时，可明确合并回创建 worktree 前的原始分支 |
 | 10 | 修 bug 与复盘 | `systematic-debugging` → `break-loop` | bug 修复并验证后，且需要防复发分析时 | 先用 Superpowers 修对 bug；必要时在证据收窄后低噪音查 wiki，修复验证后再由 adapter 复盘 root cause、失败修复路径、防复发机制和可沉淀候选 |
-| 11 | 任务后更新 wiki | `update-wiki` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge |
+| 11 | 任务后更新 wiki | `update-wiki` skill | 任务产生长期可复用知识时 | 审查并回写 durable implementation knowledge；执行/SDD 末尾会提示本步，把开发分支合并进集成分支（含绕开 `finishing-a-development-branch` 的裸 `git merge` / `gh pr merge`）后 PostToolUse hook 也会自动提醒触发本步 |
 | 12 | 发布前检查 adapter | `./manage.sh release-check /path/to/project` | adapter 维护者发布前 | 运行 verify、doctor、self-test、export-manifest |
 
 用户日常在 Claude Code 中主要记住这条链：
