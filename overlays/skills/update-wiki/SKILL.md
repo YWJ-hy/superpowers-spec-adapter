@@ -30,6 +30,18 @@ If the handoff follows a `systematic-debugging` → `break-loop` flow, you may r
 
 If the break-loop handoff says no durable knowledge should persist, skip wiki edits.
 
+### Input from execution candidates
+
+When a `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar exists, read it as candidate input. It is a transient, liberally-captured scratch log written during execution/SDD so durable knowledge surfaced mid-flow is not lost to context compaction before this review — it is NOT a list of decisions to write. Each line is one raw, unverified candidate, for example:
+
+```jsonl
+{"taskId":"T3","kind":"decision","claim":"List pagination uses a cursor, not offset","why":"offset skips/dupes rows under concurrent inserts; offset was considered and rejected","sourceRefs":["src/list/api.ts"],"carveOut":true}
+```
+
+Apply this skill's normal responsibilities to every line: decide whether it is durable, split into atomic candidates, read indexed wiki progressively, check semantic duplicates, choose target ownership, neutralize for shared wiki, and respect update authorization. Expect to skip many lines — the sidecar over-captures by design. Reconcile each candidate against the plan and the final code so you record the decision as it actually settled, not a superseded mid-flow version.
+
+The sidecar is scratch: after consuming it, delete it, and never commit it. If it is missing, proceed with the normal end-of-flow review.
+
 ---
 
 ## Wiki First Rule
@@ -57,7 +69,7 @@ Do not write wiki pages for:
 - temporary rules that belong in the current spec, plan, PR, or commit message
 - compatibility handling that only exists because of one local call site
 
-Only promote local-looking knowledge when it represents a stable external/domain constraint, a cross-layer contract, reused project convention, or a repeated gotcha that future sessions are likely to rediscover incorrectly.
+Only promote local-looking knowledge when it represents a stable external/domain constraint, a cross-layer contract, reused project convention, a repeated gotcha that future sessions are likely to rediscover incorrectly, or a decision that meets the decision carve-out (hard to reverse + surprising + real trade-off).
 
 Use this reuse threshold before writing:
 1. Does the knowledge apply across modules, pages, workflows, or layers?
@@ -65,7 +77,15 @@ Use this reuse threshold before writing:
 3. Would skipping the wiki make future developers likely to repeat a bug or miss a hidden constraint?
 4. Is wiki a better source of truth than code, spec, plan, PR, or commit message?
 
-If the candidate does not pass this threshold, state an explicit skip reason such as: `No wiki update: this is local business logic already represented in code/spec, not durable reusable knowledge.`
+Reuse is not the only reason to persist knowledge. Independently of the reuse threshold above, promote a *decision* when **all three** of these hold (skip it if any one is missing):
+
+1. **Hard to reverse** — changing it later carries real cost: data migration, contract break, or a broad refactor. A preference that is cheap to flip does not qualify.
+2. **Surprising without context** — a future reader would ask "why was it done this way?" and could plausibly regress or undo it.
+3. **The result of a real trade-off** — there were genuine alternatives and one was chosen for specific reasons.
+
+When all three hold, record it under the owning page using the existing **Design Decision** template, even if it fails the reuse threshold or looks like single-context business logic. Capture what was decided and **why** (the rejected alternatives and their cost), not how to implement it. Most decisions will not qualify; this carve-out is only for the few that are both irreversible and non-obvious.
+
+If the candidate passes neither the reuse threshold nor the decision carve-out, state an explicit skip reason such as: `No wiki update: this is local business logic already represented in code/spec, not durable reusable knowledge.`
 
 Do not treat `index.md` files as the main place for detailed rules. Keep detailed content in leaf wiki page files and keep indexes lightweight.
 
@@ -79,7 +99,9 @@ Do the semantic work yourself. Python scripts are only mechanical helpers.
 
 Review the completed work and identify only implementation knowledge that future sessions should reuse outside the immediate code context.
 
-Start from skip. Promote a candidate to wiki only when it passes the reuse threshold above and is better preserved in long-term wiki than in code, spec, plan, PR, or commit message.
+Start from skip. Promote a candidate to wiki only when it passes the reuse threshold or the decision carve-out above, and is better preserved in long-term wiki than in code, spec, plan, PR, or commit message.
+
+When reviewing, reconstruct each decision's rationale and rejected alternatives from durable sources — the plan, git diff/log, and any break-loop or handoff artifacts — not only from what remains in the current conversation; by the end of a long implementation or SDD flow, earlier decisions and their trade-offs may have dropped out of context.
 
 Skip the update when the work only produced:
 - temporary task notes
@@ -387,7 +409,8 @@ Do not:
 Before finishing the update:
 
 - [ ] Did you start from the default of not updating wiki and require durable reusable knowledge before editing?
-- [ ] Did you exclude local business logic, single-context branch rules, and code-obvious implementation details unless they passed the reuse threshold?
+- [ ] Did you exclude local business logic, single-context branch rules, and code-obvious implementation details unless they passed the reuse threshold or the decision carve-out?
+- [ ] Did you separately apply the decision carve-out — promoting a hard-to-reverse, surprising, real-trade-off decision even when it does not reuse across modules?
 - [ ] If you skipped all candidates, did you state an explicit skip reason instead of forcing a wiki edit?
 - [ ] Did you split multi-point input into atomic candidates?
 - [ ] Did you read relevant indexed wiki pages before writing?

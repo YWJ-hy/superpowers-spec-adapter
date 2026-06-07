@@ -261,7 +261,13 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/s
 
 Inject only the rendered `## Source-of-Truth Constraints` block under `## Rendered Source-of-Truth Constraints for This Task`. Do not read or inject the full `*.source-truth-report.json`; it is planning/audit only. Do not use legacy `appliesTo`, task title strings, or task body matching for source-truth execution routing. If rendered constraints forbid editing configured truth sources, stop before violating them and ask for a planning/user decision.
 
-After completing implementation, use the `update-wiki` skill to review whether the work produced durable implementation knowledge that should be persisted to the appropriate wiki root. Do not force a spec edit when there is nothing durable to record.
+#### Durable-Knowledge Candidate Capture
+
+While implementing a task, if you make a hard-to-reverse or surprising decision, resolve a non-obvious trade-off, or hit a durable gotcha that future sessions could rediscover incorrectly — and it is not already captured in the plan — append one JSONL line to `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` immediately, then keep coding. Each line carries: `taskId`, `kind` (decision|gotcha|contract|convention), `claim` (one line), `why` (one line, include rejected alternatives), `sourceRefs`, and `carveOut`.
+
+Capture liberally and cheaply; do not run `update-wiki`, judge ownership, or check duplicates mid-flow — the end-of-flow review is the strict filter. Append-only; never rewrite earlier lines. This file is transient scratch: do not commit it.
+
+After completing implementation, use the `update-wiki` skill to review whether the work produced durable implementation knowledge that should be persisted to the appropriate wiki root, consuming any `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar as candidate input. Do not force a spec edit when there is nothing durable to record.
 ''',
     ),
     PatchSpec(
@@ -314,7 +320,13 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/s
 
 Inject only the rendered `## Source-of-Truth Constraints` block under `## Rendered Source-of-Truth Constraints for This Task`. Do not make subagents read the full `*.source-truth-report.json`; it is planning/audit context only. The spec-reviewer must verify the implementation did not violate rendered source-truth constraints such as forbidden edits to generated clients, schemas, permissions, design tokens, or other configured truth sources.
 
-After implementation and review, the main agent should use the `update-wiki` skill to decide whether any durable implementation knowledge should be persisted to the appropriate wiki root. Subagents should not write wiki updates unless explicitly instructed.
+#### Durable-Knowledge Candidate Capture (via subagents)
+
+Subagents must NOT write wiki pages or the candidates sidecar — parallel subagents would race on the file. Instead, instruct each implementer and reviewer subagent to end its bounded result with an optional `durableKnowledgeCandidates` list: hard-to-reverse or surprising decisions, non-obvious trade-offs, or durable gotchas it hit that are not already in the plan. Each entry carries `taskId`, `kind` (decision|gotcha|contract|convention), `claim`, `why` (include rejected alternatives), `sourceRefs`, and `carveOut`. If it surfaced nothing durable, it omits the field.
+
+As each subagent returns, the main agent appends its candidates — one JSONL line each — to `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl`. The main agent serializes these appends (append-only; transient scratch; never committed) and is the only writer of the sidecar under SDD.
+
+After implementation and review, the main agent should use the `update-wiki` skill to decide whether any durable implementation knowledge should be persisted to the appropriate wiki root, consuming the `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar as candidate input. Subagents should not write wiki updates unless explicitly instructed.
 ''',
     ),
     PatchSpec(
