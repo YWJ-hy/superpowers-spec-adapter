@@ -9,6 +9,7 @@ import { readSectionsTool } from './tools/readSections.js';
 import { searchTool } from './tools/search.js';
 import { validatePatchTool } from './tools/validatePatch.js';
 import { createPatchPrTool } from './tools/createPatchPr.js';
+import { withCloneLock } from './lock.js';
 
 export function createServer(config: SharedWikiConfig): McpServer {
   const server = new McpServer({ name: 'shared-wiki-mcp', version: '0.1.0' });
@@ -17,13 +18,13 @@ export function createServer(config: SharedWikiConfig): McpServer {
     description: 'Check shared wiki MCP configuration, clone state, tool availability, policy, and wiki validation summary.',
     inputSchema: z.object({}),
     annotations: { readOnlyHint: true, idempotentHint: true },
-  }, async () => toResult(await statusTool(config)));
+  }, async () => toResult(await withCloneLock(config, () => statusTool(config))));
 
   server.registerTool('shared_wiki_tree', {
     description: 'Return the index-driven shared wiki tree with leaf companion section-index metadata.',
     inputSchema: z.object({}),
     annotations: { readOnlyHint: true, idempotentHint: true },
-  }, async () => toResult(await treeTool(config)));
+  }, async () => toResult(await withCloneLock(config, () => treeTool(config))));
 
   server.registerTool('shared_wiki_read', {
     description: 'Read an indexed root/directory index or companion section index. Full leaf documents are blocked by default; use shared_wiki_read_section for leaf content.',
@@ -32,7 +33,7 @@ export function createServer(config: SharedWikiConfig): McpServer {
       allowLeafDocumentRead: z.boolean().optional(),
     }),
     annotations: { readOnlyHint: true, idempotentHint: true },
-  }, async (input) => toResult(await readTool(config, input)));
+  }, async (input) => toResult(await withCloneLock(config, () => readTool(config, input))));
 
   server.registerTool('shared_wiki_read_section', {
     description: 'Read a specific marked section from an indexed leaf shared wiki page, optionally with bounded document context from its companion section index.',
@@ -42,7 +43,7 @@ export function createServer(config: SharedWikiConfig): McpServer {
       includeDocumentContext: z.boolean().optional(),
     }),
     annotations: { readOnlyHint: true, idempotentHint: true },
-  }, async (input) => toResult(await readSectionTool(config, input)));
+  }, async (input) => toResult(await withCloneLock(config, () => readSectionTool(config, input))));
 
   server.registerTool('shared_wiki_read_sections', {
     description: 'Read multiple marked sections across indexed leaf shared wiki pages in one ordered batch, optionally with bounded document context.',
@@ -56,13 +57,13 @@ export function createServer(config: SharedWikiConfig): McpServer {
       errorMode: z.enum(['strict', 'partial']).optional(),
     }),
     annotations: { readOnlyHint: true, idempotentHint: true },
-  }, async (input) => toResult(await readSectionsTool(config, input)));
+  }, async (input) => toResult(await withCloneLock(config, () => readSectionsTool(config, input))));
 
   server.registerTool('shared_wiki_search', {
     description: 'Search indexed shared wiki markdown pages with bounded snippets.',
     inputSchema: z.object({ query: z.string().min(1), maxResults: z.number().int().min(1).max(50).optional() }),
     annotations: { readOnlyHint: true, idempotentHint: true },
-  }, async (input) => toResult(await searchTool(config, input)));
+  }, async (input) => toResult(await withCloneLock(config, () => searchTool(config, input))));
 
   server.registerTool('shared_wiki_validate_patch', {
     description: 'Validate a unified diff against shared wiki policy without pushing or opening a PR.',
@@ -71,7 +72,7 @@ export function createServer(config: SharedWikiConfig): McpServer {
       authorizedCreate: z.boolean().optional(),
       authorizedUpdate: z.boolean().optional(),
     }),
-  }, async (input) => toResult(await validatePatchTool(config, input)));
+  }, async (input) => toResult(await withCloneLock(config, () => validatePatchTool(config, input))));
 
   server.registerTool('shared_wiki_create_patch_pr', {
     description: 'Apply a validated shared wiki patch on a new branch, push it, and open a GitHub PR. Never merges.',
@@ -85,7 +86,7 @@ export function createServer(config: SharedWikiConfig): McpServer {
       authorizedUpdate: z.boolean().optional(),
       draft: z.boolean().optional(),
     }),
-  }, async (input) => toResult(await createPatchPrTool(config, input)));
+  }, async (input) => toResult(await withCloneLock(config, () => createPatchPrTool(config, input))));
 
   return server;
 }
