@@ -30,7 +30,6 @@ adapter 会把以下 overlay 安装进 Superpowers：
 superpowers/
 ├── agents/wiki-researcher.md
 ├── skills/break-loop/SKILL.md
-├── skills/wiki-progressive-disclosure/SKILL.md
 ├── skills/update-wiki/SKILL.md
 ├── skills/import-wiki/SKILL.md
 ├── skills/init-wiki/SKILL.md

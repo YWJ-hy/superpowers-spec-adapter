@@ -5,3 +5,4 @@ mcp/shared-wiki/node_modules/
 mcp/shared-wiki/dist/
 dist/
 shared-wiki-mcp.config.json
+manifest-output.json

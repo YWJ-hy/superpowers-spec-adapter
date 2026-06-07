@@ -51,7 +51,6 @@
 - `skills/import-wiki/SKILL.md`
 - `skills/init-wiki/SKILL.md`
 - `skills/break-loop/SKILL.md`
-- `skills/wiki-progressive-disclosure/SKILL.md`
 - `skills/update-wiki/SKILL.md`
 - adapter 执行脚本
 
