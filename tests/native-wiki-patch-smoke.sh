@@ -260,7 +260,7 @@ if grep -Fq 'Before attempting ANY fix, use wiki-researcher' "$SYSTEMATIC_SKILL"
   exit 1
 fi
 
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 3' 'page-rooted `wikiPages` tree' 'documentContext' 'taskWikiRefs' 'taskFingerprint' 'globalWikiRefs'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 3' 'page-rooted `wikiPages` tree' 'documentContext' 'taskWikiRefs' 'taskFingerprint' 'globalWikiRefs' 'sharedWiki' 'shared_wiki_status'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
     printf 'Expected writing-plans patch to contain source-aware wiki context: %s\n' "$required" >&2
     exit 1
@@ -299,7 +299,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/executing-plans/SKILL
   exit 1
 fi
 
-for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '## Assigned Task' '## Rendered Wiki Constraints for This Task' '## Rendered Source-of-Truth Constraints for This Task' '## Hard Wiki Constraint Rereads' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`' 'skip this branch'; do
+for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '## Assigned Task' '## Rendered Wiki Constraints for This Task' '## Rendered Source-of-Truth Constraints for This Task' '## Hard Wiki Constraint Rereads' 'rebinding drift' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`' 'skip this branch'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/executing-plans/SKILL.md"; then
     printf 'Expected executing-plans patch to contain source-aware execution text: %s\n' "$required" >&2
     exit 1
@@ -316,7 +316,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/subagent-driven-devel
   exit 1
 fi
 
-for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'shared_wiki_read_sections' 'revision metadata' '--batch-jsonl' '## Assigned Task' '## Rendered Wiki Constraints for This Task' '## Rendered Source-of-Truth Constraints for This Task' '## Hard Wiki Constraint Rereads' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify' 'skip this branch'; do
+for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'shared_wiki_read_sections' 'revision metadata' '--batch-jsonl' '## Assigned Task' '## Rendered Wiki Constraints for This Task' '## Rendered Source-of-Truth Constraints for This Task' '## Hard Wiki Constraint Rereads' 'rebinding drift' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify' 'skip this branch'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
     printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
     exit 1

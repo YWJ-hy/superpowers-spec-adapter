@@ -71,6 +71,19 @@ print(f"  wikiEntryIndex: {'OK' if wiki['entryIndexExists'] else 'WARN'}")
 print(f"  wikiIgnoredDirs: {len(wiki['effectiveIgnoredDirectories'])} effective ({len(wiki['customIgnoredDirectories'])} custom)")
 print(f"  wikiPages: raw={raw_leaf_count} effective={effective_leaf_count}")
 
+shared_mcp = wiki.get('sharedWikiMcp', {}) or {}
+shared_mcp_error = shared_mcp.get('error')
+shared_mcp_declared = shared_mcp.get('declared')
+shared_mcp_repo = shared_mcp.get('repoUrl')
+if shared_mcp_error:
+    print(f"  sharedWikiMcp: ERROR ({shared_mcp_error})")
+elif shared_mcp_declared and shared_mcp_repo:
+    print(f"  sharedWikiMcp: bound -> {shared_mcp_repo}")
+elif shared_mcp_declared:
+    print("  sharedWikiMcp: INCOMPLETE (wiki.sharedMcp declared without repoUrl)")
+else:
+    print("  sharedWikiMcp: unbound (fail-closed: no MCP shared wiki for this project)")
+
 print('')
 print('Recommendations')
 if missing:
@@ -87,7 +100,11 @@ if missing_index_links:
     print('  - Some effective leaf wiki pages do not have a matching parent index.md in the effective view:')
     for leaf in missing_index_links:
         print(f'    - {leaf}')
-if not any([missing, missing_entry, ignore_present_but_empty, diff_count > 0, missing_index_links]):
+if shared_mcp_error:
+    print(f'  - wiki.sharedMcp in .shared-superpowers/settings.json is invalid: {shared_mcp_error}')
+elif shared_mcp_declared and not shared_mcp_repo:
+    print('  - wiki.sharedMcp is declared without repoUrl; the shared-wiki MCP server will fail closed. Add repoUrl or remove the block.')
+if not any([missing, missing_entry, ignore_present_but_empty, diff_count > 0, missing_index_links, shared_mcp_error, (shared_mcp_declared and not shared_mcp_repo)]):
     print('  - No action needed. Adapter looks healthy.')
 PY
 

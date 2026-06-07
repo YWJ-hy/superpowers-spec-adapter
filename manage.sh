@@ -11,6 +11,7 @@ usage() {
   printf '  %s uninstall [superpowers-target]\n' "$0" >&2
   printf '  %s verify [superpowers-target]\n' "$0" >&2
   printf '  %s status [superpowers-target]\n' "$0" >&2
+  printf '  %s shared-wiki-registration\n' "$0" >&2
   printf '  %s bootstrap-wiki <project-root> [--template name] [--wiki-root project|shared]\n' "$0" >&2
   printf '  %s init-wiki <project-root> [analysis-hint]\n' "$0" >&2
   printf '  %s doctor <project-root> [superpowers-target]\n' "$0" >&2
@@ -46,6 +47,9 @@ case "$COMMAND" in
     ;;
   status)
     exec "$SCRIPT_DIR/status.sh" "$@"
+    ;;
+  shared-wiki-registration)
+    exec "$SCRIPT_DIR/shared-wiki-registration.sh"
     ;;
   bootstrap-wiki)
     require_project_root "${1:-}"

@@ -254,14 +254,23 @@ npm install
 npm run build
 ```
 
-然后配置 `repoUrl` 和仓库默认分支，例如：
+然后做两步配置：
 
-```text
-repoUrl: https://github.com/YWJ-hy/shared-wiki.git
-baseBranch: master
+1. **注册一份通用 server（注册一次，user 级）**：用 `./manage.sh shared-wiki-registration` 生成一份**不含 repo 信息**的注册（`command: node`、`args: [.../dist/index.js]`，无 env），加入 Claude Code MCP 配置。server 启动时读 Claude Code 注入的 `CLAUDE_PROJECT_DIR` 自我定位项目。
+2. **每个项目绑定 shared wiki**：在使用 shared wiki 的项目里写 `.shared-superpowers/settings.json` 的 `wiki.sharedMcp` 块，例如：
+
+```jsonc
+{
+  "wiki": {
+    "sharedMcp": {
+      "repoUrl": "https://github.com/YWJ-hy/shared-wiki.git",
+      "baseBranch": "master"
+    }
+  }
+}
 ```
 
-并把 build 后的 MCP server 加入 Claude Code MCP 配置。之后可在 Claude Code 中使用：
+因此一份注册服务所有项目，不同项目可指向不同 shared wiki；没有声明 `wiki.sharedMcp` 的项目拿不到 MCP shared wiki（fail-closed）。注意：注册里**不要**加 `SHARED_WIKI_MCP_*` 环境变量（会覆盖每项目设置）；治理键（`updateAuthorization` / `sharedNeutrality`）属于 shared wiki 仓库内的 settings，不是消费项目的。之后可在 Claude Code 中使用：
 
 ```text
 shared-wiki-mcp skill

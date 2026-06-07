@@ -230,6 +230,16 @@ def _validate_context(data: dict[str, Any], strict: bool, execution_ready: bool 
     if data.get("kind") != KIND:
         raise ValidationError(f"kind must be {KIND}")
 
+    # Optional shared-wiki identity (which github_mcp shared wiki this plan was built against).
+    # Tolerated when absent; lightly type-checked when present so execution can compare it to the
+    # connected server's repoUrl and detect rebinding drift.
+    shared_wiki = data.get("sharedWiki")
+    if shared_wiki is not None:
+        shared_wiki_obj = _as_dict(shared_wiki, "sharedWiki")
+        repo_url = shared_wiki_obj.get("repoUrl")
+        if repo_url is not None and (not isinstance(repo_url, str) or not repo_url.strip()):
+            raise ValidationError("sharedWiki.repoUrl must be a non-empty string when present")
+
     pages = _as_list(data.get("wikiPages"), "wikiPages")
     for page_index, page in enumerate(pages):
         page_obj = _as_dict(page, f"wikiPages[{page_index}]")
@@ -386,6 +396,22 @@ def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None)
     if task_id:
         lines.append(f"- Task ID: `{task_id}`")
         lines.append("")
+    shared_wiki = data.get("sharedWiki")
+    if isinstance(shared_wiki, dict):
+        repo_url = shared_wiki.get("repoUrl")
+        revision = shared_wiki.get("revision")
+        commit = None
+        if isinstance(revision, dict):
+            commit = revision.get("commitSha") or revision.get("shortSha") or revision.get("ref")
+        identity_bits: list[str] = []
+        if repo_url:
+            identity_bits.append(f"repo `{repo_url}`")
+        if commit:
+            identity_bits.append(f"revision `{commit}`")
+        if identity_bits:
+            lines.append(f"- Shared wiki source: {', '.join(identity_bits)}")
+            lines.append("- Before trusting github_mcp rereads, confirm the connected shared-wiki MCP still serves this repo; a mismatch means the project rebound its shared wiki after planning.")
+            lines.append("")
     for page in pages:
         display = page.get("displayPath") or page.get("path") or page.get("wikiPath") or "unknown wiki page"
         lines.append(f"### Wiki Page: `{display}`")

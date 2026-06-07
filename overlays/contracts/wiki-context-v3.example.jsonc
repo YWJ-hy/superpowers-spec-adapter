@@ -15,6 +15,19 @@
   "kind": "superpower-adapter.wiki-context",
   "generatedBy": "superpower-adapter",
   "planPath": "docs/superpowers/plans/example.md",
+  // Optional. When any selected page is source: github_mcp, record the shared wiki identity ONCE here
+  // from shared_wiki_status (repoUrl + baseBranch + revision). The shared-wiki MCP server self-configures
+  // per project from .shared-superpowers/settings.json -> wiki.sharedMcp, so this captures WHICH shared
+  // wiki this plan was built against. Before trusting github_mcp rereads, execution confirms the connected
+  // server still serves this repoUrl; a mismatch means the project rebound its shared wiki between planning
+  // and execution. Omit this block entirely when no github_mcp page is selected. Per-page revision still
+  // lives on each github_mcp page.
+  "sharedWiki": {
+    "source": "github_mcp",
+    "repoUrl": "https://github.com/acme/platform-wiki.git",
+    "baseBranch": "master",
+    "revision": { "ref": "master", "commitSha": "abcdef1234567890", "shortSha": "abcdef1" }
+  },
   "taskRouting": {
     // candidate_sections_only is not execution-ready. confirmed is required for execution/SDD.
     "status": "confirmed",

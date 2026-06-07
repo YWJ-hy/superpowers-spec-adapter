@@ -23,7 +23,7 @@ if ! "$SCRIPT_DIR/verify.sh" "$TARGET_INPUT" >/dev/null 2>&1; then
   VERIFY_STATUS="failed"
 fi
 
-MANIFEST_JSON=$(python3 - <<'PY' "$MANIFEST_PATH" "$REPO_ROOT" "$TARGET_DIR" "$VERIFY_STATUS"
+MANIFEST_JSON=$(python3 - <<'PY' "$MANIFEST_PATH" "$REPO_ROOT" "$TARGET_DIR" "$VERIFY_STATUS" "$SCRIPT_DIR"
 import json
 import sys
 from pathlib import Path
@@ -32,8 +32,25 @@ manifest_path = Path(sys.argv[1])
 repo_root = Path(sys.argv[2])
 target_dir = Path(sys.argv[3])
 verify_status = sys.argv[4]
+script_dir = Path(sys.argv[5])
 manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
 marker = manifest['generatedMarker']
+
+# Per-project shared-wiki MCP binding, via the canonical settings reader. The MCP
+# server self-configures from this same block (wiki.sharedMcp) using
+# CLAUDE_PROJECT_DIR; here we only report whether the project binds a shared wiki.
+sys.path.insert(0, str(script_dir / 'overlays' / 'scripts'))
+try:
+    import wiki_common as _wc
+    binding = _wc.load_shared_wiki_mcp_binding(repo_root)
+    shared_wiki_mcp = {
+        'declared': binding is not None,
+        'repoUrl': (binding or {}).get('repoUrl'),
+        'fields': binding or {},
+        'error': None,
+    }
+except Exception as exc:  # malformed settings or loader unavailable
+    shared_wiki_mcp = {'declared': None, 'repoUrl': None, 'fields': {}, 'error': str(exc)}
 installed = []
 missing = []
 for rel in manifest['installedPaths']:
@@ -119,6 +136,7 @@ payload = {
         'defaultIgnoredDirectories': default_ignored,
         'customIgnoredDirectories': ignored,
         'effectiveIgnoredDirectories': effective_ignored,
+        'sharedWikiMcp': shared_wiki_mcp,
         'rawView': {
             'indexFiles': raw_index_files,
             'leafFiles': raw_leaf_files,
