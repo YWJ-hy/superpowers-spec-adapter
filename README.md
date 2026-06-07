@@ -230,7 +230,7 @@ Progressive wiki reading still follows these rules:
 2. Follow each root index to narrower indexes or per-document section indexes
 3. During brainstorming, stay index-only and do not read section full text
 4. During planning, read only candidate section full text and write schemaVersion 3 `.wiki-context.json` with one bounded `documentContext` per wiki page and nested selected sections
-5. After final tasks stabilize, bind selected wiki sections into `taskWikiRefs` / `globalWikiRefs` and `taskFingerprint`, then render execution context with `--task-id`
+5. After final tasks stabilize, assign routing into `taskWikiRefs` / `globalWikiRefs`, stamp `taskFingerprint` mechanically with `wiki_context_render.py --bind-fingerprints --execution-ready --plan-path` (never hand-write it), then render execution context with `--task-id`
 6. During implementation and review, use plan `Referenced Project Wiki` and render selected task constraints from linked `.wiki-context.json`; hard-constraint rereads inject document context plus the selected section body only
 7. Avoid full-tree wiki loading unless explicitly requested, and do not inject sibling sections or full pages just to recover section context
 
@@ -280,7 +280,7 @@ docs/superpowers/plans/<plan-stem>.source-truth-report.json
 docs/superpowers/plans/<plan-stem>.source-truth-constraints.json
 ```
 
-The full report is planning/audit context only. Normal execution and SDD must not read or inject the full `*.source-truth-report.json`; after final plan tasks are stable, planning binds schemaVersion 2 `constraintSets` to `globalConstraintRefs` / `taskConstraintRefs` with `taskFingerprint`, then execution runs `source_truth_render.py --fingerprint-preflight` and renders task-specific constraints with `source_truth_render.py --task-id <task-id> --strict --execution-ready`. If the verifier status is `blocked`, execution must return to planning instead of implementing around the conflict.
+The full report is planning/audit context only. Normal execution and SDD must not read or inject the full `*.source-truth-report.json`; after final plan tasks are stable, planning assigns schemaVersion 2 `constraintSets` into `globalConstraintRefs` / `taskConstraintRefs` and stamps `taskFingerprint` with `source_truth_render.py --bind-fingerprints --execution-ready --plan-path`, then execution runs `source_truth_render.py --fingerprint-preflight` and renders task-specific constraints with `source_truth_render.py --task-id <task-id> --strict --execution-ready`. If the verifier status is `blocked`, execution must return to planning instead of implementing around the conflict.
 
 ## Referenced Project Wiki
 
@@ -296,7 +296,7 @@ Detailed constraints are written to a plan sidecar file such as:
 docs/superpowers/plans/<plan-stem>.wiki-context.json
 ```
 
-Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 3 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. Final task stabilization adds `taskRouting`, `taskWikiRefs`, `globalWikiRefs`, `destination`, and `taskFingerprint`; execution should validate with `--execution-ready` and preflight with `--fingerprint-preflight`, then render selected task constraint blocks with `--task-id` instead of task-string filtering. Forced hard-constraint rereads use the task-scoped page context with the selected section body, not sibling sections or whole pages.
+Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 3 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. Final task stabilization adds `taskRouting`, `taskWikiRefs`, `globalWikiRefs`, and `destination`, then stamps `taskFingerprint` mechanically via `--bind-fingerprints` (which also validates `--execution-ready`); execution preflights with `--fingerprint-preflight`, then renders selected task constraint blocks with `--task-id` instead of task-string filtering. Forced hard-constraint rereads use the task-scoped page context with the selected section body, not sibling sections or whole pages.
 
 
 ## Worktree origin tracking

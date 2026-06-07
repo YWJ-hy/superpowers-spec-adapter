@@ -267,12 +267,84 @@ PY
 )"
 assert_contains "example contract" 'AI-facing authoring contract' "$EXAMPLE_TEXT"
 assert_contains "example contract" 'Do not inspect scripts/wiki_context_render.py to infer this format' "$EXAMPLE_TEXT"
-assert_contains "example contract" '--validate-only --strict' "$EXAMPLE_TEXT"
+assert_contains "example contract" '--bind-fingerprints --strict' "$EXAMPLE_TEXT"
 assert_contains "example contract" '--execution-ready --plan-path' "$EXAMPLE_TEXT"
 assert_contains "example contract" '--fingerprint-preflight' "$EXAMPLE_TEXT"
+assert_not_contains "example contract" '0000000000000000' "$EXAMPLE_TEXT"
 
 python3 "$SCRIPT" "$CONTEXT" --validate-only --strict --execution-ready --plan-path "$PLAN" >/dev/null
 python3 "$SCRIPT" "$CONTEXT" --fingerprint-preflight --strict --execution-ready --plan-path "$PLAN" >/dev/null
+
+# --- Adapter fingerprint binding (mechanical taskFingerprint stamping) ---
+# Author a sidecar with NO taskFingerprint, then stamp it with --bind-fingerprints.
+BIND_CTX="$TMP/bind.wiki-context.json"
+python3 - <<'PY' "$CONTEXT" "$BIND_CTX"
+import json, sys
+src, dst = sys.argv[1:3]
+data = json.load(open(src, encoding='utf-8'))
+for ref in data['taskWikiRefs']:
+    ref.pop('taskFingerprint', None)
+open(dst, 'w', encoding='utf-8').write(json.dumps(data))
+PY
+# Pre-bind execution-ready validation must fail because fingerprints are absent.
+if python3 "$SCRIPT" "$BIND_CTX" --validate-only --strict --execution-ready --plan-path "$PLAN" >/tmp/wiki-context-prebind.out 2>&1; then
+  printf 'Expected validate-only to fail before binding fingerprints\n' >&2
+  exit 1
+fi
+assert_contains "pre-bind validate failure" 'taskFingerprint' "$(cat /tmp/wiki-context-prebind.out)"
+# Bind stamps fingerprints, validates execution-ready, and writes in place.
+BIND_OUT="$(python3 "$SCRIPT" "$BIND_CTX" --bind-fingerprints --strict --execution-ready --plan-path "$PLAN")"
+assert_contains "bind output" 'bound taskFingerprint for 2 task(s)' "$BIND_OUT"
+# A clean bind guarantees the execution-side preflight passes.
+python3 "$SCRIPT" "$BIND_CTX" --fingerprint-preflight --strict --execution-ready --plan-path "$PLAN" >/dev/null
+# The stamped digest must equal the independently computed plan hash (one algorithm, one source of truth).
+BOUND_T1="$(python3 -c "import json,sys;print(next(r['taskFingerprint'] for r in json.load(open(sys.argv[1]))['taskWikiRefs'] if r['taskId']=='T1'))" "$BIND_CTX")"
+if [[ "$BOUND_T1" != "$T1_HASH" ]]; then
+  printf 'Bound T1 fingerprint %s does not match expected %s\n' "$BOUND_T1" "$T1_HASH" >&2
+  exit 1
+fi
+# Re-binding an already-current sidecar is idempotent.
+assert_contains "rebind idempotent" 'already current' "$(python3 "$SCRIPT" "$BIND_CTX" --bind-fingerprints --strict --execution-ready --plan-path "$PLAN")"
+
+# Placeholder fingerprints (e.g. copied skeleton zeros) must be rejected, not silently accepted.
+PLACEHOLDER_CTX="$TMP/placeholder.wiki-context.json"
+python3 - <<'PY' "$CONTEXT" "$PLACEHOLDER_CTX"
+import json, sys
+src, dst = sys.argv[1:3]
+data = json.load(open(src, encoding='utf-8'))
+data['taskWikiRefs'][0]['taskFingerprint'] = '0' * 64
+open(dst, 'w', encoding='utf-8').write(json.dumps(data))
+PY
+if python3 "$SCRIPT" "$PLACEHOLDER_CTX" --validate-only --strict --execution-ready --plan-path "$PLAN" >/tmp/wiki-context-placeholder.out 2>&1; then
+  printf 'Expected placeholder fingerprint to fail validation\n' >&2
+  exit 1
+fi
+assert_contains "placeholder failure" 'placeholder' "$(cat /tmp/wiki-context-placeholder.out)"
+
+# Root-cause guard: a well-formed but STALE fingerprint must be caught by validate-only itself
+# (with --execution-ready --plan-path), not only later at the execution-side preflight.
+STALE_CTX="$TMP/stale.wiki-context.json"
+python3 - <<'PY' "$CONTEXT" "$STALE_CTX"
+import json, sys
+src, dst = sys.argv[1:3]
+data = json.load(open(src, encoding='utf-8'))
+data['taskWikiRefs'][0]['taskFingerprint'] = 'abc1230000000000000000000000000000000000000000000000000000000001'
+open(dst, 'w', encoding='utf-8').write(json.dumps(data))
+PY
+if python3 "$SCRIPT" "$STALE_CTX" --validate-only --strict --execution-ready --plan-path "$PLAN" >/tmp/wiki-context-stale.out 2>&1; then
+  printf 'Expected stale fingerprint to fail validate-only with --plan-path\n' >&2
+  exit 1
+fi
+assert_contains "stale validate failure" 'fingerprint mismatch' "$(cat /tmp/wiki-context-stale.out)"
+
+# --bind-fingerprints refuses to write when the plan and sidecar task sets disagree.
+DRIFT_PLAN="$TMP/plan-drift.md"
+printf '%s\n\n### Task T3: Extra task\nNew work.\n' "$(cat "$PLAN")" > "$DRIFT_PLAN"
+if python3 "$SCRIPT" "$BIND_CTX" --bind-fingerprints --strict --execution-ready --plan-path "$DRIFT_PLAN" >/tmp/wiki-context-bind-drift.out 2>&1; then
+  printf 'Expected bind to refuse when a plan task is missing from taskWikiRefs\n' >&2
+  exit 1
+fi
+assert_contains "bind drift failure" 'plan task missing from taskWikiRefs: T3' "$(cat /tmp/wiki-context-bind-drift.out)"
 
 T1_OUT="$(python3 "$SCRIPT" "$CONTEXT" --task-id T1 --role implementer --strict --execution-ready)"
 assert_contains "T1 render" 'Hook Guidelines' "$T1_OUT"

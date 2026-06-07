@@ -137,6 +137,56 @@ PY
 python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --validate-only --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
 python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v2.json" --fingerprint-preflight --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
 
+# --- Adapter fingerprint binding (mechanical taskFingerprint stamping) ---
+# Author constraints with NO taskFingerprint, then stamp with --bind-fingerprints.
+python3 - "$TMP_DIR/constraints-v2.json" "$TMP_DIR/constraints-bind.json" <<'PY'
+import json, sys
+from pathlib import Path
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+for ref in data["taskConstraintRefs"]:
+    ref.pop("taskFingerprint", None)
+Path(sys.argv[2]).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+PY
+# Pre-bind execution-ready validation must fail because fingerprints are absent.
+if python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-bind.json" --validate-only --strict --execution-ready --plan-path "$TMP_DIR/plan.md" >"$TMP_DIR/st-prebind.out" 2>&1; then
+  printf 'Expected source-truth validate-only to fail before binding fingerprints\n' >&2
+  exit 1
+fi
+require_text 'taskFingerprint' "$TMP_DIR/st-prebind.out"
+# Bind stamps fingerprints, validates execution-ready, writes in place; preflight then passes.
+python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-bind.json" --bind-fingerprints --strict --execution-ready --plan-path "$TMP_DIR/plan.md" >"$TMP_DIR/st-bind.out"
+require_text 'bound taskFingerprint for 2 task(s)' "$TMP_DIR/st-bind.out"
+python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-bind.json" --fingerprint-preflight --strict --execution-ready --plan-path "$TMP_DIR/plan.md"
+
+# Placeholder fingerprints (e.g. copied skeleton digits) must be rejected, not silently accepted.
+python3 - "$TMP_DIR/constraints-v2.json" "$TMP_DIR/st-placeholder.json" <<'PY'
+import json, sys
+from pathlib import Path
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+data["taskConstraintRefs"][0]["taskFingerprint"] = "f" * 64
+Path(sys.argv[2]).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+PY
+if python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/st-placeholder.json" --validate-only --strict --execution-ready --plan-path "$TMP_DIR/plan.md" >"$TMP_DIR/st-placeholder.out" 2>&1; then
+  printf 'Expected source-truth placeholder fingerprint to fail validation\n' >&2
+  exit 1
+fi
+require_text 'placeholder' "$TMP_DIR/st-placeholder.out"
+
+# Root-cause guard: a well-formed but STALE fingerprint must be caught by validate-only itself
+# (with --execution-ready --plan-path), not only later at the execution-side preflight.
+python3 - "$TMP_DIR/constraints-v2.json" "$TMP_DIR/st-stale.json" <<'PY'
+import json, sys
+from pathlib import Path
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+data["taskConstraintRefs"][0]["taskFingerprint"] = "abc1230000000000000000000000000000000000000000000000000000000001"
+Path(sys.argv[2]).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+PY
+if python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/st-stale.json" --validate-only --strict --execution-ready --plan-path "$TMP_DIR/plan.md" >"$TMP_DIR/st-stale.out" 2>&1; then
+  printf 'Expected source-truth stale fingerprint to fail validate-only with --plan-path\n' >&2
+  exit 1
+fi
+require_text 'fingerprint mismatch' "$TMP_DIR/st-stale.out"
+
 # Q1: on a clean pass the verifier skips the full report, so the constraints sidecar carries
 # sourceTruthReportPath: null. That must still validate, preflight, and render.
 python3 - "$TMP_DIR/constraints-v2.json" "$TMP_DIR/constraints-noreport.json" <<'PY'
@@ -269,5 +319,12 @@ python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v1
 python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v1.json" --task 'Task 1' --role implementer >"$TMP_DIR/v1-implementer.md"
 require_text 'Legacy implementation constraint.' "$TMP_DIR/v1-implementer.md"
 reject_text 'Legacy review constraint.' "$TMP_DIR/v1-implementer.md"
+
+# --bind-fingerprints is a schemaVersion 2 operation; it must refuse legacy v1 constraints.
+if python3 "$ROOT/overlays/scripts/source_truth_render.py" "$TMP_DIR/constraints-v1.json" --bind-fingerprints --strict --plan-path "$TMP_DIR/plan.md" >"$TMP_DIR/st-bind-v1.out" 2>&1; then
+  printf 'Expected --bind-fingerprints to refuse schemaVersion 1\n' >&2
+  exit 1
+fi
+require_text 'requires schemaVersion 2' "$TMP_DIR/st-bind-v1.out"
 
 printf 'source-truth render smoke OK\n'

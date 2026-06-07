@@ -24,6 +24,10 @@ DESTINATION_KINDS = {"task-bound", "global"}
 TASK_HEADING_RE = re.compile(r"^### Task\s+([A-Za-z0-9][A-Za-z0-9_-]*):\s*(.+?)\s*$")
 TASK_OR_HIGHER_HEADING_RE = re.compile(r"^#{1,3}\s+")
 HEX_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+# A digest of 64 identical hex chars (0000…, 1111…, ffff…) is an authoring placeholder, never a
+# real sha256. Rejecting it stops copy-pasted skeleton fingerprints from passing validation and
+# only blowing up later at the execution-side --fingerprint-preflight.
+PLACEHOLDER_FINGERPRINT_RE = re.compile(r"^([0-9a-f])\1{63}$")
 
 
 class ValidationError(Exception):
@@ -124,6 +128,10 @@ def _validate_task_fingerprint(task_ref: dict[str, Any], field: str) -> None:
     fingerprint = task_ref.get("taskFingerprint")
     if not isinstance(fingerprint, str) or not HEX_SHA256_RE.match(fingerprint):
         raise ValidationError(f"{field}.taskFingerprint must be a 64-character lowercase sha256 hex digest")
+    if PLACEHOLDER_FINGERPRINT_RE.match(fingerprint):
+        raise ValidationError(
+            f"{field}.taskFingerprint looks like a placeholder; run --bind-fingerprints --plan-path <plan> to stamp the real fingerprint"
+        )
 
 
 def _resolve_constraint_ref(constraints_by_id: dict[str, dict[str, Any]], ref_obj: dict[str, Any], field: str) -> str:
@@ -441,6 +449,54 @@ def fingerprint_preflight(data: dict[str, Any], plan_path: Path) -> str:
     return f"fingerprint preflight passed for {len(plan_tasks)} task(s)"
 
 
+def bind_fingerprints(data: dict[str, Any], plan_path: Path) -> tuple[int, int, list[str]]:
+    """Stamp each taskConstraintRefs entry's taskFingerprint from the current plan task text.
+
+    Routing (which constraint sets bind to which task) stays author-owned; only the mechanical
+    sha256 of the normalized plan task text is (re)written here, from the single source of truth in
+    this module. Mirrors fingerprint_preflight's structural checks and refuses to write on any
+    mismatch, so a successful bind guarantees the execution-side --fingerprint-preflight will pass.
+    """
+    if data.get("schemaVersion") != SCHEMA_VERSION_V2:
+        raise FingerprintError("--bind-fingerprints requires schemaVersion 2 source-truth constraints")
+    plan_tasks = extract_plan_tasks(plan_path)
+    sidecar_tasks: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for index, task_ref in enumerate(_as_list(data.get("taskConstraintRefs"), "taskConstraintRefs")):
+        task_obj = _as_dict(task_ref, f"taskConstraintRefs[{index}]")
+        task_id = task_obj.get("taskId")
+        if not isinstance(task_id, str) or not task_id:
+            errors.append(f"taskConstraintRefs[{index}] missing taskId")
+            continue
+        if task_id in sidecar_tasks:
+            errors.append(f"duplicate sidecar taskId: {task_id}")
+            continue
+        sidecar_tasks[task_id] = task_obj
+
+    for task_id in sorted(set(sidecar_tasks) - set(plan_tasks)):
+        errors.append(f"taskConstraintRefs contains task not found in plan: {task_id}")
+    for task_id in plan_tasks:
+        if task_id not in sidecar_tasks:
+            errors.append(f"plan task missing from taskConstraintRefs: {task_id}")
+    if errors:
+        raise FingerprintError("\n".join(errors))
+
+    changed = 0
+    for task_id, task_obj in sidecar_tasks.items():
+        current_hash = plan_tasks[task_id]["hash"]
+        if task_obj.get("taskFingerprint") != current_hash:
+            task_obj["taskFingerprint"] = current_hash
+            changed += 1
+    return len(sidecar_tasks), changed, sorted(sidecar_tasks)
+
+
+def _write_constraints(path: Path, data: dict[str, Any]) -> None:
+    text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+
+
 def main() -> int:
     _configure_stdio()
     parser = argparse.ArgumentParser(description="Validate, filter, and render source-truth constraints JSON.")
@@ -450,6 +506,7 @@ def main() -> int:
     parser.add_argument("--plan-path", help="Implementation plan path used for task fingerprint preflight")
     parser.add_argument("--execution-ready", action="store_true", help="Require confirmed taskConstraintRefs/globalConstraintRefs routing suitable for execution")
     parser.add_argument("--fingerprint-preflight", action="store_true", help="Compare taskConstraintRefs fingerprints against the current plan task text")
+    parser.add_argument("--bind-fingerprints", action="store_true", help="Stamp taskConstraintRefs taskFingerprint values from the current plan task text and write the sidecar in place (requires --plan-path)")
     parser.add_argument("--role", choices=["implementer", "reviewer"], default="implementer")
     parser.add_argument("--format", choices=["markdown"], default="markdown")
     parser.add_argument("--validate-only", action="store_true")
@@ -458,6 +515,20 @@ def main() -> int:
 
     try:
         data = _load_constraints(Path(args.constraints_path))
+        if args.bind_fingerprints:
+            if not args.plan_path:
+                raise ValidationError("--bind-fingerprints requires --plan-path")
+            # Validate structure but tolerate missing/placeholder fingerprints; stamping fixes them.
+            _validate_constraints(data, args.strict, execution_ready=False)
+            total, changed, task_ids = bind_fingerprints(data, Path(args.plan_path))
+            # With real fingerprints stamped, confirm the result is fully execution-ready before
+            # writing, so a successful bind is transactional (correct fingerprints + valid routing).
+            if args.execution_ready:
+                _validate_constraints(data, args.strict, execution_ready=True)
+            _write_constraints(Path(args.constraints_path), data)
+            status = f"{changed} updated" if changed else "already current"
+            print(f"bound taskFingerprint for {total} task(s) ({status}): {', '.join(task_ids)}")
+            return 0
         caveats = _validate_constraints(data, args.strict, args.execution_ready)
         schema_version = data.get("schemaVersion")
         if args.fingerprint_preflight:
@@ -466,6 +537,12 @@ def main() -> int:
             print(fingerprint_preflight(data, Path(args.plan_path)))
             return 0
         if args.validate_only:
+            # --plan-path alone cannot catch stale fingerprints in validate-only mode (format-only),
+            # so when execution-ready validation is requested with a plan, run the same fingerprint
+            # preflight execution uses. This closes the gap where placeholder/stale fingerprints
+            # passed planning validation and only failed later at dispatch time.
+            if args.execution_ready and args.plan_path and schema_version == SCHEMA_VERSION_V2:
+                fingerprint_preflight(data, Path(args.plan_path))
             for caveat in caveats:
                 print(f"Warning: {caveat}", file=sys.stderr)
             print("source-truth constraints JSON is valid")

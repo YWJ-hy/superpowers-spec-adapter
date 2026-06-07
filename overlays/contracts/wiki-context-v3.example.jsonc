@@ -5,8 +5,10 @@
   // wiki-researcher selects candidate sections only; it must not create taskWikiRefs or taskFingerprint.
   // taskWikiRefs are generated only after the final Superpowers plan has real stable task IDs.
   // Do not inspect scripts/wiki_context_render.py to infer this format; that script is only for validation/rendering.
-  // After writing the JSON sidecar, validate it with:
-  // python3 <plugin-root>/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --validate-only --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
+  // After authoring the JSON sidecar and assigning routing (globalWikiRefs + one taskWikiRefs entry
+  // per plan task, with taskId/taskTitle/wikiRefs), stamp taskFingerprint mechanically — this also
+  // validates execution readiness and writes the sidecar in place. Never hand-write taskFingerprint:
+  // python3 <plugin-root>/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --bind-fingerprints --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
   // Before execution/SDD, run exactly one fingerprint preflight:
   // python3 <plugin-root>/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
   "schemaVersion": 3,
@@ -172,8 +174,10 @@
     {
       "taskId": "T1",
       "taskTitle": "Implement path-based form updates",
-      // Bare lowercase sha256 hex of the normalized final task text (algorithm/normalization declared once in taskRouting.fingerprintAlgorithm).
-      "taskFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+      // Stamped by `--bind-fingerprints` from the normalized final task text (algorithm declared once
+      // in taskRouting.fingerprintAlgorithm). Illustrative value only — never hand-write or copy it;
+      // a stale or placeholder digest passes structure checks but fails the execution-side preflight.
+      "taskFingerprint": "a3f5c8e2b7d0419c6e8a2f5d7b0c3e9f1a4d6b8c0e2f5a7d9c1b3e6f8a0d2c4b",
       "wikiRefs": [
         {
           "sectionRef": {
@@ -191,7 +195,7 @@
     {
       "taskId": "T2",
       "taskTitle": "Add contract coverage",
-      "taskFingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+      "taskFingerprint": "b8d2f6a0c4e7193b5d8f0a2c6e9b1d4f7a3c5e8b0d2f4a6c8e1b3d5f7a9c0e2d",
       "wikiRefs": [],
       "caveats": []
     }

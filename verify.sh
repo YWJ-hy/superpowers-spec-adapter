@@ -122,7 +122,7 @@ check_source_truth_overlays() {
       exit 1
     fi
   done
-  for required in 'superpower-adapter.source-truth-constraints' 'ROLE_CATEGORIES' 'implementer' 'reviewer' '--validate-only' '--strict' 'Source-of-Truth Constraints'; do
+  for required in 'superpower-adapter.source-truth-constraints' 'ROLE_CATEGORIES' 'implementer' 'reviewer' '--validate-only' '--bind-fingerprints' '--strict' 'Source-of-Truth Constraints'; do
     if ! grep -Fq -- "$required" "$render_script"; then
       printf 'Missing source-truth render implementation detail: %s\n' "$required" >&2
       exit 1
@@ -144,6 +144,7 @@ check_source_truth_overlays() {
     'globalConstraintRefs' \
     'taskConstraintRefs' \
     'taskFingerprint' \
+    '--bind-fingerprints' \
     'source_truth_render.py'
   do
     if ! grep -Fq -- "$required" "$source_truth_ref"; then
@@ -426,12 +427,13 @@ check_native_skill_residuals() {
     'review' \
     'general' \
     'wiki_context_render.py' \
+    '--bind-fingerprints' \
     'source_truth_settings.py' \
     'Source-of-Truth Verification' \
     'status` is `not_configured`' \
     'contracts/source-truth-verification.md'
   do
-    if ! grep -Fq "$required" "$writing_skill"; then
+    if ! grep -Fq -- "$required" "$writing_skill"; then
       printf 'Missing slim source-aware planning requirement: %s\n' "$required" >&2
       exit 1
     fi

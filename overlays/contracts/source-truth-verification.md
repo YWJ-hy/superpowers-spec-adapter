@@ -44,13 +44,19 @@ The constraints sidecar is a two-phase artifact: the verifier writes only the ra
 and `status`, with execution routing left unbound. After verifier-driven revisions and final task
 stabilization, read the verifier-written `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`
 back from disk and bind execution constraints by assigning each set a `destination` and writing
-`globalConstraintRefs`, `taskConstraintRefs`, and `taskFingerprint`. Do not use legacy `appliesTo`,
-task-title strings, or draft task IDs for execution routing. Validate once a constraints sidecar
-exists:
+`globalConstraintRefs` plus one `taskConstraintRefs` entry per plan task (each with `taskId`,
+`taskTitle`, and `constraintRefs`). Do not use legacy `appliesTo`, task-title strings, or draft task
+IDs for execution routing. Do not hand-write or copy `taskFingerprint`; stamp it mechanically from
+the reviewed plan, which validates execution readiness and writes the sidecar in place:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --validate-only --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --bind-fingerprints --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
+
+`--bind-fingerprints` is the single source of truth for `taskFingerprint`; never compute the sha256
+by hand or paste a placeholder digest. It refuses to write unless every plan task has exactly one
+`taskConstraintRefs` entry and routing is execution-ready, so a clean bind guarantees the
+execution-side `--fingerprint-preflight` will pass.
 
 ## 4. Record a lightweight plan section
 

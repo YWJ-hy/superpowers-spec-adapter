@@ -186,13 +186,13 @@ Author the sidecar from the compact skeleton below; read the full `__SUPERPOWER_
 
 Every `hardConstraint: true` section MUST carry a `reread` block (`root`, `source`, `localPath` or `wikiPath`, `sectionId`, `includeDocumentContext`) so execution can reread the full authoritative section text; `--execution-ready` validation fails without it. `github_mcp` pages MUST record `source: github_mcp`, `wikiPath`, and `revision` instead of a local file path. Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
 
-After complete draft plan, source-of-truth handling if configured, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by writing `globalWikiRefs`, `taskWikiRefs`, and `taskFingerprint`. Assign each section's `destination` then: `planning-only` for soft context the task text already embodies (not injected at execution/review; never for `hardConstraint`/`direct`), `global` for rules every task and reviewer needs, else `task-bound`. For a reviewer-only check, keep it `task-bound` and put it in the `review` constraint category instead of re-stating it to the implementer. Validate execution readiness with:
+After complete draft plan, source-of-truth handling if configured, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by assigning each section's `destination` and writing `globalWikiRefs` plus one `taskWikiRefs` entry per plan task (each with `taskId`, `taskTitle`, and `wikiRefs`). Assign `destination` as: `planning-only` for soft context the task text already embodies (not injected at execution/review; never for `hardConstraint`/`direct`), `global` for rules every task and reviewer needs, else `task-bound`. For a reviewer-only check, keep it `task-bound` and put it in the `review` constraint category instead of re-stating it to the implementer. Do not hand-write or copy `taskFingerprint`; stamp it mechanically from the reviewed plan, which validates execution readiness and writes the sidecar in place:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --validate-only --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --bind-fingerprints --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
 
-Do not inspect `scripts/wiki_context_render.py` to infer the JSON format; use the contract for authoring and the renderer only for validation/rendering. If selected wiki conflicts with the confirmed Superpowers spec, stop and ask the user to resolve the conflict before finalizing the plan.
+`--bind-fingerprints` is the single source of truth for `taskFingerprint`; never compute the sha256 by hand or paste a placeholder digest (a copied placeholder passes structural validation but fails the execution-side preflight). It refuses to write unless every plan task has exactly one `taskWikiRefs` entry and routing is execution-ready, so a clean bind guarantees the execution/SDD `--fingerprint-preflight` will pass. Do not inspect `scripts/wiki_context_render.py` to infer the JSON format; use the contract for authoring and the renderer only for binding/validation/rendering. If selected wiki conflicts with the confirmed Superpowers spec, stop and ask the user to resolve the conflict before finalizing the plan.
 
 ### Adapter Source-of-Truth Verification
 
@@ -204,7 +204,7 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <rep
 
 If `status` is `not_configured` and the user did not explicitly request source-of-truth verification, skip this branch and do not create a not-configured sidecar.
 
-If `sourceOfTruth` is configured or explicitly requested, you MUST read and follow `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/source-truth-verification.md` before dispatching the verifier. That contract defines the verifier dispatch inputs, the bounded verdict envelope you consume (the verifier self-writes the report/constraints files and returns only that envelope; keep the full report out of planning context), the two-phase constraints binding after task stabilization, the `source_truth_render.py --validate-only --strict` check, and the lightweight `## Source-of-Truth Verification` plan section. Do not inline that whole contract or the full report back into planning context.
+If `sourceOfTruth` is configured or explicitly requested, you MUST read and follow `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/source-truth-verification.md` before dispatching the verifier. That contract defines the verifier dispatch inputs, the bounded verdict envelope you consume (the verifier self-writes the report/constraints files and returns only that envelope; keep the full report out of planning context), the two-phase constraints binding after task stabilization, the `source_truth_render.py --bind-fingerprints --strict --execution-ready` stamping/validation, and the lightweight `## Source-of-Truth Verification` plan section. Do not inline that whole contract or the full report back into planning context.
 ''',
     ),
     PatchSpec(
@@ -222,7 +222,7 @@ Before touching code, read the plan's `Referenced Project Wiki` section, locate 
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
 
-If the preflight fails because task text changed after plan review, stop before code changes and return to planning-side binding refresh. Do not reselect wiki pages, call `wiki-researcher`, rewrite the plan, use legacy `appliesTo`, filter by task string, or let implementers decide routing during execution.
+If the preflight fails because task text changed after plan review, stop before code changes and refresh the binding on the planning side: confirm the selected wiki routing still applies to the changed task, then re-run `wiki_context_render.py <sidecar> --bind-fingerprints --strict --execution-ready --plan-path <plan>` to re-stamp fingerprints, and resume only after the preflight passes. Do not re-stamp to silence a mismatch without re-checking routing, reselect wiki pages, call `wiki-researcher`, rewrite the plan, use legacy `appliesTo`, filter by task string, or let implementers decide routing during execution.
 
 For each current task, render task-scoped wiki constraints with the installed plugin-root renderer and inject stdout directly under `## Rendered Wiki Constraints for This Task`, together with `## Assigned Task` containing the current task's full plan text:
 
@@ -279,7 +279,7 @@ When reading the implementation plan, extract its `Referenced Project Wiki` sect
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
 
-If the preflight fails because task text changed after plan review, stop before dispatch and return to planning-side binding refresh. Do not reselect wiki pages, call `wiki-researcher`, rewrite the plan, use legacy `appliesTo`, filter by task string, or let implementers/reviewers decide routing during SDD.
+If the preflight fails because task text changed after plan review, stop before dispatch and refresh the binding on the planning side: confirm the selected wiki routing still applies to the changed task, then re-run `wiki_context_render.py <sidecar> --bind-fingerprints --strict --execution-ready --plan-path <plan>` to re-stamp fingerprints, and resume only after the preflight passes. Do not re-stamp to silence a mismatch without re-checking routing, reselect wiki pages, call `wiki-researcher`, rewrite the plan, use legacy `appliesTo`, filter by task string, or let implementers/reviewers decide routing during SDD.
 
 Before dispatching each implementer or reviewer, render only that task's role-scoped wiki constraints and include stdout directly under `## Rendered Wiki Constraints for This Task`, together with `## Assigned Task` containing the assigned task's full plan text:
 
