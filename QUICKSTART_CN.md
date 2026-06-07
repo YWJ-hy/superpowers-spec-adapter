@@ -45,23 +45,9 @@
 ./superpower-adapter/manage.sh verify
 ```
 
-安装后会写入：
+安装会写入 adapter 的 agent、独立 skill（`init-wiki`、`import-wiki`、`migrate-wiki`、`lanhu-requirements`、`shared-wiki-mcp`、`publish-shared-wiki`、`update-wiki`）和执行脚本，并 patch 若干 Superpowers native skill（`brainstorming`、`writing-plans`、`executing-plans`、`subagent-driven-development`、`systematic-debugging`、`using-superpowers`）与 hook 兼容配置（`hooks/hooks.json`、`hooks/hooks-cursor.json`）。
 
-- `agents/wiki-researcher.md`
-- `skills/import-wiki/SKILL.md`
-- `skills/init-wiki/SKILL.md`
-- `skills/break-loop/SKILL.md`
-- `skills/update-wiki/SKILL.md`
-- adapter 执行脚本
-
-同时会 patch：
-
-- `hooks/hooks.json`（维护 adapter SessionStart 兼容配置）
-- `hooks/hooks-cursor.json`（维护 adapter sessionStart 兼容配置）
-- `skills/brainstorming/SKILL.md`
-- `skills/writing-plans/SKILL.md`
-- `skills/executing-plans/SKILL.md`
-- `skills/subagent-driven-development/SKILL.md`
+完整清单以 `./superpower-adapter/manage.sh status` / `verify` 的实际输出为准，不在本文逐一硬列以免过期。
 
 ---
 
@@ -80,10 +66,10 @@
 在 Claude Code 中可使用：
 
 ```text
-`init-wiki` skill
-`init-wiki` skill payments and order workflow
-`import-wiki` skill path/to/original-wiki-dir
-`import-wiki` skill path/to/original-wiki-dir --target imported
+init-wiki skill
+init-wiki skill payments and order workflow
+import-wiki skill path/to/original-wiki-dir
+import-wiki skill path/to/original-wiki-dir --target imported
 ```
 
 `init-wiki` skill 通过项目 inventory 辅助 agent 首次生成轻量 starter wiki；`import-wiki` skill 用于一次性结构迁移已有规范，不做语义融合。两者都是独立 adapter skill，完成后即可结束。
