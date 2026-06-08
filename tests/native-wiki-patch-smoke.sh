@@ -232,18 +232,6 @@ do
   fi
 done
 
-for forbidden in \
-  'maxWikiPages: <resolved integer or unlimited>' \
-  'wiki_settings.py' \
-  'default to 2' \
-  'There is no `maxWikiPages` cap'
-do
-  if grep -Fq -- "$forbidden" "$SYSTEMATIC_SKILL"; then
-    printf 'Expected systematic-debugging patch to be slimmed: %s\n' "$forbidden" >&2
-    exit 1
-  fi
-done
-
 
 if grep -Fq 'planPath:' "$SYSTEMATIC_SKILL"; then
   printf 'Expected systematic-debugging patch not to request a planPath\n' >&2

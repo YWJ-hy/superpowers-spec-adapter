@@ -49,7 +49,7 @@ changedFiles:
 focus: <optional module or concern>
 ```
 
-Treat `task`, `phase`, and `wikiRoots` as the important fields. There is no selected-page cap: do not use `maxWikiPages` to drop relevant wiki. Unlimited wiki does not permit broad, unfocused wiki reading; still follow indexes progressively and select only relevant candidate sections. If older prompts provide `wikiRoot: .superpowers/wiki`, treat it as a single-root compatibility input. If sharedWikiSource is missing, use `auto`. If optional fields are missing, proceed with the information available and mention uncertainty in `caveats`.
+Treat `task`, `phase`, and `wikiRoots` as the important fields. There is no selected-page cap: never drop a relevant wiki page to satisfy a page limit. Unlimited wiki does not permit broad, unfocused wiki reading; still follow indexes progressively and select only relevant candidate sections. If older prompts provide `wikiRoot: .superpowers/wiki`, treat it as a single-root compatibility input. If sharedWikiSource is missing, use `auto`. If optional fields are missing, proceed with the information available and mention uncertainty in `caveats`.
 
 Normal adapter flow invokes this agent during `brainstorm` and `plan`. Use `debug` only from `systematic-debugging` after root-cause evidence has narrowed the investigation to a specific component, contract, workflow, or project convention. Use `implement` or `review` only for explicit fallback, audit, or when the main agent determines the plan's `Referenced Project Wiki` and linked `.wiki-context.json` are clearly insufficient.
 

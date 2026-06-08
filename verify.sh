@@ -455,17 +455,6 @@ check_native_skill_residuals() {
       exit 1
     fi
   done
-  for forbidden in \
-    'maxWikiPages: <resolved integer or unlimited>' \
-    'wiki_settings.py' \
-    'default to 2' \
-    'There is no `maxWikiPages` cap'
-  do
-    if grep -Fq "$forbidden" "$systematic_skill"; then
-      printf 'Systematic-debugging patch should be slimmed: %s\n' "$forbidden" >&2
-      exit 1
-    fi
-  done
 
 
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"

@@ -24,7 +24,6 @@
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
     "scripts/wiki_context_render.py",
-    "scripts/wiki_settings.py",
     "scripts/source_truth_common.py",
     "scripts/source_truth_settings.py",
     "scripts/source_truth_render.py",
@@ -63,7 +62,8 @@
     "scripts/wiki_select_context.py",
     "scripts/wiki_update_run.py",
     "scripts/wiki_update_prompt.py",
-    "scripts/wiki_update_template.py"
+    "scripts/wiki_update_template.py",
+    "scripts/wiki_settings.py"
   ],
   "optionalPatchedPaths": [
     "hooks/hooks.json",
