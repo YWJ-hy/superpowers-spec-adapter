@@ -75,6 +75,14 @@ Continue only after the user confirms the generated `.lanhu/.../index.md` packag
 
 Lanhu MCP is optional. If the explicit skill cannot use Lanhu tools, the user can paste requirements or continue with normal Superpowers brainstorming.
 
+Before proposing approaches, render the configured source-of-truth spec policy with the installed plugin-root script:
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --render-prompt spec-pre
+```
+
+If stdout is non-empty, include it as a short `Adapter Source-of-Truth Policy` prompt input while drafting the spec. If stdout is empty, sourceOfTruth is unconfigured; skip silently and do not add not-configured noise to the spec.
+
 After exploring project context and before proposing approaches, use the `wiki-researcher` agent to select relevant project/shared wiki context:
 
 ```yaml
@@ -186,7 +194,15 @@ Author the sidecar from the compact skeleton below; read the full `__SUPERPOWER_
 
 Every `hardConstraint: true` section MUST carry a `reread` block (`root`, `source`, `localPath` or `wikiPath`, `sectionId`, `includeDocumentContext`) so execution can reread the full authoritative section text; `--execution-ready` validation fails without it. `github_mcp` pages MUST record `source: github_mcp`, `wikiPath`, and `revision` instead of a local file path. When any selected page is `source: github_mcp`, also record the shared wiki identity once at top level as `sharedWiki: { "source": "github_mcp", "repoUrl", "baseBranch", "revision" }` taken from `shared_wiki_status`, so execution can detect shared-wiki rebinding drift (the project's `wiki.sharedMcp.repoUrl` changing after planning). Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
 
-After complete draft plan, source-of-truth handling if configured, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by assigning each section's `destination` and writing `globalWikiRefs` plus one `taskWikiRefs` entry per plan task (each with `taskId`, `taskTitle`, and `wikiRefs`). Assign `destination` as: `planning-only` for soft context the task text already embodies (not injected at execution/review; never for `hardConstraint`/`direct`), `global` for rules every task and reviewer needs, else `task-bound`. For a reviewer-only check, keep it `task-bound` and put it in the `review` constraint category instead of re-stating it to the implementer. Do not hand-write or copy `taskFingerprint`; stamp it mechanically from the reviewed plan, which validates execution readiness and writes the sidecar in place:
+Before decomposing tasks, render the configured source-of-truth planning policy with the installed plugin-root script:
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --render-prompt plan-pre
+```
+
+If stdout is non-empty, include it as a short policy prompt input while drafting the implementation plan. The policy is a prompt guard only: do not add a mandatory sourceOfTruth section to the plan, do not run a semantic sourceOfTruth verifier agent, and do not create sourceOfTruth sidecar artifacts.
+
+After complete draft plan, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by assigning each section's `destination` and writing `globalWikiRefs` plus one `taskWikiRefs` entry per plan task (each with `taskId`, `taskTitle`, and `wikiRefs`). Assign `destination` as: `planning-only` for soft context the task text already embodies (not injected at execution/review; never for `hardConstraint`/`direct`), `global` for rules every task and reviewer needs, else `task-bound`. For a reviewer-only check, keep it `task-bound` and put it in the `review` constraint category instead of re-stating it to the implementer. Do not hand-write or copy `taskFingerprint`; stamp it mechanically from the reviewed plan, which validates execution readiness and writes the sidecar in place:
 
 ```bash
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --bind-fingerprints --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
@@ -194,17 +210,15 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/s
 
 `--bind-fingerprints` is the single source of truth for `taskFingerprint`; never compute the sha256 by hand or paste a placeholder digest (a copied placeholder passes structural validation but fails the execution-side preflight). It refuses to write unless every plan task has exactly one `taskWikiRefs` entry and routing is execution-ready, so a clean bind guarantees the execution/SDD `--fingerprint-preflight` will pass. Do not inspect `scripts/wiki_context_render.py` to infer the JSON format; use the contract for authoring and the renderer only for binding/validation/rendering. If selected wiki conflicts with the confirmed Superpowers spec, stop and ask the user to resolve the conflict before finalizing the plan.
 
-### Adapter Source-of-Truth Verification
+### Adapter Source-of-Truth Plan Policy
 
-Source-of-truth verification is conditional. Before dispatching `source-of-truth-verifier`, inspect project settings:
+Source-of-truth is now settings-driven prompt policy plus task post-lint, not semantic verifier output. During plan review, render the plan-review checklist and pass any non-empty output to `plan-document-reviewer` through the normal review prompt:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --show-policy
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --render-prompt plan-review
 ```
 
-If `status` is `not_configured` and the user did not explicitly request source-of-truth verification, skip this branch and do not create a not-configured sidecar.
-
-If `sourceOfTruth` is configured or explicitly requested, you MUST read and follow `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/source-truth-verification.md` before dispatching the verifier. That contract defines the verifier dispatch inputs, the bounded verdict envelope you consume (the verifier self-writes the report/constraints files and returns only that envelope; keep the full report out of planning context), the two-phase constraints binding after task stabilization, the `source_truth_render.py --bind-fingerprints --strict --execution-ready` stamping/validation, and the lightweight `## Source-of-Truth Verification` plan section. Do not inline that whole contract or the full report back into planning context.
+The reviewer should request revision or user confirmation if the plan explicitly or implicitly edits configured truth paths. Do not require a sourceOfTruth verification plan section, do not dispatch a semantic sourceOfTruth verifier agent, and do not create sourceOfTruth sidecar artifacts.
 ''',
     ),
     PatchSpec(
@@ -248,18 +262,21 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_read_section.py --batch-
 
 For `source: github_mcp` rereads, use the MCP batch read plan with `shared_wiki_read_sections({ includeDocumentContext: true, sections: [{ path: wikiPath, section: sectionId }] })`. First, if the sidecar records a top-level `sharedWiki.repoUrl`, confirm `shared_wiki_status.repoUrl` matches it and stop on shared-wiki rebinding drift instead of rereading against a different repo. Then compare returned revisions to the sidecar, and stop on revision drift, section errors, partial results, or validation failures. Inject extracted document context plus full section text under `## Hard Wiki Constraint Rereads`; these rereads are authoritative hard constraints, not additional wiki search results.
 
-### Adapter Source-of-Truth Constraints
+### Adapter Source-of-Truth Task Lint
 
-Source-of-truth execution context is conditional. If the final plan has no `Source-of-Truth Verification` section linking `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`, skip this branch. If the section is present and status is `blocked`, stop and return to planning.
-
-When a constraints sidecar exists, run exactly one source-truth fingerprint preflight before code changes, then render only current-task constraints:
+Source-of-truth execution enforcement is post-task changed-path lint, not task-scoped constraint rendering. Before implementation, you may render the short execution reminder and include it in the current task prompt only when stdout is non-empty:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --task-id <current-task-id> --role implementer --strict --execution-ready
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --render-prompt execution-reminder
 ```
 
-Inject only the rendered `## Source-of-Truth Constraints` block under `## Rendered Source-of-Truth Constraints for This Task`. Do not read or inject the full `*.source-truth-report.json`; it is planning/audit only. Do not use legacy `appliesTo`, task title strings, or task body matching for source-truth execution routing. If rendered constraints forbid editing configured truth sources, stop before violating them and ask for a planning/user decision.
+After completing implementation for each task and before marking the task complete, lint the actual changed paths touched by the task against configured sourceOfTruth policy:
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --lint-changed --changed-path <repo-relative-path> --format json
+```
+
+Use repeated `--changed-path` values or `--changed-paths-file` for the real changed-file list from git diff/tool context. If the user explicitly authorized a `truth/edit: ask` edit, pass that exact repo-relative path with `--authorized-truth-edit`; this authorization never bypasses `truth/edit: never`. If lint returns `block`, do not complete the task until the protected truth edit is reverted or routed through the upstream truth-source process. If lint returns `ask`, obtain explicit user authorization or revert before completion. `evidence` findings are warnings only. Do not use any sourceOfTruth renderer or sourceOfTruth sidecar flow.
 
 #### Durable-Knowledge Candidate Capture
 
@@ -306,19 +323,21 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/s
 
 For local rereads, prefer ordered batch extraction with `wiki_read_section.py --batch-jsonl --project-root <project-root> --include-document-context`. For `source: github_mcp`, use `shared_wiki_read_sections({ includeDocumentContext: true, sections: [{ path: wikiPath, section: sectionId }] })`; first, if the sidecar records a top-level `sharedWiki.repoUrl`, confirm `shared_wiki_status.repoUrl` matches it and stop on shared-wiki rebinding drift, then compare returned revision metadata to the sidecar, and stop on revision drift, section errors, partial results, or validation failures. Inject document context plus full section text under `## Hard Wiki Constraint Rereads`; spec-reviewers must verify compliance with the full section text without applying sibling sections or whole-page body text.
 
-### Adapter Source-of-Truth Constraints
+### Adapter Source-of-Truth Task Lint
 
-Source-of-truth SDD context is conditional. If the final plan has no `Source-of-Truth Verification` section linking `docs/superpowers/plans/<plan-stem>.source-truth-constraints.json`, skip this branch. If the section is present and status is `blocked`, stop and return to planning; do not dispatch implementers.
-
-When a constraints sidecar exists, run exactly one source-truth fingerprint preflight before dispatch, then render task-specific source-truth constraints for implementers and reviewers:
+Source-of-truth SDD enforcement is post-task changed-path lint, not task-scoped constraint rendering. Before dispatch, you may render the short execution reminder and include it in implementer/reviewer prompts only when stdout is non-empty:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --task-id <assigned-task-id> --role implementer --strict --execution-ready
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_render.py docs/superpowers/plans/<plan-stem>.source-truth-constraints.json --task-id <reviewed-task-id> --role reviewer --strict --execution-ready
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --render-prompt execution-reminder
 ```
 
-Inject only the rendered `## Source-of-Truth Constraints` block under `## Rendered Source-of-Truth Constraints for This Task`. Do not make subagents read the full `*.source-truth-report.json`; it is planning/audit context only. The spec-reviewer must verify the implementation did not violate rendered source-truth constraints such as forbidden edits to generated clients, schemas, permissions, design tokens, or other configured truth sources.
+After each implementer returns and before marking its task complete, lint the actual changed paths touched by that task against configured sourceOfTruth policy:
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <repo-root> --lint-changed --changed-path <repo-relative-path> --format json
+```
+
+Use repeated `--changed-path` values or `--changed-paths-file` for the real changed-file list from git diff/tool context. If the user explicitly authorized a `truth/edit: ask` edit, pass that exact repo-relative path with `--authorized-truth-edit`; this authorization never bypasses `truth/edit: never`. If lint returns `block`, do not complete the task until the protected truth edit is reverted or routed through the upstream truth-source process. If lint returns `ask`, obtain explicit user authorization or revert before completion. `evidence` findings are warnings only. Reviewers should check that any lint findings were resolved. Do not use any sourceOfTruth renderer or sourceOfTruth sidecar flow.
 
 #### Durable-Knowledge Candidate Capture (via subagents)
 

@@ -26,9 +26,9 @@ adapter 不是业务代码目录，而是一个本地 adapter 源码目录。它
 
 adapter 会安装一组 overlay 并 patch 若干 Superpowers native skill。完整清单随版本变化，**以 `manifest.json` 和 `./manage.sh status` 的实际输出为准**，本文只给分类，不逐一硬列以免过期：
 
-- **Agent overlay**（`agents/`）：`wiki-researcher`、`source-of-truth-verifier`、lanhu 需求分析 agent 等。
+- **Agent overlay**（`agents/`）：`wiki-researcher`、lanhu 需求分析 agent 等。
 - **独立 adapter skill**（`skills/`，显式入口）：`init-wiki`、`import-wiki`、`migrate-wiki`、`lanhu-requirements`、`shared-wiki-mcp`、`publish-shared-wiki`、`update-wiki`。
-- **执行层脚本**（`scripts/`）：wiki 初始化 / 导入 / 更新 / 索引 / 渲染、source-of-truth、lanhu 设置等。
+- **执行层脚本**（`scripts/`）：wiki 初始化 / 导入 / 更新 / 索引 / 渲染、sourceOfTruth policy / lint、lanhu 设置等。
 - **被 patch 的 native skill**：`using-superpowers`、`brainstorming`、`writing-plans`、`executing-plans`、`subagent-driven-development`、`systematic-debugging`（均带 `superpower-adapter` marker，可重复安装、校验、卸载）。
 - **被维护的 hook 兼容配置**：`hooks/hooks.json`、`hooks/hooks-cursor.json`。
 
@@ -141,6 +141,8 @@ adapter 在 Superpowers 完成初步需求理解后、提出方案前注入：
 
 没有匹配 wiki page 或缺少 `.superpowers/wiki/index.md` 时，不阻塞 brainstorming。
 
+如果项目配置了 `.superpowers/settings.json.sourceOfTruth.sources`，brainstorming / spec pre 节点会渲染 `source_truth_settings.py --render-prompt spec-pre` 的短 policy prompt；spec review 节点只在调用方提供 `spec-review` checklist 时审查真实源策略冲突。未配置时静默跳过，不安装或调用独立 sourceOfTruth verifier agent。
+
 ### 5.2 `writing-plans`
 
 adapter 在拆分任务前注入正式 wiki 选择：
@@ -166,9 +168,13 @@ plan 小节示例：
 
 如果项目 wiki 与本次 Superpowers spec 冲突，应先让用户确认是调整需求 spec 还是更新项目 wiki。
 
+如果项目配置了 `sourceOfTruth.sources`，writing-plans / plan pre 节点会渲染 `source_truth_settings.py --render-prompt plan-pre` 的短 policy prompt；plan review 节点使用 `plan-review` checklist 检查 plan 是否会直接或隐式修改 configured truth paths。sourceOfTruth 不再生成 report / constraints sidecar，也不要求 plan 包含固定真实源校验区块。
+
 ### 5.3 `executing-plans`
 
 执行前读取 plan 中的 `Referenced Project Wiki`，定位链接的 `.wiki-context.json`，并通过 plugin-root `wiki_context_render.py` 按当前 task / implementer role 渲染 selected project wiki constraints。主 agent 应捕获 renderer stdout，并在 prompt 中用 `## Rendered Wiki Constraints for This Task` 标注 source sidecar、task id、role 和 preflight 状态后直接注入；正常执行不应把 rendered constraints 写成 `.claude-*-wiki-task*-impl.md` 或 `.claude-*-source-task*-impl.md` 等 Markdown 上下文文件。hard constraint 原文回读通过 `--reread-list` 得到当前 task 的 selected section JSONL，可跨本地 project/shared wiki 和 GitHub-backed shared wiki 批量处理：本地优先 `wiki_read_section.py --batch-jsonl`，MCP 优先 `shared_wiki_read_sections`，再按原始 reread-list 顺序注入 `## Hard Wiki Constraint Rereads`。
+
+sourceOfTruth 执行 enforcement 是任务完成前 changed-path lint：把本任务真实 changed files 传给 `source_truth_settings.py --lint-changed`；`truth/edit: never` block，`truth/edit: ask` 需要 `--authorized-truth-edit` 对应授权，`evidence` 只 warning。
 
 执行阶段不重新选择 wiki 页面，也不执行用户项目内复制的 adapter 脚本。
 
@@ -176,7 +182,7 @@ plan 小节示例：
 
 分发 implementer / reviewer subagent 前，主 agent 应读取 plan 的 `Referenced Project Wiki`，用 plugin-root `wiki_context_render.py` 按分配任务分别渲染 implementer / reviewer 约束块，捕获 stdout，并把带边界标注的渲染结果直接放进 subagent prompt，而不是传递 rendered Markdown 文件路径。hard constraint 原文回读同样从 task-scoped `--reread-list` 批量处理；batch 只是减少调用次数，不改变只读 selected sections、不读 sibling/full page、按原始列表顺序注入的语义。
 
-subagent 不应重新从 `.superpowers/wiki/` 选择规范，除非主 agent 判断 plan 引用明显不足并回到 planning 修正。
+subagent 不应重新从 `.superpowers/wiki/` 选择规范，除非主 agent 判断 plan 引用明显不足并回到 planning 修正。sourceOfTruth 不通过 sidecar 分发给 subagent；orchestrator 在每个任务完成前按真实 changed files 运行 lint，并让 reviewer 检查 findings 是否已处理。
 
 ---
 

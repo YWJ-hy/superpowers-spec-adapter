@@ -8,7 +8,6 @@
   "installedPaths": [
     "hooks/post-merge-update-wiki",
     "agents/wiki-researcher.md",
-    "agents/source-of-truth-verifier.md",
     "agents/lanhu-frontend-requirements-analyst.md",
     "agents/lanhu-backend-requirements-analyst.md",
     "skills/break-loop/SKILL.md",
@@ -20,13 +19,11 @@
     "skills/publish-shared-wiki/SKILL.md",
     "skills/shared-wiki-mcp/SKILL.md",
     "contracts/wiki-context-v3.example.jsonc",
-    "contracts/source-truth-verification.md",
     "scripts/update-wiki.py",
     "scripts/wiki-context.py",
     "scripts/wiki_context_render.py",
     "scripts/source_truth_common.py",
     "scripts/source_truth_settings.py",
-    "scripts/source_truth_render.py",
     "scripts/wiki_common.py",
     "scripts/wiki_section.py",
     "scripts/wiki_read_section.py",
@@ -40,6 +37,7 @@
     "scripts/wiki_migrate_helper.py"
   ],
   "removedPaths": [
+    "agents/source-of-truth-verifier.md",
     "agents/graphify-researcher.md",
     "agents/lanhu-requirements-analyst.md",
     "agents/lanhu-frontend-html-requirements-analyst.md",
@@ -56,6 +54,7 @@
     "skills/plan-context-sidecar/SKILL.md",
     "hooks/session-spec-index",
     "hooks/session-plan-context",
+    "contracts/source-truth-verification.md",
     "scripts/plan_context_common.py",
     "scripts/plan-context.py",
     "scripts/workflow-gate.py",
@@ -63,7 +62,8 @@
     "scripts/wiki_update_run.py",
     "scripts/wiki_update_prompt.py",
     "scripts/wiki_update_template.py",
-    "scripts/wiki_settings.py"
+    "scripts/wiki_settings.py",
+    "scripts/source_truth_render.py"
   ],
   "optionalPatchedPaths": [
     "hooks/hooks.json",

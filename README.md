@@ -15,10 +15,10 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output; new Lanhu intake is handled only by the explicit `lanhu-requirements` skill
-- Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed schemaVersion 3 `.wiki-context.json` constraints with page-level bounded `documentContext`, nested sections, and final task-bound `taskWikiRefs` / `globalWikiRefs` / `taskFingerprint`
-- Install `agents/source-of-truth-verifier.md` and patch `writing-plans` so complete draft plans are checked against configured or explicitly requested project source-of-truth before final plan review
+- Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed schemaVersion 3 `.wiki-context.json` constraints with page-level bounded `documentContext`, nested sections, and final task-bound `taskWikiRefs` / `globalWikiRefs` / `wiki/source task fingerprint`
+- Patch Superpowers spec/plan pre/review prompts with a short settings-driven sourceOfTruth policy, and run changed-path sourceOfTruth lint after tasks to guard actual truth-file edits
 - Patch Superpowers `systematic-debugging` so it may conditionally use `wiki-researcher` after evidence narrows the suspected project contract or component, without making wiki lookup a default prerequisite or imposing a wiki page cap
-- Let implementation and review consume plan `Referenced Project Wiki`, task-scoped `.wiki-context.json` renders via `--task-id`, and task-specific `.source-truth-constraints.json` output by capturing renderer stdout and injecting labeled task/role constraint blocks directly into prompts instead of persisting rendered Markdown context files, reselecting wiki pages, or reading full planning reports at execution time
+- Let implementation and review consume plan `Referenced Project Wiki` plus task-scoped `.wiki-context.json` renders via `--task-id`, while sourceOfTruth enforcement is handled by deterministic changed-path lint instead of task-scoped source-truth sidecars
 - Patch Superpowers `using-git-worktrees` and `finishing-a-development-branch` so worktree tasks can merge back to the branch that created them
 - Keep standalone adapter skills such as `import-wiki`, `init-wiki`, and `lanhu-requirements` outside Superpowers completion/review/verification skills until they explicitly hand off to the next Superpowers workflow step
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
@@ -55,7 +55,6 @@ To pin models, copy the relevant entries from `adapter.config.example.jsonc` int
   "subagentModels": {
     "agents": {
       "wiki-researcher": "sonnet",
-      "source-of-truth-verifier": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
     },
@@ -230,7 +229,7 @@ Progressive wiki reading still follows these rules:
 2. Follow each root index to narrower indexes or per-document section indexes
 3. During brainstorming, stay index-only and do not read section full text
 4. During planning, read only candidate section full text and write schemaVersion 3 `.wiki-context.json` with one bounded `documentContext` per wiki page and nested selected sections
-5. After final tasks stabilize, assign routing into `taskWikiRefs` / `globalWikiRefs`, stamp `taskFingerprint` mechanically with `wiki_context_render.py --bind-fingerprints --execution-ready --plan-path` (never hand-write it), then render execution context with `--task-id`
+5. After final tasks stabilize, assign routing into `taskWikiRefs` / `globalWikiRefs`, stamp `wiki/source task fingerprint` mechanically with `wiki_context_render.py wiki bind-fingerprints --execution-ready --plan-path` (never hand-write it), then render execution context with `--task-id`
 6. During implementation and review, use plan `Referenced Project Wiki` and render selected task constraints from linked `.wiki-context.json`; hard-constraint rereads inject document context plus the selected section body only
 7. Avoid full-tree wiki loading unless explicitly requested, and do not inject sibling sections or full pages just to recover section context
 
@@ -251,11 +250,11 @@ sharedWikiSource: auto
 
 It starts from existing project/shared root indexes, follows index links progressively within each root, and returns structured YAML selected wiki pages plus planning constraint hints with root-prefixed paths. In `phase: debug`, it should be called only after `systematic-debugging` has narrowed the failing boundary, and it returns project-reference hints to verify rather than root-cause evidence. It does not modify files. There is no wiki page cap, but selection still must stay progressive and focused.
 
-## Source-of-truth verification
+## Source-of-truth policy and lint
 
-`writing-plans` conditionally uses Scheme B for facts that should come from real project contracts: it writes a complete draft implementation plan first, checks whether `sourceOfTruth` is configured or explicitly requested, then dispatches `source-of-truth-verifier` only when needed. The verifier is independent from `plan-document-reviewer`: it checks concrete assumptions about interfaces, generated types, schemas, permissions, design tokens, and other configured truth sources; the plan reviewer checks whether the final plan consumed that result correctly.
+Source-of-truth is settings-driven prompt policy plus deterministic changed-path lint. It no longer installs a semantic verifier agent, writes report/constraints sidecars, or renders task-scoped source-truth constraints.
 
-Configure the verifier in the target project `.superpowers/settings.json`:
+Configure policy in the target project `.superpowers/settings.json`:
 
 ```json
 {
@@ -273,14 +272,24 @@ Configure the verifier in the target project `.superpowers/settings.json`:
 
 `heuristics` defaults to `false`, so calls/usages/mocks are not treated as truth unless explicitly configured. `paths` use gitignore-style syntax, including `**`, leading `/`, trailing `/`, `!` negation, and later-rule override. `truth` sources require `edit: never` or `edit: ask`; `evidence` and `ignore` do not use `edit`.
 
-When enabled, the verifier writes two sidecars next to the plan itself and returns only a bounded verdict envelope to the planning agent, so the full report never enters the planning context:
+When configured, native skill patches render short policy/checklist prompts from the installed plugin-root script:
 
-```text
-docs/superpowers/plans/<plan-stem>.source-truth-report.json
-docs/superpowers/plans/<plan-stem>.source-truth-constraints.json
+```bash
+python3 <plugin-root>/scripts/source_truth_settings.py <repo-root> --render-prompt spec-pre
+python3 <plugin-root>/scripts/source_truth_settings.py <repo-root> --render-prompt spec-review
+python3 <plugin-root>/scripts/source_truth_settings.py <repo-root> --render-prompt plan-pre
+python3 <plugin-root>/scripts/source_truth_settings.py <repo-root> --render-prompt plan-review
 ```
 
-The full report is planning/audit context only. Normal execution and SDD must not read or inject the full `*.source-truth-report.json`; after final plan tasks are stable, planning assigns schemaVersion 2 `constraintSets` into `globalConstraintRefs` / `taskConstraintRefs` and stamps `taskFingerprint` with `source_truth_render.py --bind-fingerprints --execution-ready --plan-path`, then execution runs `source_truth_render.py --fingerprint-preflight` and renders task-specific constraints with `source_truth_render.py --task-id <task-id> --strict --execution-ready`. If the verifier status is `blocked`, execution must return to planning instead of implementing around the conflict.
+The rendered prompt contains bounded path patterns and enum policy only; it does not read source files or dump the full settings JSON. Spec/plan documents do not need a fixed sourceOfTruth section.
+
+During execution and SDD, enforcement happens before each task is marked complete by linting actual changed paths:
+
+```bash
+python3 <plugin-root>/scripts/source_truth_settings.py <repo-root> --lint-changed --changed-path <repo-relative-path> --format json
+```
+
+`truth/edit: never` findings block completion and cannot be bypassed by authorization. `truth/edit: ask` requires explicit user authorization passed as `--authorized-truth-edit <path>`. `evidence` changes are warnings only.
 
 ## Referenced Project Wiki
 
@@ -296,7 +305,7 @@ Detailed constraints are written to a plan sidecar file such as:
 docs/superpowers/plans/<plan-stem>.wiki-context.json
 ```
 
-Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 3 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. Final task stabilization adds `taskRouting`, `taskWikiRefs`, `globalWikiRefs`, and `destination`, then stamps `taskFingerprint` mechanically via `--bind-fingerprints` (which also validates `--execution-ready`); execution preflights with `--fingerprint-preflight`, then renders selected task constraint blocks with `--task-id` instead of task-string filtering. Forced hard-constraint rereads use the task-scoped page context with the selected section body, not sibling sections or whole pages.
+Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 3 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. Final task stabilization adds `taskRouting`, `taskWikiRefs`, `globalWikiRefs`, and `destination`, then stamps `wiki/source task fingerprint` mechanically via `wiki bind-fingerprints` (which also validates `--execution-ready`); execution preflights with `wiki fingerprint-preflight`, then renders selected task constraint blocks with `--task-id` instead of task-string filtering. Forced hard-constraint rereads use the task-scoped page context with the selected section body, not sibling sections or whole pages.
 
 
 ## Worktree origin tracking

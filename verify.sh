@@ -81,83 +81,37 @@ PY
 }
 
 check_source_truth_overlays() {
-  local verifier_agent="$TARGET_DIR/agents/source-of-truth-verifier.md"
   local settings_script="$TARGET_DIR/scripts/source_truth_settings.py"
-  local render_script="$TARGET_DIR/scripts/source_truth_render.py"
   local common_script="$TARGET_DIR/scripts/source_truth_common.py"
-  for required_file in "$verifier_agent" "$settings_script" "$render_script" "$common_script"; do
+  for required_file in "$settings_script" "$common_script"; do
     if [[ ! -f "$required_file" ]]; then
-      printf 'Missing source-truth integration file: %s\n' "$required_file" >&2
+      printf 'Missing source-truth policy file: %s\n' "$required_file" >&2
       exit 1
     fi
   done
-  for required in \
-    'source-of-truth verifier' \
-    'sourceOfTruth' \
-    'heuristics' \
-    'truth' \
-    'evidence' \
-    'ignore' \
-    'source-truth-report.json' \
-    'source-truth-constraints.json' \
-    'planning/audit artifact only' \
-    'consumes only this constraints sidecar' \
-    'Write the full report only when' \
-    'source_truth_render.py'
+  for removed_file in \
+    "$TARGET_DIR/agents/source-of-truth-verifier.md" \
+    "$TARGET_DIR/contracts/source-truth-verification.md" \
+    "$TARGET_DIR/scripts/source_truth_render.py"
   do
-    if ! grep -Fq "$required" "$verifier_agent"; then
-      printf 'Missing source-truth verifier agent requirement: %s\n' "$required" >&2
+    if [[ -f "$removed_file" ]] && grep -Fq "$MARKER" "$removed_file"; then
+      printf 'Deprecated source-truth file remains installed: %s\n' "$removed_file" >&2
       exit 1
     fi
   done
   for required in 'DEFAULT_HEURISTICS = False' 'ROLE_VALUES = {"truth", "evidence", "ignore"}' 'EDIT_VALUES = {"never", "ask"}' 'match_gitignore_patterns' 'classify_path'; do
-    if ! grep -Fq "$required" "$common_script"; then
+    if ! grep -Fq -- "$required" "$common_script"; then
       printf 'Missing source-truth settings implementation detail: %s\n' "$required" >&2
       exit 1
     fi
   done
-  for required in 'Inspect sourceOfTruth settings' '--show-policy' '--classify'; do
+  for required in 'Inspect sourceOfTruth settings' '--show-policy' '--classify' '--render-prompt' '--lint-changed' '--changed-path' '--changed-paths-file' '--authorized-truth-edit' 'SOT_TRUTH_EDIT_FORBIDDEN' 'SOT_TRUTH_EDIT_AUTH_MISSING' 'SOT_EVIDENCE_CHANGED'; do
     if ! grep -Fq -- "$required" "$settings_script"; then
-      printf 'Missing source-truth settings CLI detail: %s\n' "$required" >&2
+      printf 'Missing source-truth policy CLI detail: %s\n' "$required" >&2
       exit 1
     fi
   done
-  for required in 'superpower-adapter.source-truth-constraints' 'ROLE_CATEGORIES' 'implementer' 'reviewer' '--validate-only' '--bind-fingerprints' '--strict' 'Source-of-Truth Constraints'; do
-    if ! grep -Fq -- "$required" "$render_script"; then
-      printf 'Missing source-truth render implementation detail: %s\n' "$required" >&2
-      exit 1
-    fi
-  done
-  # Source-of-truth dispatch/binding detail is deferred out of the always-loaded writing-plans patch
-  # into this on-demand reference contract; verify it still carries the moved detail.
-  local source_truth_ref="$TARGET_DIR/contracts/source-truth-verification.md"
-  if [[ ! -f "$source_truth_ref" ]]; then
-    printf 'Missing source-truth verification reference contract: %s\n' "$source_truth_ref" >&2
-    exit 1
-  fi
-  for required in \
-    'source-of-truth-verifier' \
-    'source-truth-report.json' \
-    'source-truth-constraints.json' \
-    'bounded verdict envelope' \
-    'full report is planning/audit only' \
-    'globalConstraintRefs' \
-    'taskConstraintRefs' \
-    'taskFingerprint' \
-    '--bind-fingerprints' \
-    'source_truth_render.py'
-  do
-    if ! grep -Fq -- "$required" "$source_truth_ref"; then
-      printf 'Missing deferred source-truth reference detail: %s\n' "$required" >&2
-      exit 1
-    fi
-  done
-  # The execution renderer must never machine-read the planning/audit report.
-  if grep -Fq -- 'report' "$render_script"; then
-    printf 'source_truth_render.py must not reference the report; it consumes only the constraints sidecar\n' >&2
-    exit 1
-  fi
-  printf 'Source-truth overlay checks OK\n'
+  printf 'Source-truth policy checks OK\n'
 }
 
 check_optional_integration_overlays() {
@@ -278,7 +232,7 @@ check_optional_integration_overlays() {
     'structured source facts' \
     'persistedImages: false'
   do
-    if ! grep -Fq "$required" "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_skill"; then
+    if ! grep -Fq -- "$required" "$lanhu_frontend_agent" "$lanhu_backend_agent" "$lanhu_skill"; then
       printf 'Missing Lanhu guardrail: %s\n' "$required" >&2
       exit 1
     fi
@@ -296,7 +250,7 @@ check_optional_integration_overlays() {
     '不输出实现方案' \
     '不输出独立证据映射表'
   do
-    if ! grep -Fq "$required" "$lanhu_frontend_agent"; then
+    if ! grep -Fq -- "$required" "$lanhu_frontend_agent"; then
       printf 'Missing frontend unified Lanhu analyst guardrail: %s\n' "$required" >&2
       exit 1
     fi
@@ -315,7 +269,7 @@ check_optional_integration_overlays() {
     '数据相关源事实' \
     '待确认问题'
   do
-    if ! grep -Fq "$required" "$lanhu_backend_agent"; then
+    if ! grep -Fq -- "$required" "$lanhu_backend_agent"; then
       printf 'Missing backend Lanhu analyst guardrail: %s\n' "$required" >&2
       exit 1
     fi
@@ -334,7 +288,7 @@ check_optional_integration_overlays() {
     'frontend-prd/design/index.html' \
     'lanhu.frontend.output.format is deprecated and ignored'
   do
-    if ! grep -Fq "$required" "$lanhu_settings_script"; then
+    if ! grep -Fq -- "$required" "$lanhu_settings_script"; then
       printf 'Missing Lanhu settings unified output detail: %s\n' "$required" >&2
       exit 1
     fi
@@ -344,10 +298,30 @@ check_optional_integration_overlays() {
 }
 
 check_native_skill_residuals() {
-  if grep -Eq 'spec-researcher|update-spec|init-spec|import-spec|spec-progressive-disclosure|Referenced Project Specs|\.superpowers/spec' "$TARGET_DIR/skills/brainstorming/SKILL.md" "$TARGET_DIR/skills/systematic-debugging/SKILL.md" "$TARGET_DIR/skills/writing-plans/SKILL.md" "$TARGET_DIR/skills/executing-plans/SKILL.md" "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"; then
+  local patched_skills=(
+    "$TARGET_DIR/skills/brainstorming/SKILL.md"
+    "$TARGET_DIR/skills/systematic-debugging/SKILL.md"
+    "$TARGET_DIR/skills/writing-plans/SKILL.md"
+    "$TARGET_DIR/skills/executing-plans/SKILL.md"
+    "$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
+  )
+  if grep -Eq 'spec-researcher|update-spec|init-spec|import-spec|spec-progressive-disclosure|Referenced Project Specs|\.superpowers/spec' "${patched_skills[@]}"; then
     printf 'Deprecated adapter spec terminology remains in native skill patches\n' >&2
     exit 1
   fi
+  for forbidden in \
+    'source-of-truth-verifier' \
+    'source_truth_render.py' \
+    'source-truth-report.json' \
+    'source-truth-constraints.json' \
+    'Rendered Source-of-Truth Constraints' \
+    'contracts/source-truth-verification.md'
+  do
+    if grep -Fq -- "$forbidden" "${patched_skills[@]}"; then
+      printf 'Deprecated source-truth sidecar flow remains in native skill patches: %s\n' "$forbidden" >&2
+      exit 1
+    fi
+  done
   if grep -Fq 'wiki-progressive-disclosure' "$TARGET_DIR/skills/brainstorming/SKILL.md"; then
     printf 'Invalid default wiki-progressive-disclosure dependency in brainstorming patch\n' >&2
     exit 1
@@ -389,11 +363,13 @@ check_native_skill_residuals() {
     'read that `index.md` first' \
     'do not call Lanhu MCP by default' \
     'Lanhu MCP is optional' \
+    'source_truth_settings.py' \
+    '--render-prompt spec-pre' \
     'sharedWikiSource: auto' \
     'logical display path' \
     'MCP is unavailable'
   do
-    if ! grep -Fq "$required" "$brainstorming_skill"; then
+    if ! grep -Fq -- "$required" "$brainstorming_skill"; then
       printf 'Missing slim brainstorming adapter requirement: %s\n' "$required" >&2
       exit 1
     fi
@@ -414,7 +390,6 @@ check_native_skill_residuals() {
     fi
   done
 
-
   local writing_skill="$TARGET_DIR/skills/writing-plans/SKILL.md"
   for required in \
     'sharedWikiSource: auto' \
@@ -429,16 +404,15 @@ check_native_skill_residuals() {
     'wiki_context_render.py' \
     '--bind-fingerprints' \
     'source_truth_settings.py' \
-    'Source-of-Truth Verification' \
-    'status` is `not_configured`' \
-    'contracts/source-truth-verification.md'
+    '--render-prompt plan-pre' \
+    '--render-prompt plan-review' \
+    'sourceOfTruth sidecar artifacts'
   do
     if ! grep -Fq -- "$required" "$writing_skill"; then
       printf 'Missing slim source-aware planning requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
-
 
   local systematic_skill="$TARGET_DIR/skills/systematic-debugging/SKILL.md"
   for required in \
@@ -450,22 +424,21 @@ check_native_skill_residuals() {
     'do not write `.wiki-context.json`' \
     'break-loop'
   do
-    if ! grep -Fq "$required" "$systematic_skill"; then
+    if ! grep -Fq -- "$required" "$systematic_skill"; then
       printf 'Missing slim systematic-debugging wiki requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
 
-
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not read or inject the full `*.source-truth-report.json`' 'skip this branch'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'revision metadata' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Source-of-Truth Verification' 'source_truth_render.py' 'source-truth-constraints.json' 'Do not make subagents read the full `*.source-truth-report.json`' 'spec-reviewer must verify' 'skip this branch'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'revision metadata' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'Reviewers should check that any lint findings were resolved'; do
     if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1
@@ -483,13 +456,13 @@ check_native_skill_residuals() {
   local worktree_skill="$TARGET_DIR/skills/using-git-worktrees/SKILL.md"
   local finishing_skill="$TARGET_DIR/skills/finishing-a-development-branch/SKILL.md"
   for required in 'worktree-origin.json' 'originalBranch' 'originalWorktree' 'originalHead' 'rev-parse --absolute-git-dir'; do
-    if ! grep -Fq "$required" "$worktree_skill"; then
+    if ! grep -Fq -- "$required" "$worktree_skill"; then
       printf 'Missing worktree origin metadata requirement in using-git-worktrees patch: %s\n' "$required" >&2
       exit 1
     fi
   done
   for required in 'worktree-origin.json' 'Merge back to original branch' 'originalWorktree'; do
-    if ! grep -Fq "$required" "$finishing_skill"; then
+    if ! grep -Fq -- "$required" "$finishing_skill"; then
       printf 'Missing original branch finishing requirement in finishing-a-development-branch patch: %s\n' "$required" >&2
       exit 1
     fi
@@ -520,13 +493,10 @@ check_post_merge_hook() {
       exit 1
     fi
   done
-  # The reminder must not assert completion (respects update-wiki maintenance boundary).
   if ! grep -Fq 'not assert that implementation is verified or complete' "$hook_script"; then
     printf 'Post-merge hook reminder must not assert implementation completion\n' >&2
     exit 1
   fi
-  # The PostToolUse command must be registered in the Claude Code hooks config.
-  # (hook_patch.py verify is the authoritative JSON check; this is a sanity grep.)
   if ! grep -Fq 'post-merge-update-wiki' "$TARGET_DIR/hooks/hooks.json"; then
     printf 'Missing PostToolUse registration for post-merge-update-wiki in hooks.json\n' >&2
     exit 1

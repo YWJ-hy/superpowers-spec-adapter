@@ -41,10 +41,10 @@
   },
 
   // 项目本地 source-of-truth 配置。仅从 .superpowers/settings.json 读取。
-  // writing-plans 写出完整 draft plan 后，source-of-truth-verifier 会按这里的规则
-  // 校验接口、类型、schema、权限、设计 token 或其它真实源假设。
+  // adapter 会按这里的规则给 spec/plan pre 与 review 节点渲染短 policy/checklist，
+  // 并在执行任务完成前按真实 changed paths 做确定性 lint。
   "sourceOfTruth": {
-    // 默认 false。未显式开启时，verifier 不用路径命名启发式猜测真实源。
+    // 默认 false。当前不使用路径命名启发式猜测真实源；truth 只来自显式 sources。
     "heuristics": false,
 
     // paths 使用 gitignore-style 语法：支持 **、前导 /、尾随 /、! 否定；后出现规则覆盖前面规则。
