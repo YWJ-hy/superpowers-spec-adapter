@@ -95,7 +95,7 @@ sharedWikiSource: auto
 focus: <module, workflow, or concern if known>
 ```
 
-Use the result as lightweight `Adapter Project Wiki Context` while designing the Superpowers spec. Wiki selection is strict and progressive: read indexes and companion section indexes first, select relevant sections only, and do not scan whole wiki trees without an explicit audit request. For `source: github_mcp`, treat `.shared-superpowers/wiki/<path>.md` as a logical display path, not a local file path. Do not block brainstorming if no relevant wiki exists, MCP is unavailable, or root indexes are missing; mention the caveat and continue. Do not write sidecar JSONL or `.wiki-context.json` during brainstorming.
+Use the result as lightweight `Adapter Project Wiki Context` while designing the Superpowers spec. Wiki selection is strict and progressive: read indexes and companion section indexes first, select relevant sections only, and do not scan whole wiki trees without an explicit audit request. For `source: github_mcp`, treat `.shared-superpowers/wiki/<path>.md` as a logical display path, not a local file path. Do not block brainstorming if no relevant wiki exists, MCP is unavailable, or root indexes are missing; mention the caveat and continue. Do not write sidecar JSONL, `.wiki-selection.json`, or `.wiki-context.json` during brainstorming.
 ''',
     ),
     PatchSpec(
@@ -169,49 +169,20 @@ planPath: docs/superpowers/plans/<filename>.md
 planSummary: <plan goal and likely task areas>
 ```
 
-`wiki-researcher` selects candidate pages and sections only. It must not create `taskWikiRefs`, compute `taskFingerprint`, invent future task IDs, or use legacy `appliesTo` for execution routing. Wiki selection remains strict and progressive: use indexed wiki structure and companion section indexes; do not use unmigrated wiki pages or broad tree scans as formal planning constraints.
+`wiki-researcher` selects candidate pages and sections only and returns them as a JSON *selection* object (shape in `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/wiki-selection-v1.example.jsonc`). It must not emit `destination`, `reread`, `taskRouting`, `taskWikiRefs`, `globalWikiRefs`, `taskFingerprint`, future task IDs, or legacy `appliesTo`. Wiki selection remains strict and progressive: use indexed wiki structure and companion section indexes; do not use unmigrated wiki pages or broad tree scans as formal planning constraints.
 
-Author the sidecar from the compact skeleton below; read the full `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/wiki-context-v3.example.jsonc` only as a fallback when you cannot resolve a shape from this skeleton or when `--validate-only --strict` reports a structural error you cannot fix from it. Write selected constraints to `docs/superpowers/plans/<plan-stem>.wiki-context.json` as schemaVersion 3 JSON (`schemaVersion: 3`) with a page-rooted `wikiPages` tree, one bounded `documentContext` per page (page-level only, never per-section), nested selected sections, categorized constraints (`implementation`, `test`, `review`, `general`), hard constraint status, source metadata, and final `destination`.
+Do not hand-author the sidecar JSON. Generate it mechanically from the selection, then edit only the semantic routing:
 
-```jsonc
-{
-  "schemaVersion": 3,
-  "kind": "superpower-adapter.wiki-context",
-  "wikiPages": [
-    {
-      "root": ".superpowers/wiki",                       // or .shared-superpowers/wiki
-      "source": "local",                                 // local | github_mcp
-      "displayPath": "domain/billing.md",
-      "localPath": ".superpowers/wiki/domain/billing.md", // github_mcp: drop localPath, set wikiPath + revision
-      "documentContext": {                               // page-level only, from <stem>.index.md
-        "title": "Billing",
-        "overview": "<bounded 1-3 sentence page overview>",
-        "contextSource": "domain/billing.index.md"
-      },
-      "sections": [
-        {
-          "sectionId": "rounding-rule",
-          "relevanceTo": "<why this section constrains the plan>",
-          "hardConstraint": true,
-          "destination": {"kind": "task-bound", "reason": "<why>"}, // task-bound | global | planning-only (soft only)
-          "constraints": {"implementation": ["<rule>"], "test": [], "review": [], "general": []},
-          "reread": {                                    // REQUIRED whenever hardConstraint is true
-            "root": ".superpowers/wiki",
-            "source": "local",
-            "localPath": ".superpowers/wiki/domain/billing.md", // github_mcp: wikiPath + revision
-            "sectionId": "rounding-rule",
-            "includeDocumentContext": true
-          },
-          "sourceAnchors": ["<short quote or heading>"]
-        }
-      ]
-    }
-  ]
-  // taskRouting / globalWikiRefs / taskWikiRefs / taskFingerprint are added later, after task stabilization.
-}
+1. Save `wiki-researcher`'s JSON selection verbatim to `docs/superpowers/plans/<plan-stem>.wiki-selection.json`.
+2. Generate the sidecar skeleton with the installed plugin-root script. It fills everything mechanical: schema constants, the `taskRouting` block, a `reread` block for every `hardConstraint` section, the top-level `sharedWiki` identity (taken from `shared_wiki_status`) when any `github_mcp` page is selected, and a default `destination.kind` per section. The generated sidecar is schemaVersion 3 JSON (`schemaVersion: 3`) with a page-rooted `wikiPages` tree, one bounded `documentContext` per page (page-level only), nested selected sections with hard constraint status, and categorized constraints (`implementation`, `test`, `review`, `general`).
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --scaffold docs/superpowers/plans/<plan-stem>.wiki-selection.json --strict --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
 
-Every `hardConstraint: true` section MUST carry a `reread` block (`root`, `source`, `localPath` or `wikiPath`, `sectionId`, `includeDocumentContext`) so execution can reread the full authoritative section text; `--execution-ready` validation fails without it. `github_mcp` pages MUST record `source: github_mcp`, `wikiPath`, and `revision` instead of a local file path. When any selected page is `source: github_mcp`, also record the shared wiki identity once at top level as `sharedWiki: { "source": "github_mcp", "repoUrl", "baseBranch", "revision" }` taken from `shared_wiki_status`, so execution can detect shared-wiki rebinding drift (the project's `wiki.sharedMcp.repoUrl` changing after planning). Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
+3. In the generated `docs/superpowers/plans/<plan-stem>.wiki-context.json`, edit only the semantic fields: write a one-line `destination.reason` for every selected section (the generator leaves it empty on purpose so you must justify routing), and fix any `destination.kind` the relevance-based default got wrong. Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
+
+If `--scaffold` reports a structural error, fix the shallow `docs/superpowers/plans/<plan-stem>.wiki-selection.json` and regenerate — do not patch the deep generated sidecar by hand. Only as a last-resort fallback (e.g. the generator is unavailable) hand-author the sidecar from `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/wiki-context-v3.example.jsonc` and validate with `--validate-only --strict`.
 
 Before decomposing tasks, render the configured source-of-truth planning policy with the installed plugin-root script:
 
@@ -221,13 +192,19 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/source_truth_settings.py <rep
 
 If stdout is non-empty, include it as a short policy prompt input while drafting the implementation plan. The policy is a prompt guard only: do not add a mandatory sourceOfTruth section to the plan, do not run a semantic sourceOfTruth verifier agent, and do not create sourceOfTruth sidecar artifacts.
 
-After complete draft plan, plan review revisions, and final task stabilization, bind selected wiki sections to stable task headings such as `### Task T1: <title>` by assigning each section's `destination` and writing `globalWikiRefs` plus one `taskWikiRefs` entry per plan task (each with `taskId`, `taskTitle`, and `wikiRefs`). Assign `destination` as: `planning-only` for soft context the task text already embodies (not injected at execution/review; never for `hardConstraint`/`direct`), `global` for rules every task and reviewer needs, else `task-bound`. For a reviewer-only check, keep it `task-bound` and put it in the `review` constraint category instead of re-stating it to the implementer. Do not hand-write or copy `taskFingerprint`; stamp it mechanically from the reviewed plan, which validates execution readiness and writes the sidecar in place:
+After complete draft plan, plan review revisions, and final task stabilization, scaffold task routing mechanically, then assign it. First add one `taskWikiRefs` entry per stable `### Task T1: <title>` heading — this fills `taskId`/`taskTitle` from the plan, preserves any `wikiRefs` you already entered (idempotent re-runs), and never stamps fingerprints:
+
+```bash
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --scaffold-tasks --plan-path docs/superpowers/plans/<plan-stem>.md
+```
+
+Then assign routing by editing the generated sidecar: set each task's `wikiRefs`, write `globalWikiRefs`, finalize every section's `destination` (`planning-only` for soft context the task text already embodies — not injected at execution/review, never for `hardConstraint`/`direct`; `global` for rules every task and reviewer needs; else `task-bound`), and flip `taskRouting.status` to `confirmed` with `selectedSectionsFrozen: true`. For a reviewer-only check, keep it `task-bound` and put it in the `review` constraint category instead of re-stating it to the implementer. Do not hand-write or copy `taskFingerprint`; stamp it mechanically from the reviewed plan, which validates execution readiness and writes the sidecar in place:
 
 ```bash
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --bind-fingerprints --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
 ```
 
-`--bind-fingerprints` is the single source of truth for `taskFingerprint`; never compute the sha256 by hand or paste a placeholder digest (a copied placeholder passes structural validation but fails the execution-side preflight). It refuses to write unless every plan task has exactly one `taskWikiRefs` entry and routing is execution-ready, so a clean bind guarantees the execution/SDD `--fingerprint-preflight` will pass. Do not inspect `scripts/wiki_context_render.py` to infer the JSON format; use the contract for authoring and the renderer only for binding/validation/rendering. If selected wiki conflicts with the confirmed Superpowers spec, stop and ask the user to resolve the conflict before finalizing the plan.
+`--bind-fingerprints` is the single source of truth for `taskFingerprint`; never compute the sha256 by hand or paste a placeholder digest (a copied placeholder passes structural validation but fails the execution-side preflight). It refuses to write unless every plan task has exactly one `taskWikiRefs` entry and routing is execution-ready, so a clean bind guarantees the execution/SDD `--fingerprint-preflight` will pass. You only edit the semantic routing in the generated sidecar; the generator owns the mechanical structure, so you never hand-build the envelope or infer the JSON format from `scripts/wiki_context_render.py`. If selected wiki conflicts with the confirmed Superpowers spec, stop and ask the user to resolve the conflict before finalizing the plan.
 
 ### Adapter Source-of-Truth Plan Policy
 

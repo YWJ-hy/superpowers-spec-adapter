@@ -102,85 +102,87 @@ When shared wiki source is `github_mcp`:
 
 ## Output
 
-Return only structured YAML in this shape:
+Return only a single JSON object as your final message — no prose, no YAML, no Markdown fences around it. This object is the wiki *selection*; the main (planning) agent saves it verbatim to `docs/superpowers/plans/<plan-stem>.wiki-selection.json` and feeds it to the sidecar generator. The full annotated shape lives in `contracts/wiki-selection-v1.example.jsonc`. Emit this structure:
 
-```yaml
-status: ok | partial | missing_wiki_root | no_relevant_wiki
-query: <short restatement of the task>
-phase: brainstorm | plan | debug | implement | review
-sharedWikiSource:
-  kind: github_mcp | local | unavailable
-  displayRoot: .shared-superpowers/wiki
-  repoUrl: <only for github_mcp>
-  baseBranch: <only for github_mcp>
-  revision:
-    ref: <only for github_mcp>
-    commitSha: <only for github_mcp>
-    shortSha: <only for github_mcp>
-wikiPages:
-  - path: .shared-superpowers/wiki/<path>.md
-    root: shared # project | shared
-    source: github_mcp # local | github_mcp
-    displayPath: .shared-superpowers/wiki/<path>.md
-    localPath: <path>.md # for local project/shared wiki; omit for github_mcp
-    wikiPath: <path>.md # for github_mcp; omit or mirror path relative to root for local
-    revision:
-      ref: <for github_mcp>
-      commitSha: <for github_mcp>
-      shortSha: <for github_mcp>
-    documentContext:
-      title: <document title from companion section index>
-      overview: <bounded document-level overview from companion section index>
-      scope: <optional explicit scope if present in the index overview>
-      contextSource: <companion <stem>.index.md path or MCP wikiPath>
-    sections:
-      - sectionId: <section marker ID from the document>
-        section_name: <same section marker ID; compatibility alias>
-        readDepth: index-only | full # index-only for brainstorm, full for plan/debug
-        relevance: direct | supporting | phase_only
-        confidence: high | medium | low
-        reason: <specific reason this wiki section applies>
-        relevanceTo: <coarse description of what task area this constrains — NOT specific task numbers>
-        hardConstraint: true | false
-        constraints:
-          implementation:
-            - <implementation constraint distilled from this section — only when readDepth is full>
-          test:
-            - <test or verification constraint distilled from this section>
-          review:
-            - <review-specific constraint distilled from this section>
-          general:
-            - <uncategorized preserved constraint; use this when category is unclear>
-        sourceAnchors:
-          - heading: <optional heading or anchor within the section>
-            excerpt: <short bounded excerpt>
-indexesRead:
-  - path: .superpowers/wiki/index.md
-    root: project
-    source: local
-  - path: .shared-superpowers/wiki/index.md
-    root: shared
-    source: github_mcp
-    wikiPath: index.md
-    revision:
-      commitSha: <for github_mcp>
-rejectedWikiPages:
-  - path: .superpowers/wiki/<path>.md
-    root: project
-    source: local
-    reason: <why it was not selected>
-caveats:
-  - <uncertainty, missing index, validation warning, fallback, or follow-up needed>
+```json
+{
+  "status": "ok",
+  "query": "<short restatement of the task>",
+  "phase": "plan",
+  "sharedWikiSource": {
+    "kind": "github_mcp",
+    "displayRoot": ".shared-superpowers/wiki",
+    "repoUrl": "<github_mcp only, from shared_wiki_status>",
+    "baseBranch": "<github_mcp only>",
+    "revision": { "ref": "<github_mcp only>", "commitSha": "<github_mcp only>", "shortSha": "<github_mcp only>" }
+  },
+  "wikiPages": [
+    {
+      "root": "shared",
+      "source": "github_mcp",
+      "displayPath": ".shared-superpowers/wiki/<path>.md",
+      "localPath": "<path>.md",
+      "wikiPath": "<path>.md",
+      "revision": { "ref": "<github_mcp>", "commitSha": "<github_mcp>", "shortSha": "<github_mcp>" },
+      "documentContext": {
+        "title": "<document title from companion section index>",
+        "overview": "<bounded page-level overview from companion section index>",
+        "scope": "<optional explicit scope if present in the index overview>",
+        "contextSource": "<companion <stem>.index.md path or MCP wikiPath>"
+      },
+      "sections": [
+        {
+          "sectionId": "<section marker id from the document>",
+          "readDepth": "full",
+          "relevance": "direct",
+          "confidence": "high",
+          "reason": "<specific reason this wiki section applies>",
+          "relevanceTo": "<coarse task-area description — NOT specific task numbers>",
+          "hardConstraint": true,
+          "constraints": {
+            "implementation": ["<distilled constraint — only when readDepth is full>"],
+            "test": ["<test or verification constraint>"],
+            "review": ["<review-specific constraint>"],
+            "general": ["<uncategorized preserved constraint>"]
+          },
+          "sourceAnchors": [
+            {"heading": "<optional heading within the section>", "excerpt": "<short bounded excerpt>"}
+          ]
+        }
+      ]
+    }
+  ],
+  "indexesRead": [
+    {"path": ".superpowers/wiki/index.md", "root": "project", "source": "local"},
+    {"path": ".shared-superpowers/wiki/index.md", "root": "shared", "source": "github_mcp", "wikiPath": "index.md"}
+  ],
+  "rejectedWikiPages": [
+    {"path": ".superpowers/wiki/<path>.md", "root": "project", "source": "local", "reason": "<why not selected>"}
+  ],
+  "caveats": ["<uncertainty, missing index, validation warning, fallback, or follow-up needed>"]
+}
 ```
 
-Always return root-prefixed `path` values so the main agent can distinguish project-owned and shared-owned pages, especially when both roots contain the same relative path.
+Field allowances: `status` is `ok | partial | missing_wiki_root | no_relevant_wiki`; `kind` is `github_mcp | local | unavailable`; `root` is `project | shared`; `source` is `local | github_mcp`; `readDepth` is `index-only | full`; `relevance` is `direct | supporting | phase_only`; `confidence` is `high | medium | low`.
 
-For `source: github_mcp`, `path` and `displayPath` are human-readable logical display paths, not local file paths. The main agent must write `wikiPath`, section IDs, companion `documentContext.contextSource`, and `revision` into `.wiki-context.json` so execution can batch reread selected leaf content with `shared_wiki_read_sections` if absolutely necessary, falling back to `shared_wiki_read_section` only for older MCP servers.
+Rules:
+- Emit valid JSON only. If the generator (`--scaffold`) later reports a structural error, it is pointing at this selection — fix the selection, not the deep generated sidecar.
+- Always return a root-prefixed `displayPath` so the main agent can distinguish project-owned and shared-owned pages, even when both roots contain the same relative path. For `source: github_mcp`, `displayPath` is a logical display path, not a local file path: record `wikiPath` and `revision` instead of a local path, and omit `localPath`. For local pages, record `localPath` and omit `wikiPath`.
+- `documentContext` belongs once per page, from the companion `<stem>.index.md` title/overview; keep it bounded. Do not nest `documentContext` inside section objects, and do not summarize sibling sections or the full page into it.
+- Populate `constraints` only when `readDepth` is `full`, and put every distilled constraint in exactly one of `implementation`, `test`, `review`, or `general` (use `general` when the category is unclear).
+- Output `relevanceTo` as a coarse human-readable task-area description, never specific task numbers.
+- Include the `sharedWikiSource` block only when at least one selected page is `source: github_mcp`; preserve `repoUrl`, `baseBranch`, and `revision` from `shared_wiki_status` so the generator can record shared-wiki identity for drift detection.
 
-Treat section `readDepth` as a phase-driven label. Use `readDepth: index-only` during brainstorming or when the section index description alone is sufficient. Use `readDepth: full` during planning when the wiki section is a hard constraint for implementation, tests, API contracts, directory layout, naming, or review, and the main agent must distill it into the plan's linked `.wiki-context.json` file.
+You select candidate pages and sections ONLY. You must NOT emit, compute, or invent any of: `destination`, `reread`, `taskRouting`, `taskWikiRefs`, `globalWikiRefs`, `taskFingerprint`, future task IDs, or legacy `appliesTo` execution routing. The sidecar generator fills every mechanical field (schema constants, the `taskRouting` block, a per-section `reread` block for hard sections, the top-level `sharedWiki` identity, and default `destination` kinds); the main agent then authors only the semantic routing after the plan has stable task IDs. Concretely, the main agent (not you):
 
-During `phase: plan`, include page-level `documentContext` plus section-level `sectionId`, `section_name`, `hardConstraint`, categorized `constraints`, and `sourceAnchors` when you read the section full text. `documentContext` must come from the companion `<stem>.index.md` title/overview and stay bounded at the page node; do not summarize sibling sections or the full page into it. Every constraint from the selected section must appear in one of `implementation`, `test`, `review`, or `general`; use `general` when the category is unclear. Output `relevanceTo` as a coarse human-readable task-area description, not specific task numbers. You must not create `taskWikiRefs`, compute `taskFingerprint`, invent future task IDs, or bind sections to tasks; final task-level wiki routing is generated only by the planning flow after the implementation plan has real stabilized task IDs. The main agent absorbs selected constraints into the plan/tasks during planning, writes `docs/superpowers/plans/<plan-stem>.wiki-context.json` from `contracts/wiki-context-v3.example.jsonc`, adds task routing only after tasks are finalized, validates it with `scripts/wiki_context_render.py --validate-only --strict --execution-ready --plan-path <plan>`, and links it from the plan's `Referenced Project Wiki` section. Do not inspect `scripts/wiki_context_render.py` to infer the sidecar format, and do not rely on `appliesTo` for execution-time routing.
+1. Saves your JSON to `docs/superpowers/plans/<plan-stem>.wiki-selection.json`.
+2. Runs `scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --scaffold docs/superpowers/plans/<plan-stem>.wiki-selection.json --strict --plan-path docs/superpowers/plans/<plan-stem>.md` to generate a complete-shaped sidecar skeleton.
+3. Edits only `destination.reason`, each task's `wikiRefs`, `globalWikiRefs`, and `taskRouting.status`/`selectedSectionsFrozen`, then after tasks stabilize runs `--scaffold-tasks --plan-path <plan>` and finally `--bind-fingerprints --strict --execution-ready --plan-path <plan>`.
+
+You do not write any files yourself, and you do not need to know the sidecar format — your contract is the selection JSON above.
+
+For `phase: brainstorm`, emit the same JSON shape but with `readDepth: index-only` sections and without distilled `constraints` (use the document overview and section index table for relevance). Brainstorming does not build a sidecar; the main agent uses your selection as lightweight context only.
 
 During `phase: debug`, `constraints` are project rules, contracts, or gotchas to verify; they are not confirmed root causes and are not plan constraints. `hardConstraint: true` only means the wiki section states a strong project rule, not that the bug root cause is confirmed. Include caveats when wiki context may be stale, incomplete, or needs verification against code, logs, tests, reproduction steps, or diagnostics.
 
-Do not include long-form analysis outside the YAML.
+Do not include any analysis or prose outside the JSON object.

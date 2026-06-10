@@ -19,6 +19,17 @@ ROLE_CATEGORIES = {
     "reviewer": ("implementation", "test", "review", "general"),
 }
 DESTINATION_KINDS = {"task-bound", "global", "planning-only"}
+SCAFFOLD_GENERATED_BY = "superpower-adapter"
+# taskRouting block emitted by --scaffold. These are the pre-confirmation values: the author flips
+# status to "confirmed" and selectedSectionsFrozen to true once routing is final, and
+# --bind-fingerprints + --execution-ready then gate it. The other three are fixed declared strings.
+SCAFFOLD_TASK_ROUTING = {
+    "status": "candidate_sections_only",
+    "planTaskFormat": "superpower-adapter-plan-task-heading-v1",
+    "fingerprintAlgorithm": "sha256:superpower-adapter-task-text-v1",
+    "selectedSectionsFrozen": False,
+    "refreshPolicy": "refresh-taskWikiRefs-and-fingerprints-only",
+}
 TASK_HEADING_RE = re.compile(r"^### Task\s+([A-Za-z0-9][A-Za-z0-9_-]*):\s*(.+?)\s*$")
 TASK_OR_HIGHER_HEADING_RE = re.compile(r"^#{1,3}\s+")
 HEX_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -60,18 +71,22 @@ def _as_dict(value: Any, field: str) -> dict[str, Any]:
     return value
 
 
-def _load_context(path: Path) -> dict[str, Any]:
-    if path.suffix == ".md":
-        raise ValidationError("Legacy .wiki-context.md is not supported for selected wiki context rendering; regenerate a schemaVersion 3 .wiki-context.json during planning.")
+def _load_json(path: Path, label: str) -> dict[str, Any]:
     try:
         raw = path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise ValidationError(f"Cannot read wiki context: {exc}") from exc
+        raise ValidationError(f"Cannot read {label}: {exc}") from exc
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValidationError(f"Invalid JSON: {exc}") from exc
-    return _as_dict(data, "wiki context")
+        raise ValidationError(f"Invalid JSON in {label}: {exc}") from exc
+    return _as_dict(data, label)
+
+
+def _load_context(path: Path) -> dict[str, Any]:
+    if path.suffix == ".md":
+        raise ValidationError("Legacy .wiki-context.md is not supported for selected wiki context rendering; regenerate a schemaVersion 3 .wiki-context.json during planning.")
+    return _load_json(path, "wiki context")
 
 
 def _section_id(section: dict[str, Any]) -> str:
@@ -598,6 +613,173 @@ def bind_fingerprints(data: dict[str, Any], plan_path: Path) -> tuple[int, int, 
     return len(sidecar_tasks), changed, sorted(sidecar_tasks)
 
 
+def _default_destination_kind(section: dict[str, Any]) -> str:
+    """Starting-guess routing for a freshly scaffolded section.
+
+    hard/direct sections may never be planning-only (execution-ready validation rejects that), so they
+    default to task-bound; soft context defaults to planning-only. The author confirms or overrides the
+    kind and MUST supply a non-empty destination.reason before --execution-ready passes.
+    """
+    if section.get("hardConstraint") or section.get("relevance") == "direct":
+        return "task-bound"
+    return "planning-only"
+
+
+def _derive_reread(page: dict[str, Any], section_id: str) -> dict[str, Any]:
+    """Mechanically build the reread block every hardConstraint section needs.
+
+    Derivable entirely from the page identity plus the section id, this removes the single most common
+    authoring omission (a hard section missing reread, which fails execution-ready validation). Mirrors
+    the page's path shape: localPath for local pages, wikiPath for github_mcp pages.
+    """
+    reread: dict[str, Any] = {"root": page.get("root"), "source": page.get("source")}
+    if page.get("localPath"):
+        reread["localPath"] = page["localPath"]
+    if page.get("wikiPath"):
+        reread["wikiPath"] = page["wikiPath"]
+    reread["sectionId"] = section_id
+    reread["includeDocumentContext"] = True
+    return {key: value for key, value in reread.items() if value is not None}
+
+
+def _scaffold_section(page: dict[str, Any], raw_section: Any, page_index: int, section_index: int) -> dict[str, Any]:
+    where = f"selection wikiPages[{page_index}].sections[{section_index}]"
+    section = _as_dict(raw_section, where)
+    section_id = section.get("sectionId") or section.get("section_name")
+    if not section_id:
+        raise ValidationError(f"{where} must include sectionId or section_name")
+    section_id = str(section_id)
+
+    out: dict[str, Any] = {"sectionId": section_id, "section_name": str(section.get("section_name") or section_id)}
+    for field_name in ("readDepth", "relevance", "confidence", "reason", "relevanceTo"):
+        if section.get(field_name) is not None:
+            out[field_name] = section[field_name]
+    out["hardConstraint"] = bool(section.get("hardConstraint"))
+    if "appliesTo" in section:
+        out["appliesTo"] = _as_list(section.get("appliesTo"), f"{where}.appliesTo")
+
+    constraints = _as_dict(section.get("constraints") or {}, f"{where}.constraints")
+    unknown = sorted(set(constraints) - set(CONSTRAINT_CATEGORIES))
+    if unknown:
+        raise ValidationError(f"{where}.constraints contains unsupported categories: {', '.join(unknown)}")
+    out["constraints"] = {
+        category: _as_list(constraints.get(category), f"{where}.constraints.{category}")
+        for category in CONSTRAINT_CATEGORIES
+    }
+
+    # destination.kind is a starting guess; reason stays empty on purpose so the author must justify
+    # routing before --execution-ready (which requires a non-empty reason for every section) passes.
+    out["destination"] = {"kind": _default_destination_kind(section), "reason": ""}
+    if out["hardConstraint"]:
+        out["reread"] = _derive_reread(page, section_id)
+    if "sourceAnchors" in section:
+        out["sourceAnchors"] = _as_list(section.get("sourceAnchors"), f"{where}.sourceAnchors")
+    if "caveats" in section:
+        out["caveats"] = _as_list(section.get("caveats"), f"{where}.caveats")
+    return out
+
+
+def _scaffold_page(raw_page: Any, page_index: int) -> dict[str, Any]:
+    where = f"selection wikiPages[{page_index}]"
+    page = _as_dict(raw_page, where)
+    if not any(page.get(key) for key in ("displayPath", "localPath", "wikiPath", "path")):
+        raise ValidationError(f"{where} must include one of displayPath, localPath, wikiPath, or path")
+
+    out: dict[str, Any] = {}
+    for field_name in ("root", "source", "displayPath", "localPath", "wikiPath", "path", "revision"):
+        if page.get(field_name) is not None:
+            out[field_name] = page[field_name]
+    out["documentContext"] = _as_dict(page.get("documentContext") or {}, f"{where}.documentContext")
+    if "caveats" in page:
+        out["caveats"] = _as_list(page.get("caveats"), f"{where}.caveats")
+
+    raw_sections = _as_list(page.get("sections"), f"{where}.sections")
+    out["sections"] = [
+        _scaffold_section(out, raw_section, page_index, section_index)
+        for section_index, raw_section in enumerate(raw_sections)
+    ]
+    return out
+
+
+def _scaffold_shared_wiki(selection: dict[str, Any], pages: list[dict[str, Any]]) -> dict[str, Any] | None:
+    # Record shared-wiki identity only when a github_mcp page is actually selected (mirrors the
+    # contract: omit the block entirely otherwise). Identity comes from the researcher's
+    # sharedWikiSource (shared_wiki_status) so execution can later detect rebinding drift.
+    if not any(page.get("source") == "github_mcp" for page in pages):
+        return None
+    source = selection.get("sharedWikiSource")
+    if not isinstance(source, dict):
+        return None
+    repo_url = source.get("repoUrl")
+    if not isinstance(repo_url, str) or not repo_url.strip():
+        return None
+    shared: dict[str, Any] = {"source": "github_mcp", "repoUrl": repo_url}
+    if source.get("baseBranch"):
+        shared["baseBranch"] = source["baseBranch"]
+    if isinstance(source.get("revision"), dict):
+        shared["revision"] = source["revision"]
+    return shared
+
+
+def scaffold_from_selection(selection: dict[str, Any], plan_path: str | None) -> dict[str, Any]:
+    """Mechanically turn a wiki-researcher selection JSON into a complete-shaped sidecar skeleton.
+
+    Copies the researcher's page/section selection verbatim and fills everything mechanical: schema
+    constants, the taskRouting block, an auto reread block for each hard section, shared-wiki identity,
+    and default destination kinds. The author then edits only the semantic routing (destination
+    reasons, wikiRefs, globalWikiRefs, status). taskWikiRefs are intentionally empty here; --scaffold-
+    tasks adds them once the plan has stable task ids.
+    """
+    raw_pages = _as_list(selection.get("wikiPages"), "selection.wikiPages")
+    pages = [_scaffold_page(raw_page, page_index) for page_index, raw_page in enumerate(raw_pages)]
+
+    data: dict[str, Any] = {"schemaVersion": SCHEMA_VERSION, "kind": KIND, "generatedBy": SCAFFOLD_GENERATED_BY}
+    if plan_path:
+        data["planPath"] = plan_path
+    shared = _scaffold_shared_wiki(selection, pages)
+    if shared:
+        data["sharedWiki"] = shared
+    data["taskRouting"] = dict(SCAFFOLD_TASK_ROUTING)
+    data["wikiPages"] = pages
+    data["globalWikiRefs"] = []
+    data["taskWikiRefs"] = []
+    data["caveats"] = _as_list(selection.get("caveats"), "selection.caveats") if "caveats" in selection else []
+    return data
+
+
+def scaffold_tasks(data: dict[str, Any], plan_path: Path) -> tuple[list[str], list[str]]:
+    """Scaffold one taskWikiRefs entry per stable plan task, preserving author-entered routing.
+
+    taskId/taskTitle come mechanically from the plan headings (extract_plan_tasks). Existing wikiRefs
+    (and any prior taskFingerprint/caveats) are preserved for surviving tasks so re-running after a plan
+    edit is idempotent; tasks no longer in the plan are dropped and reported. taskFingerprint is never
+    stamped here -- that stays --bind-fingerprints' single responsibility.
+    """
+    plan_tasks = extract_plan_tasks(plan_path)
+    existing: dict[str, dict[str, Any]] = {}
+    for index, raw_ref in enumerate(_as_list(data.get("taskWikiRefs"), "taskWikiRefs")):
+        ref = _as_dict(raw_ref, f"taskWikiRefs[{index}]")
+        task_id = ref.get("taskId")
+        if isinstance(task_id, str) and task_id:
+            existing[task_id] = ref
+
+    new_refs: list[dict[str, Any]] = []
+    for task_id, task in plan_tasks.items():
+        prev = existing.get(task_id)
+        ref: dict[str, Any] = {"taskId": task_id, "taskTitle": task["title"]}
+        if prev and prev.get("taskFingerprint"):
+            ref["taskFingerprint"] = prev["taskFingerprint"]
+        ref["wikiRefs"] = prev.get("wikiRefs", []) if prev else []
+        ref["caveats"] = prev.get("caveats", []) if prev else []
+        new_refs.append(ref)
+
+    dropped = sorted(set(existing) - set(plan_tasks))
+    data["taskWikiRefs"] = new_refs
+    if "globalWikiRefs" not in data:
+        data["globalWikiRefs"] = []
+    return list(plan_tasks), dropped
+
+
 def _write_context(path: Path, data: dict[str, Any]) -> None:
     text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
     tmp = path.with_name(path.name + ".tmp")
@@ -620,10 +802,31 @@ def main() -> int:
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--reread-list", action="store_true")
     parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--scaffold", metavar="SELECTION_JSON", help="Generate a sidecar skeleton from a wiki-researcher selection JSON and write it to the positional context path")
+    parser.add_argument("--scaffold-tasks", action="store_true", help="Scaffold taskWikiRefs (taskId/taskTitle) from stable plan headings into the existing sidecar, preserving author-entered wikiRefs (requires --plan-path)")
     args = parser.parse_args()
 
     try:
+        if args.scaffold and args.scaffold_tasks:
+            raise ValidationError("Run --scaffold and --scaffold-tasks in separate invocations: --scaffold builds the sidecar from a selection, --scaffold-tasks adds task routing after the plan stabilizes")
+        if args.scaffold:
+            selection = _load_json(Path(args.scaffold), "wiki selection")
+            data = scaffold_from_selection(selection, args.plan_path)
+            _validate_context(data, args.strict, execution_ready=False)
+            _write_context(Path(args.context_path), data)
+            print(f"scaffolded wiki context with {len(data['wikiPages'])} page(s) -> {args.context_path}")
+            return 0
         data = _load_context(Path(args.context_path))
+        if args.scaffold_tasks:
+            if not args.plan_path:
+                raise ValidationError("--scaffold-tasks requires --plan-path")
+            task_ids, dropped = scaffold_tasks(data, Path(args.plan_path))
+            _validate_context(data, args.strict, execution_ready=False)
+            _write_context(Path(args.context_path), data)
+            for task_id in dropped:
+                print(f"Warning: dropped taskWikiRefs entry no longer in plan: {task_id}", file=sys.stderr)
+            print(f"scaffolded {len(task_ids)} task(s): {', '.join(task_ids)}")
+            return 0
         if args.bind_fingerprints:
             if not args.plan_path:
                 raise ValidationError("--bind-fingerprints requires --plan-path")

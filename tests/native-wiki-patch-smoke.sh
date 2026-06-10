@@ -10,7 +10,7 @@ if [[ ! -f "${TARGET_INPUT}/agents/wiki-researcher.md" ]]; then
   printf 'Expected installed wiki-researcher agent\n' >&2
   exit 1
 fi
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'root-prefixed `path` values' 'sharedWikiSource: auto' 'github_mcp' 'wikiPath' 'revision' 'logical display path' 'shared-wiki MCP'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'root-prefixed `displayPath`' 'sharedWikiSource: auto' 'github_mcp' 'wikiPath' 'revision' 'logical display path' 'shared-wiki MCP'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/agents/wiki-researcher.md"; then
     printf 'Expected installed wiki-researcher shared-root text: %s\n' "$required" >&2
     exit 1
@@ -121,7 +121,7 @@ if ! grep -Fq 'wiki-researcher' "$BRAINSTORMING_SKILL"; then
   printf 'Expected brainstorming patch to mention wiki-researcher\n' >&2
   exit 1
 fi
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'logical display path' 'MCP is unavailable' 'Do not write sidecar JSONL or `.wiki-context.json` during brainstorming.'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'logical display path' 'MCP is unavailable' 'Do not write sidecar JSONL, `.wiki-selection.json`, or `.wiki-context.json` during brainstorming.'; do
   if ! grep -Fq -- "$required" "$BRAINSTORMING_SKILL"; then
     printf 'Expected brainstorming patch to contain shared wiki source text: %s\n' "$required" >&2
     exit 1
@@ -167,7 +167,7 @@ for required in \
   'sharedWikiSource: auto' \
   'wiki-context-v3.example.jsonc' \
   '--validate-only --strict' \
-  'Do not inspect `scripts/wiki_context_render.py` to infer the JSON format' \
+  'infer the JSON format from `scripts/wiki_context_render.py`' \
   'schemaVersion 3 JSON' \
   'page-rooted `wikiPages`' \
   'bounded `documentContext`' \
