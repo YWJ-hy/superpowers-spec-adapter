@@ -164,9 +164,31 @@ cat > "$SEL" <<'JSON'
 }
 JSON
 
+# Preserve a pristine copy: --scaffold now consumes (removes) the selection it reads on success, and the
+# negative cases below build their malformed selections from this source.
+SEL_SRC="$TMP/selection-src.json"
+cp "$SEL" "$SEL_SRC"
+
+# --- Pass 0: --keep-selection opts out of removal (tests/debugging/regenerate from an edited selection). ---
+KEEP_CTX="$TMP/keep.wiki-context.json"
+KEEP_SEL="$TMP/keep.wiki-selection.json"
+cp "$SEL_SRC" "$KEEP_SEL"
+python3 "$SCRIPT" "$KEEP_CTX" --scaffold "$KEEP_SEL" --plan-path "$PLAN" --strict --keep-selection >/dev/null
+if [[ ! -f "$KEEP_SEL" ]]; then
+  printf 'Expected --keep-selection to preserve the selection %s\n' "$KEEP_SEL" >&2
+  exit 1
+fi
+
 # --- Pass 1: --scaffold builds a complete-shaped sidecar from the selection. ---
 SCAFFOLD_OUT="$(python3 "$SCRIPT" "$CTX" --scaffold "$SEL" --plan-path "$PLAN" --strict)"
 assert_contains "scaffold output" 'scaffolded wiki context with 2 page(s)' "$SCAFFOLD_OUT"
+# The selection is a transient intermediate: scaffolding consumes and removes it on success, leaving only
+# the plan and its generated .wiki-context.json.
+assert_contains "scaffold output" 'removed consumed selection' "$SCAFFOLD_OUT"
+if [[ -f "$SEL" ]]; then
+  printf 'Expected --scaffold to remove the consumed selection %s\n' "$SEL" >&2
+  exit 1
+fi
 # The freshly scaffolded skeleton must already pass structural validation (no dropped fields).
 python3 "$SCRIPT" "$CTX" --validate-only --strict >/dev/null
 
@@ -283,7 +305,7 @@ assert_contains "drop drift" 'dropped taskWikiRefs entry no longer in plan: T2' 
 
 # --- Negative: a malformed selection fails at the shallow input, not deep in the sidecar. ---
 BAD_CAT_SEL="$TMP/bad-category.wiki-selection.json"
-python3 - "$SEL" "$BAD_CAT_SEL" <<'PY'
+python3 - "$SEL_SRC" "$BAD_CAT_SEL" <<'PY'
 import json, sys
 src, dst = sys.argv[1:3]
 d = json.load(open(src, encoding='utf-8'))
@@ -295,9 +317,14 @@ if python3 "$SCRIPT" "$TMP/bad.json" --scaffold "$BAD_CAT_SEL" --strict >/tmp/wi
   exit 1
 fi
 assert_contains "bad category" 'unsupported categories: security' "$(cat /tmp/wiki-scaffold-bad-category.out)"
+# A failed scaffold must not delete the selection — it stays in place for repair.
+if [[ ! -f "$BAD_CAT_SEL" ]]; then
+  printf 'Expected a failed --scaffold to keep the selection %s for repair\n' "$BAD_CAT_SEL" >&2
+  exit 1
+fi
 
 BAD_PATH_SEL="$TMP/bad-path.wiki-selection.json"
-python3 - "$SEL" "$BAD_PATH_SEL" <<'PY'
+python3 - "$SEL_SRC" "$BAD_PATH_SEL" <<'PY'
 import json, sys
 src, dst = sys.argv[1:3]
 d = json.load(open(src, encoding='utf-8'))
@@ -312,7 +339,7 @@ fi
 assert_contains "bad path" 'must include one of displayPath' "$(cat /tmp/wiki-scaffold-bad-path.out)"
 
 # --- Negative: combining the two scaffold passes in one invocation is rejected. ---
-if python3 "$SCRIPT" "$CTX" --scaffold "$SEL" --scaffold-tasks --plan-path "$PLAN" >/tmp/wiki-scaffold-combo.out 2>&1; then
+if python3 "$SCRIPT" "$CTX" --scaffold "$SEL_SRC" --scaffold-tasks --plan-path "$PLAN" >/tmp/wiki-scaffold-combo.out 2>&1; then
   printf 'Expected --scaffold + --scaffold-tasks together to fail\n' >&2
   exit 1
 fi

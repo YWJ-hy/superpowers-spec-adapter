@@ -173,7 +173,7 @@ planSummary: <plan goal and likely task areas>
 
 Do not hand-author the sidecar JSON. Generate it mechanically from the selection, then edit only the semantic routing:
 
-1. Save `wiki-researcher`'s JSON selection verbatim to `docs/superpowers/plans/<plan-stem>.wiki-selection.json`.
+1. Save `wiki-researcher`'s JSON selection verbatim to `docs/superpowers/plans/<plan-stem>.wiki-selection.json`. This is a transient intermediate: the next step consumes it and removes it on success, so only the plan and its generated `.wiki-context.json` persist.
 2. Generate the sidecar skeleton with the installed plugin-root script. It fills everything mechanical: schema constants, the `taskRouting` block, a `reread` block for every `hardConstraint` section, the top-level `sharedWiki` identity (taken from `shared_wiki_status`) when any `github_mcp` page is selected, and a default `destination.kind` per section. The generated sidecar is schemaVersion 3 JSON (`schemaVersion: 3`) with a page-rooted `wikiPages` tree, one bounded `documentContext` per page (page-level only), nested selected sections with hard constraint status, and categorized constraints (`implementation`, `test`, `review`, `general`).
 
 ```bash
@@ -182,7 +182,7 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/s
 
 3. In the generated `docs/superpowers/plans/<plan-stem>.wiki-context.json`, edit only the semantic fields: write a one-line `destination.reason` for every selected section (the generator leaves it empty on purpose so you must justify routing), and fix any `destination.kind` the relevance-based default got wrong. Use the selected wiki constraints like spec input while writing tasks, and include a lightweight `## Referenced Project Wiki` section that links the sidecar and summarizes selected pages/sections/counts without duplicating full context.
 
-If `--scaffold` reports a structural error, fix the shallow `docs/superpowers/plans/<plan-stem>.wiki-selection.json` and regenerate — do not patch the deep generated sidecar by hand. Only as a last-resort fallback (e.g. the generator is unavailable) hand-author the sidecar from `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/wiki-context-v3.example.jsonc` and validate with `--validate-only --strict`.
+If `--scaffold` reports a structural error it leaves the shallow `docs/superpowers/plans/<plan-stem>.wiki-selection.json` in place; fix that file and re-run `--scaffold` — do not patch the deep generated sidecar by hand. On success `--scaffold` consumes and removes the selection (only the plan and its `.wiki-context.json` remain); to reselect afterward, re-run `wiki-researcher` rather than hand-rebuilding the selection. Only as a last-resort fallback (e.g. the generator is unavailable) hand-author the sidecar from `__SUPERPOWER_ADAPTER_PLUGIN_ROOT__/contracts/wiki-context-v3.example.jsonc` and validate with `--validate-only --strict`.
 
 Before decomposing tasks, render the configured source-of-truth planning policy with the installed plugin-root script:
 

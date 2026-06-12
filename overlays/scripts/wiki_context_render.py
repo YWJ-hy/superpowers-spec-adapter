@@ -803,6 +803,7 @@ def main() -> int:
     parser.add_argument("--reread-list", action="store_true")
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--scaffold", metavar="SELECTION_JSON", help="Generate a sidecar skeleton from a wiki-researcher selection JSON and write it to the positional context path")
+    parser.add_argument("--keep-selection", action="store_true", help="With --scaffold, keep the consumed selection JSON instead of removing it on success (for tests/debugging, or to regenerate from an edited selection)")
     parser.add_argument("--scaffold-tasks", action="store_true", help="Scaffold taskWikiRefs (taskId/taskTitle) from stable plan headings into the existing sidecar, preserving author-entered wikiRefs (requires --plan-path)")
     args = parser.parse_args()
 
@@ -810,11 +811,29 @@ def main() -> int:
         if args.scaffold and args.scaffold_tasks:
             raise ValidationError("Run --scaffold and --scaffold-tasks in separate invocations: --scaffold builds the sidecar from a selection, --scaffold-tasks adds task routing after the plan stabilizes")
         if args.scaffold:
-            selection = _load_json(Path(args.scaffold), "wiki selection")
+            selection_path = Path(args.scaffold)
+            selection = _load_json(selection_path, "wiki selection")
             data = scaffold_from_selection(selection, args.plan_path)
             _validate_context(data, args.strict, execution_ready=False)
-            _write_context(Path(args.context_path), data)
-            print(f"scaffolded wiki context with {len(data['wikiPages'])} page(s) -> {args.context_path}")
+            context_path = Path(args.context_path)
+            _write_context(context_path, data)
+            summary = f"scaffolded wiki context with {len(data['wikiPages'])} page(s) -> {args.context_path}"
+            # The selection is a transient intermediate: scaffolding is its only consumer (execution reads
+            # the generated sidecar, never the selection). Remove it on success so only the plan and its
+            # .wiki-context.json persist. A malformed selection raises above before this write, so a failed
+            # scaffold always keeps the selection for repair. --keep-selection opts out (tests/debugging,
+            # or to regenerate from an edited selection).
+            if args.keep_selection:
+                print(f"{summary} (kept selection {selection_path})")
+            elif selection_path.resolve() == context_path.resolve():
+                print(f"{summary} (selection path equals context path; not removed)")
+            else:
+                try:
+                    selection_path.unlink()
+                    print(f"{summary}; removed consumed selection {selection_path}")
+                except OSError as exc:
+                    print(f"Warning: scaffolded the sidecar but could not remove selection {selection_path}: {exc}", file=sys.stderr)
+                    print(summary)
             return 0
         data = _load_context(Path(args.context_path))
         if args.scaffold_tasks:

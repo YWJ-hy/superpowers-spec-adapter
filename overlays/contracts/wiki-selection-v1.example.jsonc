@@ -19,7 +19,9 @@
   //   - globalWikiRefs / taskWikiRefs / taskFingerprint (routing, authored/stamped after task stabilization)
   //
   // If --scaffold reports a structural error in this selection, fix THIS file (the shallow input) rather
-  // than hand-editing the deep generated sidecar.
+  // than hand-editing the deep generated sidecar. This selection is a transient intermediate: on a
+  // successful --scaffold it is consumed and removed, so only the plan and its .wiki-context.json persist
+  // (pass --keep-selection to retain it for tests/debugging or to regenerate from an edited selection).
   "status": "ok",                       // ok | partial | missing_wiki_root | no_relevant_wiki
   "query": "<short restatement of the task>",
   "phase": "plan",                      // brainstorm | plan | debug | implement | review
