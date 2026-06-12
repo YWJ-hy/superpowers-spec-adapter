@@ -5,4 +5,5 @@ Use guides for cross-cutting checklists and thinking prompts, not low-level impl
 <!-- superpower-adapter:auto:start -->
 - `debugging.md`
 - `release-readiness.md`
+- `skills.md`
 <!-- superpower-adapter:auto:end -->

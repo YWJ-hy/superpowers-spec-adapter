@@ -33,8 +33,9 @@ adapter 增强这些阶段：
 - 在 `systematic-debugging` 中，只有 Phase 1 证据已经收窄到具体组件、契约、工作流或项目约定后，才允许条件式调用 `wiki-researcher` 查少量相关项目 wiki。wiki 只作为待验证线索，不替代 root cause evidence。
 - `update-wiki` 写入前读取目标 root 的 settings：`.superpowers/settings.json` 控制 project wiki，`.shared-superpowers/settings.json` 控制 shared wiki；默认更新已有页面跳过授权，创建新 wiki 文档询问用户授权；写入 shared wiki 前必须把内容中性化，不能保留当前系统特有标识。如团队使用 GitHub-backed shared-wiki MCP，则 shared wiki 写入通过 MCP validate patch + branch + PR，不直接改本地 shared wiki。
 - 安装 `break-loop` skill，用于 Superpowers `systematic-debugging` 修复并验证 bug 后做深度复盘，并在有长期价值时把候选交给 `update-wiki`。
+- 安装 `scaffold-practice-skill` skill，把可复用的工程实践（管理页布局、微应用 host/child 文件结构、固定审查流程等）固化为 `.claude/skills/<name>/` 的**分层技能包**：唯一固定的是薄路由 `SKILL.md`，其余 `implement.md`/`review.md`/`rules.md`/`scripts/` 等是按需加载的开放集合（目的是渐进披露、省 token，并保证脱离 Superpowers 也能独立使用）。它也支持把现有单体 skill **非破坏式**转换为该结构（搬运全部附属文件、报告未覆盖内容、用户确认后才替换原件），并在项目 wiki `guides/skills.md` 机械登记**发现卡片**（含 companion 索引与索引链路修复），让 `wiki-researcher` 在计划阶段选中并绑定「必须使用 skill X」。关系是单向的：wiki 关联 skill，skill 不反向硬编码 wiki 路径。
 
-`import-wiki` skill、`init-wiki` skill、`lanhu-requirements` skill 在自身产物完成前都是独立 adapter skill，不应自动触发 Superpowers 的 completion、review、verification 等收尾技能；只有 skill 明确交接且用户确认后才进入下一步 Superpowers workflow。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter maintenance skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新合适的 wiki root（`.superpowers/wiki/` 或 `.shared-superpowers/wiki/`）；它的本地 wiki 校验不替代 Superpowers 实现验证。
+`import-wiki` skill、`init-wiki` skill、`lanhu-requirements` skill 在自身产物完成前都是独立 adapter skill，不应自动触发 Superpowers 的 completion、review、verification 等收尾技能；只有 skill 明确交接且用户确认后才进入下一步 Superpowers workflow。`break-loop` 是 bug 修复后的 adapter skill：它衔接 Superpowers `systematic-debugging`，只在 bug 已修复并验证后做后置复盘。`update-wiki` 是自动触发的 adapter maintenance skill：任务完成、修 bug、评审或讨论后，如果 agent 判断产生了 durable implementation knowledge，才审查并更新合适的 wiki root（`.superpowers/wiki/` 或 `.shared-superpowers/wiki/`）；它的本地 wiki 校验不替代 Superpowers 实现验证。其中可复用的工作流程/流程性知识会被识别为 skill-pack 候选并移交 `scaffold-practice-skill`，而不是写成 wiki 叶子页；`update-wiki` 只路由、不创建 skill，且不绕过授权策略。
 
 Python 脚本是 skill / agent 背后的执行层，不是最终用户的主要交互入口。
 
@@ -62,6 +63,8 @@ Superpowers 插件目录
 │   ├── publish-shared-wiki/
 │   │   └── SKILL.md
 │   ├── shared-wiki-mcp/
+│   │   └── SKILL.md
+│   ├── scaffold-practice-skill/
 │   │   └── SKILL.md
 │   ├── break-loop/
 │   └── update-wiki/

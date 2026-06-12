@@ -18,6 +18,7 @@
     "skills/migrate-wiki/SKILL.md",
     "skills/publish-shared-wiki/SKILL.md",
     "skills/shared-wiki-mcp/SKILL.md",
+    "skills/scaffold-practice-skill/SKILL.md",
     "contracts/wiki-context-v3.example.jsonc",
     "contracts/wiki-selection-v1.example.jsonc",
     "scripts/update-wiki.py",
@@ -35,7 +36,8 @@
     "scripts/wiki_update_check.py",
     "scripts/wiki_select_target.py",
     "scripts/wiki_apply_update.py",
-    "scripts/wiki_migrate_helper.py"
+    "scripts/wiki_migrate_helper.py",
+    "scripts/scaffold_practice_skill.py"
   ],
   "removedPaths": [
     "agents/source-of-truth-verifier.md",

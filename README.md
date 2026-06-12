@@ -22,7 +22,8 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Patch Superpowers `using-git-worktrees` and `finishing-a-development-branch` so worktree tasks can merge back to the branch that created them
 - Keep standalone adapter skills such as `import-wiki`, `init-wiki`, and `lanhu-requirements` outside Superpowers completion/review/verification skills until they explicitly hand off to the next Superpowers workflow step
 - Install `break-loop` as a post-`systematic-debugging` retrospective skill that can hand durable findings to `update-wiki`
-- Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki
+- Install `update-wiki` as an auto-triggered skill that checks whether a task likely produced durable implementation knowledge before updating the wiki; reusable workflow/process knowledge is routed to `scaffold-practice-skill` (an executable skill pack) instead of a wiki page
+- Install `scaffold-practice-skill` to capture a reusable engineering practice as a layered skill pack under `.claude/skills/<name>/` (a thin `SKILL.md` router plus on-demand files), or convert an existing monolithic skill into that shape non-destructively, and register a discovery card in `guides/skills.md` so planning's `wiki-researcher` can surface "use skill X"
 - Install a `PostToolUse` hook (`hooks/post-merge-update-wiki`) that reminds the agent to run `update-wiki` after a Bash command merges a development branch into its integration branch (bare `git merge`, `git merge --continue`, or `gh pr merge`, including `git -C <dir> merge`), so durable-knowledge review still happens when work is merged outside `finishing-a-development-branch`; it keys off the merge action rather than a fixed target branch, skips trunk-into-branch sync merges (using worktree origin metadata when present, else a `main`/`master`/default-branch heuristic), conflicted merges (`MERGE_HEAD` present), and `git merge --abort`/non-merge commands. It does not gate on local wiki presence — shared wiki may be a globally-configured MCP server with no local footprint, so it fires on any finalize merge and lets `update-wiki`'s own gate decide whether anything persists — and cannot observe merges performed in the GitHub web UI
 - Reinstall the same overlay after upgrading `superpowers/`
 
@@ -157,6 +158,16 @@ import-wiki skill path/to/original-wiki-dir --target imported
 ```
 
 The import recursively scans source wiki pages, copies each file into `.superpowers/wiki` by default or `.shared-superpowers/wiki` with `--wiki-root shared`, avoids overwriting different existing content, and refreshes indexes. Shared imports must already be neutral/portable and are rejected when configured shared neutrality guards match system-specific identifiers. Because imports create wiki documents, `import-wiki` skill honors the selected root's `wiki.updateAuthorization.createNewDocument` setting and asks by default before creating new files. Use this for one-time structural migration of existing wiki directories; use the `update-wiki` skill later for semantic consolidation.
+
+### Capturing best practices as skill packs
+
+Use the installed `scaffold-practice-skill` in Claude Code to turn a reusable engineering practice (admin-page layout, micro-app host/child file structure, a fixed review checklist) into a **layered skill pack**, or to restructure an existing skill into that shape:
+
+```
+scaffold-practice-skill   # create a new pack, or convert an existing one
+```
+
+The only fixed file is a thin `SKILL.md` router; heavy content (`implement.md` / `review.md` / `rules.md` / `examples.md` / `scripts/` / …) is an open set loaded on demand, so the skill stays complete and usable outside Superpowers while keeping `SKILL.md` small. Convert is non-destructive: it stages a new pack, carries over every bundled file, reports any source content not yet represented, and never replaces the original without your confirmation. The skill registers a discovery card in `.superpowers/wiki/guides/skills.md` (honoring `wiki.updateAuthorization`) so `wiki-researcher` can bind "use skill X" during planning. The wiki points at the skill — the skill does not hard-code wiki paths. `update-wiki` hands reusable workflow/process knowledge to this skill rather than writing it as a wiki page.
 
 ### Migrating wiki to section-marker format
 

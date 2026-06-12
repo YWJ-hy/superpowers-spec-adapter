@@ -199,7 +199,8 @@ PY
     "$target_dir/scripts/wiki_section.py" \
     "$target_dir/scripts/wiki_read_section.py" \
     "$target_dir/scripts/wiki_generate_section_index.py" \
-    "$target_dir/scripts/wiki_migrate_helper.py"
+    "$target_dir/scripts/wiki_migrate_helper.py" \
+    "$target_dir/scripts/scaffold_practice_skill.py"
   python3 "$HOOK_PATCHER" install "$target_dir"
   python3 "$NATIVE_SKILL_PATCHER" install "$target_dir"
   python3 "$SUBAGENT_MODEL_PATCHER" install "$target_dir"

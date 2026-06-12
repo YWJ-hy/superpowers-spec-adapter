@@ -15,6 +15,14 @@ if [[ -d "${PROJECT_ROOT}/.superpowers/wiki/categories" ]]; then
   printf 'Expected template import without categories wrapper\n' >&2
   exit 1
 fi
+if [[ ! -f "${PROJECT_ROOT}/.superpowers/wiki/guides/skills.md" ]]; then
+  printf 'Expected imported guides/skills.md discovery catalog\n' >&2
+  exit 1
+fi
+if ! grep -Fq '`skills.md`' "${PROJECT_ROOT}/.superpowers/wiki/guides/index.md"; then
+  printf 'Expected guides/index.md to reference skills.md\n' >&2
+  exit 1
+fi
 
 "${ROOT}/bootstrap-wiki.sh" "${PROJECT_ROOT}" --template standard --wiki-root shared > /dev/null
 if [[ ! -f "${PROJECT_ROOT}/.shared-superpowers/wiki/index.md" ]]; then

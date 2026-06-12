@@ -122,7 +122,7 @@ For each candidate, identify:
 - the durable rule, decision, or gotcha
 - why it matters
 - likely owner area
-- whether it is implementation guidance, checklist guidance, a contract, or a design decision
+- whether it is implementation guidance, checklist guidance, a contract, a design decision, or a **reusable workflow/process** (a stable multi-step procedure, file-restructuring order, or review routine). A reusable workflow is usually better captured as an executable skill pack than a wiki page — see *Skill-Pack Candidates* below.
 
 Examples:
 - "Modal content must expose validate, and list pages must keep pagination local" = two candidates.
@@ -296,6 +296,19 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_update_check.py --wiki-r
 
 ---
 
+## Skill-Pack Candidates (hand off; do not write to wiki)
+
+Some durable knowledge is a **reusable workflow/process** — a stable multi-step procedure, a file-restructuring order, or a fixed review routine — that future sessions should *execute*, not just read. This belongs in an executable **skill pack** (`.claude/skills/<name>/`), not a wiki leaf page.
+
+When a candidate is process-shaped, reusable, and better executed than read:
+1. Do not write it as a wiki leaf page here.
+2. Get user authorization, then hand it off to the `scaffold-practice-skill` skill to create a new pack or update an existing one. That skill also registers the discovery card under `guides/skills.md`, so planning can later surface "use skill X".
+3. `update-wiki` only routes this candidate; it does not create or edit skills itself, and the handoff does not bypass the selected root's `wiki.updateAuthorization` policy.
+
+A candidate that is a fact, contract, decision, or gotcha still belongs in the wiki via the steps above. Only process-shaped, executable knowledge is handed off.
+
+---
+
 ## Content Quality Requirements
 
 ### Mandatory depth for infra / cross-layer / contract changes
@@ -409,6 +422,7 @@ Do not:
 Before finishing the update:
 
 - [ ] Did you start from the default of not updating wiki and require durable reusable knowledge before editing?
+- [ ] Did you route reusable workflow/process knowledge to a skill pack via `scaffold-practice-skill` instead of writing it as a wiki page?
 - [ ] Did you exclude local business logic, single-context branch rules, and code-obvious implementation details unless they passed the reuse threshold or the decision carve-out?
 - [ ] Did you separately apply the decision carve-out — promoting a hard-to-reverse, surprising, real-trade-off decision even when it does not reuse across modules?
 - [ ] If you skipped all candidates, did you state an explicit skip reason instead of forcing a wiki edit?

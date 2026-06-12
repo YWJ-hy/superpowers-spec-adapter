@@ -21,7 +21,7 @@
 - 支持 **渐进式披露**：Superpowers 写 spec / plan 时由 `wiki-researcher` 按需读取具体 wiki 页面。
 - 安装 `wiki-researcher` agent，帮助 `brainstorming` 和 `writing-plans` 选择相关项目规范。
 - 要求 implementation plan 用 `Referenced Project Wiki` 固化执行阶段要遵守的项目规范。
-- 提供 `import-wiki`、`init-wiki`、`break-loop`、`update-wiki` 能力。
+- 提供 `import-wiki`、`init-wiki`、`break-loop`、`scaffold-practice-skill`、`update-wiki` 能力。
 
 一句话：
 
@@ -45,7 +45,7 @@
 ./superpower-adapter/manage.sh verify
 ```
 
-安装会写入 adapter 的 agent、独立 skill（`init-wiki`、`import-wiki`、`migrate-wiki`、`lanhu-requirements`、`shared-wiki-mcp`、`publish-shared-wiki`、`update-wiki`）和执行脚本，并 patch 若干 Superpowers native skill（`brainstorming`、`writing-plans`、`executing-plans`、`subagent-driven-development`、`systematic-debugging`、`using-superpowers`）与 hook 兼容配置（`hooks/hooks.json`、`hooks/hooks-cursor.json`）。
+安装会写入 adapter 的 agent、独立 skill（`init-wiki`、`import-wiki`、`migrate-wiki`、`lanhu-requirements`、`shared-wiki-mcp`、`publish-shared-wiki`、`scaffold-practice-skill`、`update-wiki`）和执行脚本，并 patch 若干 Superpowers native skill（`brainstorming`、`writing-plans`、`executing-plans`、`subagent-driven-development`、`systematic-debugging`、`using-superpowers`）与 hook 兼容配置（`hooks/hooks.json`、`hooks/hooks-cursor.json`）。
 
 完整清单以 `./superpower-adapter/manage.sh status` / `verify` 的实际输出为准，不在本文逐一硬列以免过期。
 
@@ -89,6 +89,7 @@ import-wiki skill path/to/original-wiki-dir --target imported
 → 遇到 bug 时先用 Superpowers systematic-debugging 修复和验证
 → 修复后需要深度复盘时使用 break-loop
 → update-wiki skill 审查是否需要沉淀长期知识
+→ 若沉淀出可复用工作流程，update-wiki 移交 scaffold-practice-skill 固化为 `.claude/skills/` 技能包，并在 `guides/skills.md` 登记发现卡片，供下次 wiki-researcher 选中
 ```
 
 plan 中应包含：
