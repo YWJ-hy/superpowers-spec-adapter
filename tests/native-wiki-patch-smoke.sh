@@ -295,7 +295,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/subagent-driven-devel
   exit 1
 fi
 
-for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'shared_wiki_read_sections' 'revision metadata' '--batch-jsonl' '## Assigned Task' '## Rendered Wiki Constraints for This Task' '## Hard Wiki Constraint Rereads' 'rebinding drift' 'Adapter Source-of-Truth Task Lint' 'source_truth_settings.py' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'truth/edit: never' 'truth/edit: ask'; do
+for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'shared_wiki_read_sections' 'revision metadata' '--batch-jsonl' '## Assigned Task' '## Rendered Wiki Constraints for This Task' '## Hard Wiki Constraint Rereads' 'rebinding drift' 'Controller-Only Subagent Orchestration' 'Subagents are leaf workers' 'must not dispatch nested subagents' 'The main/controller agent may still dispatch multiple sibling subagents' 'Only the main/controller agent may dispatch' 'Task/Agent/Workflow' 'NEEDS_CONTEXT/BLOCKED' 'Adapter Source-of-Truth Task Lint' 'source_truth_settings.py' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'truth/edit: never' 'truth/edit: ask'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
     printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
     exit 1

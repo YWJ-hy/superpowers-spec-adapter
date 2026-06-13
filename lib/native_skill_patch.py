@@ -321,6 +321,14 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/s
 
 If the preflight fails because task text changed after plan review, stop before dispatch and refresh the binding on the planning side: confirm the selected wiki routing still applies to the changed task, then re-run `wiki_context_render.py <sidecar> --bind-fingerprints --strict --execution-ready --plan-path <plan>` to re-stamp fingerprints, and resume only after the preflight passes. Do not re-stamp to silence a mismatch without re-checking routing, reselect wiki pages, call `wiki-researcher`, rewrite the plan, use legacy `appliesTo`, filter by task string, or let implementers/reviewers decide routing during SDD.
 
+### Controller-Only Subagent Orchestration
+
+Subagents are leaf workers. This restriction applies only inside subagents: implementer/reviewer subagents must not dispatch nested subagents. The main/controller agent may still dispatch multiple sibling subagents as required by SDD, including implementers, spec reviewers, code quality reviewers, and the final reviewer.
+
+Only the main/controller agent may dispatch implementer, spec reviewer, code quality reviewer, or final reviewer subagents.
+
+When constructing every implementer or reviewer prompt, explicitly tell that subagent it must NOT dispatch nested subagents, invoke Task/Agent/Workflow for further delegation, or run another Superpowers workflow/skill to delegate its assignment. It must complete its bounded assignment itself, ask the controller for missing context, or return NEEDS_CONTEXT/BLOCKED with the reason.
+
 Before dispatching each implementer or reviewer, render only that task's role-scoped wiki constraints and include stdout directly under `## Rendered Wiki Constraints for This Task`, together with `## Assigned Task` containing the assigned task's full plan text:
 
 ```bash
