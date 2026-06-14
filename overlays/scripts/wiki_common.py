@@ -8,7 +8,7 @@ from pathlib import Path
 import json
 import re
 
-from wiki_section import extract_section_links, list_section_ids
+from wiki_section import KNOWN_EDGE_TYPES, extract_section_links, list_section_ids
 
 DEFAULT_IGNORED_DIR_NAMES = {"draft", "archive", "examples"}
 AUTO_START = "<!-- superpower-adapter:auto:start -->"
@@ -91,7 +91,7 @@ class SectionGraph:
 
     def to_payload(self) -> dict:
         return {
-            "schema": "section-graph/1",
+            "schema": "section-graph/2",
             "nodes": self.nodes,
             "edges": self.edges,
             "backlinks": self.backlinks,
@@ -680,8 +680,16 @@ def build_section_graph(wiki_root: Path) -> SectionGraph:
 
         for section_id, links in extract_section_links(text).items():
             source_node = f"{leaf_rel}#{section_id}"
-            for page, target_section in links:
-                raw = f"[[{page}{('#' + target_section) if target_section else ''}]]"
+            for page, target_section, edge_type in links:
+                type_prefix = f"{edge_type}: " if edge_type != "see-also" else ""
+                raw = f"[[{type_prefix}{page}{('#' + target_section) if target_section else ''}]]"
+                if edge_type not in KNOWN_EDGE_TYPES:
+                    graph.dangling.append({
+                        "from": source_node,
+                        "raw": raw,
+                        "reason": f"unknown edge type '{edge_type}' (expected: {', '.join(KNOWN_EDGE_TYPES)})",
+                    })
+                    continue
                 target_path, reason = _resolve_section_link_page(leaf, wiki_root_resolved, page, ignored_dir_names)
                 if reason is not None:
                     graph.dangling.append({"from": source_node, "raw": raw, "reason": reason})
@@ -698,12 +706,15 @@ def build_section_graph(wiki_root: Path) -> SectionGraph:
                     continue
 
                 target_node = f"{target_rel}#{target_section}" if target_section else target_rel
-                graph.edges.append({"from": source_node, "to": target_node, "raw": raw})
-                graph.backlinks.setdefault(target_node, []).append(source_node)
+                graph.edges.append({"from": source_node, "to": target_node, "type": edge_type, "raw": raw})
+                graph.backlinks.setdefault(target_node, []).append({"from": source_node, "type": edge_type})
 
     graph.nodes = sorted(dict.fromkeys(graph.nodes))
-    graph.edges.sort(key=lambda edge: (edge["from"], edge["to"]))
-    graph.backlinks = {key: sorted(dict.fromkeys(value)) for key, value in sorted(graph.backlinks.items())}
+    graph.edges.sort(key=lambda edge: (edge["from"], edge["to"], edge["type"]))
+    graph.backlinks = {
+        key: [{"from": frm, "type": typ} for frm, typ in sorted({(b["from"], b["type"]) for b in value})]
+        for key, value in sorted(graph.backlinks.items())
+    }
     graph.dangling.sort(key=lambda item: (item["from"], item["raw"]))
     return graph
 

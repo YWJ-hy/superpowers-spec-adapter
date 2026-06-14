@@ -68,33 +68,39 @@ def _with_trailing_newline(content: str) -> str:
     return content if content.endswith("\n") else content + "\n"
 
 
-def _format_link_cell(values: list[str]) -> str:
+def _format_link_cell(values: list[tuple[str, str]]) -> str:
     if not values:
         return "—"
-    return "<br>".join(f"`{value}`" for value in values)
+    parts = []
+    for node, edge_type in values:
+        label = f"`{node}`"
+        if edge_type and edge_type != "see-also":
+            label += f" _({edge_type})_"
+        parts.append(label)
+    return "<br>".join(parts)
 
 
-def build_links_index(graph) -> dict[str, dict[str, dict[str, list[str]]]]:
+def build_links_index(graph) -> dict[str, dict[str, dict[str, list[tuple[str, str]]]]]:
     """Index a SectionGraph as {page_rel: {section_id: {"out": [...], "in": [...]}}}.
 
-    Only section-targeted backlinks are surfaced per section row; page-level
-    [[page]] edges still live in full fidelity inside .graph.json.
+    Each entry is (node, edge_type). Only section-targeted backlinks are surfaced per
+    section row; page-level [[page]] edges still live in full fidelity inside .graph.json.
     """
-    index: dict[str, dict[str, dict[str, list[str]]]] = {}
+    index: dict[str, dict[str, dict[str, list[tuple[str, str]]]]] = {}
 
-    def ensure(rel: str, sid: str) -> dict[str, list[str]]:
+    def ensure(rel: str, sid: str) -> dict[str, list[tuple[str, str]]]:
         return index.setdefault(rel, {}).setdefault(sid, {"out": [], "in": []})
 
     for edge in graph.edges:
         rel, _, sid = edge["from"].rpartition("#")
         if rel and sid:
-            ensure(rel, sid)["out"].append(edge["to"])
+            ensure(rel, sid)["out"].append((edge["to"], edge["type"]))
     for to_node, sources in graph.backlinks.items():
         if "#" not in to_node:
             continue
         rel, _, sid = to_node.rpartition("#")
         if rel and sid:
-            ensure(rel, sid)["in"].extend(sources)
+            ensure(rel, sid)["in"].extend((s["from"], s["type"]) for s in sources)
     return index
 
 

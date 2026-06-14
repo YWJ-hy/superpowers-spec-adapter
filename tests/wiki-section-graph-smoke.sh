@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Smoke test for the section-level knowledge graph: [[page#section]] edge parsing,
-# .graph.json output, .index.md cross-reference columns, and dangling-link lint.
-# Exercises the installed Superpowers target scripts.
+# Smoke test for the section-level knowledge graph: typed [[type: page#section]] edge
+# parsing, .graph.json output, .index.md cross-reference columns, and dangling /
+# unknown-type lint. Exercises the installed Superpowers target scripts.
 # Usage: bash tests/wiki-section-graph-smoke.sh [superpowers-target] [project-root]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,9 +32,12 @@ cat > "${W}/backend/contract.md" <<'MD'
 # Contract
 <!-- wiki-section:response-format -->
 ## Response
-必须 follow [[backend/data#tx-rules]] and see the whole page [[backend/data]].
+必须 follow [[depends-on: backend/data#tx-rules]] and see the whole page [[backend/data]].
+本节取代旧契约 [[supersedes: backend/data#tx-rules]].
 Broken section [[backend/data#nope]] and missing page [[backend/ghost#x]].
+Unknown type [[depend-on: backend/data#tx-rules]].
 Inline `[[not-an-edge#z]]` and a plain link [text](backend/data.md#tx-rules) are ignored.
+Not a type because no space [[http://example.com]] either.
 <!-- /wiki-section:response-format -->
 MD
 
@@ -58,26 +61,36 @@ fi
 python3 - <<'PY' "${GRAPH}"
 import json, sys
 g = json.loads(open(sys.argv[1], encoding="utf-8").read())
+assert g["schema"] == "section-graph/2", f"unexpected schema: {g['schema']}"
 
 src = "backend/contract.md#response-format"
-edges = {(e["from"], e["to"]) for e in g["edges"]}
-assert (src, "backend/data.md#tx-rules") in edges, "missing section edge"
-assert (src, "backend/data.md") in edges, "missing page-level edge"
-# Inline-code and plain markdown links must not become edges.
+edges = {(e["from"], e["to"], e["type"]) for e in g["edges"]}
+assert (src, "backend/data.md#tx-rules", "depends-on") in edges, "missing typed depends-on edge"
+assert (src, "backend/data.md#tx-rules", "supersedes") in edges, "missing typed supersedes edge"
+assert (src, "backend/data.md", "see-also") in edges, "missing default see-also page edge"
+# Inline-code, plain markdown, and spaceless-colon URLs must not become edges.
 assert all("not-an-edge" not in e["to"] for e in g["edges"]), "inline-code link leaked"
-assert len(g["edges"]) == 2, f"unexpected edge count: {g['edges']}"
+assert all("example.com" not in e["to"] for e in g["edges"]), "URL leaked as edge"
+assert len(g["edges"]) == 3, f"unexpected edge count: {g['edges']}"
 
-assert g["backlinks"].get("backend/data.md#tx-rules") == [src], "missing section backlink"
-assert g["backlinks"].get("backend/data.md") == [src], "missing page backlink"
+bl = g["backlinks"]["backend/data.md#tx-rules"]
+bl_types = {b["type"] for b in bl}
+assert all(b["from"] == src for b in bl), "backlink from wrong source"
+assert bl_types == {"depends-on", "supersedes"}, f"unexpected backlink types: {bl_types}"
+assert g["backlinks"]["backend/data.md"] == [{"from": src, "type": "see-also"}], "missing page backlink"
 
-reasons = sorted(d["reason"] for d in g["dangling"])
-assert len(g["dangling"]) == 2, f"unexpected dangling count: {g['dangling']}"
+reasons = [d["reason"] for d in g["dangling"]]
+assert len(g["dangling"]) == 4, f"unexpected dangling count: {g['dangling']}"
 assert any("section 'nope' not found" in r for r in reasons), "missing dangling-section reason"
 assert any("page does not exist" in r for r in reasons), "missing dangling-page reason"
+assert any("unknown edge type 'depend-on'" in r for r in reasons), "missing unknown-type reason"
+# A spaceless colon ([[http://...]]) is an external see-also, NOT a type named 'http'.
+assert any("external or unsupported" in r for r in reasons), "missing external-ref reason"
+assert not any("unknown edge type 'http'" in r for r in reasons), "URL was misparsed as a type"
 print("graph.json OK")
 PY
 
-# --- .index.md cross-reference columns ---
+# --- .index.md cross-reference columns (typed) ---
 contract_index="$(cat "${W}/backend/contract.index.md")"
 data_index="$(cat "${W}/backend/data.index.md")"
 case "${contract_index}" in
@@ -85,12 +98,12 @@ case "${contract_index}" in
   *) printf 'Expected cross-reference columns in contract.index.md\n' >&2; exit 1 ;;
 esac
 case "${contract_index}" in
-  *"backend/data.md#tx-rules"*) : ;;
-  *) printf 'Expected outgoing reference in contract.index.md\n' >&2; exit 1 ;;
+  *"backend/data.md#tx-rules\` _(depends-on)_"*) : ;;
+  *) printf 'Expected typed outgoing reference in contract.index.md\n' >&2; exit 1 ;;
 esac
 case "${data_index}" in
-  *"backend/contract.md#response-format"*) : ;;
-  *) printf 'Expected backlink in data.index.md\n' >&2; exit 1 ;;
+  *"backend/contract.md#response-format\` _(depends-on)_"*) : ;;
+  *) printf 'Expected typed backlink in data.index.md\n' >&2; exit 1 ;;
 esac
 
 # --- Single-file mode also rebuilds the root graph (update-wiki uses this path) ---
@@ -103,22 +116,23 @@ fi
 python3 - <<'PY' "${GRAPH}"
 import json, sys
 g = json.loads(open(sys.argv[1], encoding="utf-8").read())
-assert len(g["edges"]) == 2, "single-file rebuild lost edges"
-assert len(g["dangling"]) == 2, "single-file rebuild lost dangling"
+assert len(g["edges"]) == 3, "single-file rebuild lost edges"
+assert len(g["dangling"]) == 4, "single-file rebuild lost dangling"
 print("single-file rebuild OK")
 PY
 
-# --- Dangling links are reported as warnings by the validator ---
+# --- Dangling and unknown-type links are reported as warnings by the validator ---
 check_json="$(cd "${TMP_PROJECT}" && python3 "${SCRIPTS}/wiki_update_check.py" --wiki-root project --json)"
 python3 - <<'PY' "${check_json}"
 import json, sys
 r = json.loads(sys.argv[1])
 assert r["status"] == "warning", f"expected warning status, got {r['status']}"
 root = r["roots"][0]
-assert root.get("danglingSectionLinks") == 2, f"expected 2 dangling links, got {root.get('danglingSectionLinks')}"
+assert root.get("danglingSectionLinks") == 4, f"expected 4 dangling links, got {root.get('danglingSectionLinks')}"
 dangling_warnings = [w for w in r["warnings"] if "dangling section link" in w]
-assert len(dangling_warnings) == 2, f"expected 2 dangling warnings, got {dangling_warnings}"
-print("dangling-link lint OK")
+assert len(dangling_warnings) == 4, f"expected 4 dangling warnings, got {dangling_warnings}"
+assert any("unknown edge type" in w for w in dangling_warnings), "expected an unknown-type warning"
+print("dangling/unknown-type lint OK")
 PY
 
 printf 'wiki-section-graph-smoke complete\n'

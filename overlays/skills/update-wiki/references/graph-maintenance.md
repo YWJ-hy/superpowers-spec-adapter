@@ -29,20 +29,34 @@ explicit wikilink in the section body:
 - **Only `[[ ]]` is treated as a knowledge edge.** Plain markdown links like
   `[text](path#anchor)` are incidental prose and are never treated as section edges, so
   use `[[ ]]` deliberately, only for real cross-references.
-- Edges are **untyped see-also** in this version — they record "related / depends-on
-  context", not a typed `supersedes`/`contradicts` relationship. Do not invent typed
-  relationship syntax.
 - Every outgoing `[[page#section]]` must resolve: the target page must exist and, when an
   anchor is given, that section id must exist on the target page. A link to a missing page
   or missing section is reported as a **dangling section link** by `wiki_update_check.py`.
+
+### Edge types
+
+A bare `[[ ]]` is a `see-also` (related context, no obligation). To type an edge, use an
+inline prefix `[[type: page#section]]` — **the colon must be followed by a space** (so a
+URL like `[[http://x]]` or a bare path is not misread as a type). The four types are:
+
+| type | meaning |
+|---|---|
+| `see-also` | related background; no obligation (the default for a bare `[[ ]]`) |
+| `depends-on` | this section's constraint is incomplete/unsafe without the target |
+| `supersedes` | this section replaces / overrides the target |
+| `contradicts` | this section conflicts with the target; unresolved, needs review |
+
+An unrecognized prefix (e.g. a typo like `[[depend-on: …]]`) is reported as an
+**unknown edge type** by `wiki_update_check.py`. Do not invent other types.
 
 ### Do not expand context by following edges at execution time
 
 These edges are for authoring, navigation, and maintenance only. Execution still consumes
 only the sections explicitly selected into the plan's `Referenced Project Wiki` (plus their
-`reread`). Never pull a linked section into a page just because it is referenced — if a
-constraint genuinely needs another section's content to be correct, that target must be
-selected on its own during planning, not inlined here.
+`reread`). Never pull a linked section into a page just because it is referenced — even a
+`depends-on` target is **not** auto-pulled at execution in this version; if a constraint
+genuinely needs another section's content to be correct, that target must be selected on
+its own during planning, not inlined here.
 
 ## 9c. Backlink-aware editing
 
@@ -51,7 +65,9 @@ at it. After regenerating the graph (below), read `.graph.json` at the wiki root
 the node you are about to change in `backlinks`:
 
 - The key is `"<page-rel-path>#<section-id>"` (or the bare `"<page-rel-path>"` for whole-page
-  links). Its value lists the section nodes that reference it.
+  links). Its value lists `{"from": <section-node>, "type": <edge-type>}` of the sections
+  that reference it. Treat `depends-on` inbound edges as the highest-caution (a dependent's
+  correctness relies on this section's contract); `see-also` inbound edges are informational.
 - If the list is non-empty, the change may invalidate those referencing sections. Choose one:
   1. preserve the contract those backlinks depend on; or
   2. update the referencing sections to match the new meaning; or
@@ -59,8 +75,19 @@ the node you are about to change in `backlinks`:
 - If you **rename or remove** a section that has backlinks, the referencing `[[ ]]` links
   become dangling — update them in the same pass, or the lint will warn.
 
-Recording the conflict as a typed `supersedes`/`contradicts` edge is out of scope for this
-version; surface it in prose and to the user instead.
+### Contradiction and supersession
+
+When new knowledge conflicts with or replaces an existing section, **do not silently
+overwrite** it (the authorization gate already defaults `updateExistingPage` to `skip`):
+
+- **Contradicts** — the new claim conflicts with an existing section and the resolution is
+  not yet settled: record a `[[contradicts: other-page#section]]` edge on the new section,
+  add a short dated note stating both claims, and surface both to the user to resolve. Do
+  not auto-merge or pick a winner yourself.
+- **Supersedes** — the new section deliberately replaces an older decision/contract: record
+  a `[[supersedes: old-page#section]]` edge on the new section, and read the old section's
+  `backlinks` — sections that still point at the superseded section likely need repointing
+  or review. Surface them rather than rewriting them blindly.
 
 ## 11. Refresh and validate the mechanical state
 

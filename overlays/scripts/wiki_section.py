@@ -25,6 +25,13 @@ FENCE_OPEN_RE = re.compile(r"^(`{3,}|~{3,})")
 WIKILINK_RE = re.compile(r"\[\[([^\[\]]+)\]\]")
 INLINE_CODE_RE = re.compile(r"`[^`]*`")
 
+# Typed edges use an inline prefix: [[type: page#section]]. The colon must be
+# followed by whitespace so a bare URL ([[http://...]]) or untyped link is not
+# mistaken for a type. A bare [[ ]] (no recognized prefix) defaults to see-also.
+KNOWN_EDGE_TYPES = ("see-also", "depends-on", "supersedes", "contradicts")
+DEFAULT_EDGE_TYPE = "see-also"
+EDGE_TYPE_RE = re.compile(r"^([a-z][a-z0-9-]*):\s+(.+)$")
+
 
 @dataclass
 class _SectionSpan:
@@ -193,18 +200,27 @@ def validate_section_markers(text: str) -> list[str]:
     return errors
 
 
-def _parse_wikilink(raw: str) -> tuple[str, str | None]:
-    """Parse the inside of a [[...]] into (page, target_section_id).
+def _parse_wikilink(raw: str) -> tuple[str, str | None, str]:
+    """Parse the inside of a [[...]] into (page, target_section_id, edge_type).
 
-    Supports an optional Obsidian-style display alias ([[target|alias]]) and an
-    optional section anchor ([[page#section]] / [[page]] / [[#section]]). An empty
-    page means a same-page link; a missing anchor means target_section_id is None.
+    Supports an optional typed prefix ([[type: target]]), an optional Obsidian-style
+    display alias ([[target|alias]]), and an optional section anchor ([[page#section]]
+    / [[page]] / [[#section]]). An empty page means a same-page link; a missing anchor
+    means target_section_id is None. A bare link (no recognized "type: " prefix) gets
+    edge_type "see-also"; an unrecognized prefix is returned verbatim for the caller to
+    flag.
     """
-    target = raw.split("|", 1)[0].strip()
+    inner = raw.strip()
+    type_match = EDGE_TYPE_RE.match(inner)
+    if type_match:
+        edge_type = type_match.group(1)
+        rest = type_match.group(2).strip()
+    else:
+        edge_type = DEFAULT_EDGE_TYPE
+        rest = inner
+    target = rest.split("|", 1)[0].strip()
     page, _, section = target.partition("#")
-    page = page.strip()
-    section = section.strip()
-    return page, (section or None)
+    return page.strip(), (section.strip() or None), edge_type
 
 
 def _innermost_section_at(spans: list[_SectionSpan], line: int) -> str | None:
@@ -217,18 +233,19 @@ def _innermost_section_at(spans: list[_SectionSpan], line: int) -> str | None:
     return None
 
 
-def extract_section_links(text: str) -> dict[str, list[tuple[str, str | None]]]:
+def extract_section_links(text: str) -> dict[str, list[tuple[str, str | None, str]]]:
     """Map each section id to the [[page#section]] knowledge edges declared inside it.
 
     Each [[...]] is attributed to the innermost enclosing section (so a link in a
     child section is not double-counted on its parent). Links in fenced code blocks
     and inline code spans are ignored, and links outside any section are dropped
-    (edges are section-to-section). page="" denotes a same-page link.
+    (edges are section-to-section). Each edge is (page, target_section, edge_type);
+    page="" denotes a same-page link.
     """
     lines = text.splitlines()
     fenced = _skip_fenced_blocks(lines)
     top_level, _ = _parse_spans(text)
-    result: dict[str, list[tuple[str, str | None]]] = {}
+    result: dict[str, list[tuple[str, str | None, str]]] = {}
 
     for i, line in enumerate(lines):
         if i in fenced:
@@ -238,7 +255,7 @@ def extract_section_links(text: str) -> dict[str, list[tuple[str, str | None]]]:
             continue
         scrubbed = INLINE_CODE_RE.sub("", line)
         for match in WIKILINK_RE.finditer(scrubbed):
-            page, target_section = _parse_wikilink(match.group(1))
-            result.setdefault(section_id, []).append((page, target_section))
+            page, target_section, edge_type = _parse_wikilink(match.group(1))
+            result.setdefault(section_id, []).append((page, target_section, edge_type))
 
     return result
