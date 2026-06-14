@@ -80,6 +80,18 @@ Ownership examples:
 
 If no indexed leaf page clearly owns the candidate, do not append to the closest-looking page. Create a specific leaf page under the nearest clearly owned directory and reference it from the appropriate `index.md`, or ask the user when the long-term taxonomy is unclear.
 
+When you create a new leaf page, set its node `type:` in a leading frontmatter block, matching the knowledge it holds:
+
+```markdown
+---
+type: decision
+---
+
+# <Page Title>
+```
+
+Use `constraint` (default — omit frontmatter) for executable coding rules, `domain` for stable domain/business facts, `decision` for an ADR-style decision page, `guide` for a cross-cutting checklist. An unrecognized type value is flagged by `wiki_update_check.py`.
+
 If two or more candidate files or roots are equally plausible and the difference affects long-term wiki organization, ask the user which target should own it instead of guessing.
 
 ## 7. Check target ownership shape

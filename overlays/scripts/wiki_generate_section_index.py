@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from wiki_section import extract_section, list_section_ids  # noqa: E402
+from wiki_section import extract_section, list_section_ids, page_type  # noqa: E402
 from wiki_common import (  # noqa: E402
     build_section_graph,
     build_wiki_index_graph,
@@ -136,7 +136,7 @@ def generate_index(
     table_part = "\n".join(table_lines)
 
     if existing_content:
-        header_part = _with_trailing_newline(_split_header_and_table(existing_content)[0])
+        header_part = _split_header_and_table(existing_content)[0]
     else:
         title_line = ""
         for line in text.splitlines():
@@ -147,7 +147,24 @@ def generate_index(
             title_line = file_path.stem
         header_part = f"# {title_line} — Section Index\n\n{GENERATED_HEADER}\n"
 
+    header_part = _with_trailing_newline(_reconcile_type_line(header_part, page_type(text)))
     return header_part + table_part
+
+
+def _reconcile_type_line(header: str, ptype: str) -> str:
+    """Ensure the index header carries a single ``> Type: <ptype>`` metadata line.
+
+    Idempotent: stale Type lines are dropped and the current one is re-inserted right
+    after the auto-generated notice (or after the title). Type is a blockquote metadata
+    line, like the notice, so extract_document_context_from_index skips it from overview.
+    """
+    kept = [line for line in header.splitlines() if not line.strip().lstrip(">").strip().startswith("Type:")]
+    type_line = f"> Type: {ptype}"
+    insert_at = next((i + 1 for i, line in enumerate(kept) if "Auto-generated from section markers" in line), None)
+    if insert_at is None:
+        insert_at = next((i + 1 for i, line in enumerate(kept) if line.startswith("# ")), 0)
+    kept.insert(insert_at, type_line)
+    return "\n".join(kept).rstrip() + "\n\n"
 
 
 def index_path_for(file_path: Path) -> Path:

@@ -100,6 +100,17 @@ Sections may declare `[[page#section]]` knowledge edges. After you have a set of
 
 This pass improves recall during planning; it does not change execution. At execution, a `depends-on` target of a selected hard-constraint section is additionally reread automatically (1-hop closure), so you need not select a target solely to make it available at execution — select it when it is genuinely relevant to planning.
 
+## Node types (constraint / domain / decision / guide)
+
+Each leaf wiki page declares a node type in its frontmatter (shown as `> Type: <type>` in the companion `<stem>.index.md`, defaulting to `constraint`). Use it to keep selection focused — it is a relevance hint for *which* knowledge a task needs, not a hard filter:
+
+- `constraint` — executable coding rules/contracts. The primary input for implementation and review tasks.
+- `domain` — stable business/domain facts that implementation must respect. Select when the task touches the relevant domain rules; do not pull broad domain pages into a purely mechanical coding task.
+- `decision` — recorded decisions (ADR-style), often carrying `supersedes`/`contradicts` edges. Select when the task revisits or depends on a past decision; prefer the current decision and surface (do not resolve) any `supersedes` chain.
+- `guide` — cross-cutting checklists/thinking prompts. Select for review/planning checklists, not as line-level implementation constraints.
+
+Bias by task kind: implementation/debug tasks lead with `constraint` (and relevant `domain`); planning/review tasks may also pull `decision` and `guide`. Do not flood a coding task with domain/decision context that does not change what it must do.
+
 When shared wiki source is `github_mcp`:
 
 1. Call `shared_wiki_status` first and preserve `repoUrl`, `baseBranch`, `displayRoot`, `revision`, and any validation caveats.

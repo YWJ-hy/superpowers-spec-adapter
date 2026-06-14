@@ -8,7 +8,7 @@ from pathlib import Path
 import json
 import re
 
-from wiki_section import KNOWN_EDGE_TYPES, extract_section_links, list_section_ids
+from wiki_section import KNOWN_EDGE_TYPES, extract_section_links, list_section_ids, page_type
 
 DEFAULT_IGNORED_DIR_NAMES = {"draft", "archive", "examples"}
 AUTO_START = "<!-- superpower-adapter:auto:start -->"
@@ -88,11 +88,13 @@ class SectionGraph:
     edges: list[dict] = field(default_factory=list)
     backlinks: dict[str, list[str]] = field(default_factory=dict)
     dangling: list[dict] = field(default_factory=list)
+    page_types: dict[str, str] = field(default_factory=dict)
 
     def to_payload(self) -> dict:
         return {
-            "schema": "section-graph/2",
+            "schema": "section-graph/3",
             "nodes": self.nodes,
+            "pageTypes": self.page_types,
             "edges": self.edges,
             "backlinks": self.backlinks,
             "dangling": self.dangling,
@@ -677,6 +679,7 @@ def build_section_graph(wiki_root: Path) -> SectionGraph:
 
         for section_id in list_section_ids(text):
             graph.nodes.append(f"{leaf_rel}#{section_id}")
+        graph.page_types[leaf_rel] = page_type(text)
 
         for section_id, links in extract_section_links(text).items():
             source_node = f"{leaf_rel}#{section_id}"
@@ -710,6 +713,7 @@ def build_section_graph(wiki_root: Path) -> SectionGraph:
                 graph.backlinks.setdefault(target_node, []).append({"from": source_node, "type": edge_type})
 
     graph.nodes = sorted(dict.fromkeys(graph.nodes))
+    graph.page_types = dict(sorted(graph.page_types.items()))
     graph.edges.sort(key=lambda edge: (edge["from"], edge["to"], edge["type"]))
     graph.backlinks = {
         key: [{"from": frm, "type": typ} for frm, typ in sorted({(b["from"], b["type"]) for b in value})]

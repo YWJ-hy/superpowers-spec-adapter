@@ -274,6 +274,7 @@ bash tests/wiki-update-check-smoke.sh <installed-superpowers-target> /path/to/pr
 bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/wiki-section-graph-smoke.sh <installed-superpowers-target>
 bash tests/wiki-depends-on-closure-smoke.sh <installed-superpowers-target>
+bash tests/wiki-page-type-smoke.sh <installed-superpowers-target>
 bash tests/shared-wiki-submodule-smoke.sh
 ```
 

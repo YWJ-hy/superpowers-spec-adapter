@@ -61,7 +61,7 @@ fi
 python3 - <<'PY' "${GRAPH}"
 import json, sys
 g = json.loads(open(sys.argv[1], encoding="utf-8").read())
-assert g["schema"] == "section-graph/2", f"unexpected schema: {g['schema']}"
+assert g["schema"] == "section-graph/3", f"unexpected schema: {g['schema']}"
 
 src = "backend/contract.md#response-format"
 edges = {(e["from"], e["to"], e["type"]) for e in g["edges"]}

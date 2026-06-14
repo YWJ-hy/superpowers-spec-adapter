@@ -25,6 +25,10 @@ For triggered updates, include these sections in the target wiki page:
 
 ## Design Decision
 
+Record a qualifying decision on a `decision`-type page (set `type: decision` frontmatter on a
+new page — see `references/targeting.md`). An ADR that replaces an earlier one should carry a
+`[[supersedes: old-page#section]]` edge to the decision it overrides (see `references/graph-maintenance.md`).
+
 ```markdown
 ### Design Decision: <name>
 
@@ -41,6 +45,9 @@ For triggered updates, include these sections in the target wiki page:
 ...
 ```
 ```
+
+Durable domain/business facts (not executable coding rules) belong on a `domain`-type page
+(`type: domain`); keep them as stable facts implementation must respect, not implementation detail.
 
 ## Project Convention
 

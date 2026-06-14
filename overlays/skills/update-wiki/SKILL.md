@@ -62,8 +62,11 @@ Good wiki updates include engineering knowledge that passes at least one promoti
 - validation and error behavior that future work must preserve
 - design decisions with rationale
 - project conventions
+- stable domain / business facts that future implementation must respect (domain knowledge)
 - gotchas and common mistakes that are not obvious from code, spec, or plan
 - cross-cutting thinking checklists in `guides/`
+
+The wiki holds more than coding constraints. Each leaf page declares a node `type:` in its frontmatter — `constraint` (default, executable rules), `domain` (stable domain/business facts), `decision` (ADR-style decisions, usually with `supersedes`/`contradicts` edges), or `guide` (cross-cutting checklists). When you **create** a new page, set the matching `type:`; route a qualifying decision to a `decision` page and durable domain knowledge to a `domain` page. See `references/content-templates.md` and `references/targeting.md`.
 
 ### Local Business Logic Exclusion
 

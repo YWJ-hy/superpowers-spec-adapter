@@ -32,6 +32,17 @@ KNOWN_EDGE_TYPES = ("see-also", "depends-on", "supersedes", "contradicts")
 DEFAULT_EDGE_TYPE = "see-also"
 EDGE_TYPE_RE = re.compile(r"^([a-z][a-z0-9-]*):\s+(.+)$")
 
+# Page-level node type, declared in a leading YAML-ish frontmatter block:
+#   ---
+#   type: decision
+#   ---
+# A page with no frontmatter (or no type key) defaults to "constraint". This lets the
+# wiki hold coding constraints AND broader project memory (domain facts, ADR decisions,
+# cross-cutting guides) as first-class, retrieval-distinguishable node types.
+KNOWN_PAGE_TYPES = ("constraint", "domain", "decision", "guide")
+DEFAULT_PAGE_TYPE = "constraint"
+FRONTMATTER_FENCE = "---"
+
 
 @dataclass
 class _SectionSpan:
@@ -157,7 +168,7 @@ def extract_document_context_from_index(index_text: str) -> dict[str, object]:
             break
         if stripped.startswith(">"):
             value = stripped.lstrip(">").strip()
-            if not value or value == AUTO_GENERATED_INDEX_NOTICE:
+            if not value or value == AUTO_GENERATED_INDEX_NOTICE or value.startswith("Type:"):
                 continue
             overview_lines.append(value)
             in_overview = True
@@ -231,6 +242,35 @@ def _innermost_section_at(spans: list[_SectionSpan], line: int) -> str | None:
         if span.start_line < line < span.end_line:
             return _innermost_section_at(span.children, line) or span.section_id
     return None
+
+
+def extract_page_frontmatter(text: str) -> dict[str, str]:
+    """Parse a leading ``---`` frontmatter block into a flat {key: value} dict.
+
+    Only a minimal ``key: value`` form is parsed (no nested YAML); a page without a
+    leading frontmatter fence returns {}. Keys/values are stripped; values keep their
+    case. This is intentionally tolerant — frontmatter is optional metadata.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != FRONTMATTER_FENCE:
+        return {}
+    result: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == FRONTMATTER_FENCE:
+            break
+        key, sep, value = line.partition(":")
+        if sep:
+            result[key.strip()] = value.strip()
+    return result
+
+
+def page_type(text: str) -> str:
+    """Return the page's declared node type, or the default when absent.
+
+    An unrecognized value is returned verbatim so callers (lint) can flag it.
+    """
+    declared = extract_page_frontmatter(text).get("type")
+    return declared.strip().lower() if isinstance(declared, str) and declared.strip() else DEFAULT_PAGE_TYPE
 
 
 def extract_section_links(text: str) -> dict[str, list[tuple[str, str | None, str]]]:

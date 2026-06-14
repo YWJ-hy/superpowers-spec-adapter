@@ -18,7 +18,7 @@ from wiki_common import (
     shared_wiki_neutrality_violations,
     wiki_root_by_name,
 )
-from wiki_section import list_section_ids, validate_section_markers
+from wiki_section import KNOWN_PAGE_TYPES, extract_page_frontmatter, list_section_ids, validate_section_markers
 
 VALID = "valid"
 WARNING = "warning"
@@ -85,6 +85,9 @@ def check_file(project_root: Path, root_desc, path: Path, *, leaf: bool) -> tupl
         marker_errors = validate_section_markers(text)
         for err in marker_errors:
             errors.append(f"Section marker error in {rel}: {err}")
+        declared_type = extract_page_frontmatter(text).get("type")
+        if declared_type and declared_type.strip().lower() not in KNOWN_PAGE_TYPES:
+            warnings.append(f"Unknown page type in {rel}: '{declared_type.strip()}' (expected: {', '.join(KNOWN_PAGE_TYPES)})")
         if lines_count > 100 and not list_section_ids(text):
             warnings.append(f"Leaf page over 100 lines without section markers: {rel} ({lines_count} lines)")
         section_index_path = path.parent / f"{path.stem}.index.md"
