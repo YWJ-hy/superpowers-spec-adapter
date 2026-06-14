@@ -89,6 +89,17 @@ Do not mix local shared wiki and MCP shared wiki pages in the same selected resu
 11. If source files are needed, read only files named in `changedFiles` or files explicitly referenced by selected wiki sections.
 12. For `phase: debug`, default to `readDepth: index-only`. Use `readDepth: full` only when a section directly describes the suspected project contract, cross-layer boundary, or known gotcha.
 
+## Graph-aware neighbor discovery (1 hop)
+
+Sections may declare `[[page#section]]` knowledge edges. After you have a set of candidate sections from index navigation, do **one** bounded pass to catch related sections that keyword/index scanning missed:
+
+1. For each candidate section, look up its 1-hop neighbors. Locally this is the project `.superpowers/wiki/.graph.json` (`edges` out of, and `backlinks` into, the candidate's `page#section` node); equivalently, each companion `<stem>.index.md` carries `引用` (outgoing) and `被引用` (incoming) columns with the edge type. For shared `github_mcp`, use the companion index columns via `shared_wiki_read`.
+2. Treat each neighbor as a **candidate only** — evaluate its relevance like any other section and classify it (`direct` / `supporting` / `rejected`). Edge type is a hint, not a verdict: a `depends-on` neighbor is usually load-bearing (lean `direct`/`supporting`); `see-also` is weaker; `supersedes` / `contradicts` flag that one side may be stale — surface it but do not resolve it yourself.
+3. **Bounded**: expand neighbors of your original candidates only. Do not follow neighbors-of-neighbors (no transitive expansion), and a neighbor still participates only if it has a companion `<stem>.index.md`.
+4. Record neighbors you considered but did not select in `rejectedWikiPages` with a short reason, so the discovery is visible.
+
+This pass improves recall during planning; it does not change execution. At execution, a `depends-on` target of a selected hard-constraint section is additionally reread automatically (1-hop closure), so you need not select a target solely to make it available at execution — select it when it is genuinely relevant to planning.
+
 When shared wiki source is `github_mcp`:
 
 1. Call `shared_wiki_status` first and preserve `repoUrl`, `baseBranch`, `displayRoot`, `revision`, and any validation caveats.
