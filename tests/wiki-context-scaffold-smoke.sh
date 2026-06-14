@@ -195,7 +195,7 @@ python3 "$SCRIPT" "$CTX" --validate-only --strict >/dev/null
 python3 - "$CTX" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1], encoding='utf-8'))
-assert d['schemaVersion'] == 3 and d['kind'] == 'superpower-adapter.wiki-context'
+assert d['schemaVersion'] == 4 and d['kind'] == 'superpower-adapter.wiki-context'
 assert d['generatedBy'] == 'superpower-adapter', d.get('generatedBy')
 # taskRouting block is fully present and pre-confirmation.
 tr = d['taskRouting']
@@ -207,27 +207,29 @@ assert tr['fingerprintAlgorithm'] == 'sha256:superpower-adapter-task-text-v1'
 assert d['sharedWiki']['repoUrl'] == 'https://github.com/acme/platform-wiki.git'
 assert d['sharedWiki']['baseBranch'] == 'master'
 pages = d['wikiPages']
-# Local hard section: reread auto-derived with localPath; destination defaulted task-bound, reason empty.
+# Local hard section: reread auto-derived with localPath; destination defaulted task-bound, reason empty,
+# tasks seeded empty for the author to fill once the roster exists.
 s0 = pages[0]['sections'][0]
 assert s0['hardConstraint'] is True
 assert s0['reread']['localPath'] == 'frontend/hook-guidelines.md'
 assert s0['reread']['includeDocumentContext'] is True
 assert 'wikiPath' not in s0['reread']
-assert s0['destination'] == {'kind': 'task-bound', 'reason': ''}, s0['destination']
-# Soft section: no reread, planning-only default.
+assert s0['destination'] == {'kind': 'task-bound', 'reason': '', 'tasks': []}, s0['destination']
+# Soft section: no reread, planning-only default, and no tasks list (only task-bound gets one).
 s1 = pages[0]['sections'][1]
 assert s1['hardConstraint'] is False
 assert 'reread' not in s1
 assert s1['destination']['kind'] == 'planning-only'
+assert 'tasks' not in s1['destination'], s1['destination']
 # Constraints normalized to exactly the four categories.
 assert set(s1['constraints']) == {'implementation', 'test', 'review', 'general'}
 # github_mcp hard section: reread uses wikiPath, never localPath.
 sc = pages[1]['sections'][0]
 assert sc['reread']['wikiPath'] == 'frontend/contracts.md'
 assert 'localPath' not in sc['reread']
-# Routing collections seeded empty for the author / --scaffold-tasks to fill.
+# Task roster seeded empty for --scaffold-tasks; no legacy globalWikiRefs collection exists in v4.
 assert d['taskWikiRefs'] == []
-assert d['globalWikiRefs'] == []
+assert 'globalWikiRefs' not in d
 print('scaffold structure ok')
 PY
 
@@ -241,34 +243,28 @@ refs = {r['taskId']: r for r in d['taskWikiRefs']}
 assert set(refs) == {'T1', 'T2'}
 assert refs['T1']['taskTitle'] == 'Implement path-based form updates'
 assert refs['T2']['taskTitle'] == 'Add contract coverage'
-# wikiRefs start empty (author routing); no fingerprint stamped yet (that is --bind-fingerprints' job).
-assert refs['T1']['wikiRefs'] == [] and refs['T2']['wikiRefs'] == []
+# Roster only: no per-task wikiRefs (routing is on section.destination), no fingerprint yet (bind's job).
+assert 'wikiRefs' not in refs['T1'] and 'wikiRefs' not in refs['T2']
 assert 'taskFingerprint' not in refs['T1']
 print('scaffold-tasks structure ok')
 PY
 
-# --- Author edits ONLY semantic routing in the generated sidecar. ---
+# --- Author edits ONLY semantic routing on each section's destination. ---
 python3 - "$CTX" <<'PY'
 import json, sys
 f = sys.argv[1]
 d = json.load(open(f, encoding='utf-8'))
-d['wikiPages'][0]['sections'][0]['destination']['reason'] = 'T1 changes field update behavior.'
+# path-based-update: keep the task-bound default; write the reason and bind it to T1.
+s0 = d['wikiPages'][0]['sections'][0]['destination']
+s0['reason'] = 'T1 changes field update behavior.'
+s0['tasks'] = ['T1']
+# deep-path: planning-only; reason only.
 d['wikiPages'][0]['sections'][1]['destination']['reason'] = 'Shaped task design only; not injected.'
+# contract-review: promote to global (reaches every task and reviewer); global carries no tasks list.
 contract = d['wikiPages'][1]['sections'][0]['destination']
 contract['kind'] = 'global'  # override the task-bound default
+contract.pop('tasks', None)
 contract['reason'] = 'Portable contract naming applies to every task and reviewer.'
-d['globalWikiRefs'] = [{
-    'sectionRef': {'root': 'shared', 'source': 'github_mcp',
-                   'displayPath': '.shared-superpowers/wiki/frontend/contracts.md',
-                   'wikiPath': 'frontend/contracts.md', 'sectionId': 'contract-review'},
-    'reason': 'Global shared contract for all tasks and reviewers.'}]
-for r in d['taskWikiRefs']:
-    if r['taskId'] == 'T1':
-        r['wikiRefs'] = [{
-            'sectionRef': {'root': 'project', 'source': 'local',
-                           'displayPath': '.superpowers/wiki/frontend/hook-guidelines.md',
-                           'localPath': 'frontend/hook-guidelines.md', 'sectionId': 'path-based-update'},
-            'reason': 'T1 must follow the path update rule.'}]
 d['taskRouting']['status'] = 'confirmed'
 d['taskRouting']['selectedSectionsFrozen'] = True
 json.dump(d, open(f, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
@@ -283,17 +279,21 @@ T1_RENDER="$(python3 "$SCRIPT" "$CTX" --task-id T1 --role implementer --strict -
 assert_contains "T1 render" 'Use updateByPath(path, value)' "$T1_RENDER"
 assert_contains "T1 render" 'Keep shared payload names portable' "$T1_RENDER"
 
-# --- Re-running --scaffold-tasks is idempotent: author-entered wikiRefs survive. ---
+# --- Re-running --scaffold-tasks is idempotent: roster keeps taskFingerprint; section routing untouched. ---
 python3 "$SCRIPT" "$CTX" --scaffold-tasks --plan-path "$PLAN" --strict >/dev/null
 python3 - "$CTX" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1], encoding='utf-8'))
 t1 = next(r for r in d['taskWikiRefs'] if r['taskId'] == 'T1')
-assert any(w['sectionRef']['sectionId'] == 'path-based-update' for w in t1['wikiRefs']), 'lost wikiRefs on rescaffold'
-# Preserved fingerprint stays present too (bind owns it; rescaffold must not strip it).
-assert 'taskFingerprint' in t1
+# Preserved fingerprint stays present (bind owns it; rescaffold must not strip it).
+assert 'taskFingerprint' in t1, 'lost taskFingerprint on rescaffold'
+# Section->task routing lives on destination.tasks and is untouched by --scaffold-tasks.
+s0 = d['wikiPages'][0]['sections'][0]['destination']
+assert s0['kind'] == 'task-bound' and s0['tasks'] == ['T1'], s0
 print('idempotent rescaffold ok')
 PY
+# Still execution-ready after the idempotent rescaffold.
+python3 "$SCRIPT" "$CTX" --fingerprint-preflight --strict --execution-ready --plan-path "$PLAN" >/dev/null
 
 # --- --scaffold-tasks drops (and reports) tasks no longer in the plan. ---
 DROP_CTX="$TMP/drop.wiki-context.json"

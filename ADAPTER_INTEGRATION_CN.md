@@ -150,7 +150,7 @@ adapter 在拆分任务前注入正式 wiki 选择：
 ```text
 读取已确认 Superpowers spec
 → 调用 wiki-researcher
-→ 写 schemaVersion 3 `.wiki-context.json`
+→ 写 schemaVersion 4 `.wiki-context.json`
 → 写 implementation plan
 → plan 包含 Referenced Project Wiki 并链接 JSON sidecar
 ```

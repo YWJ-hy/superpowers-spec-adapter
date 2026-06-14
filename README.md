@@ -15,7 +15,7 @@ Chinese quickstart guide: [`QUICKSTART_CN.md`](./QUICKSTART_CN.md)
 - Load wiki details progressively instead of reading the full tree
 - Install `agents/wiki-researcher.md` to select relevant project wiki pages progressively
 - Patch Superpowers `brainstorming` so designs can see lightweight project wiki context and, when the user points to an existing confirmed `.lanhu/.../index.md` package, read that package as requirements input from its entrypoint instead of regenerating Lanhu output; new Lanhu intake is handled only by the explicit `lanhu-requirements` skill
-- Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed schemaVersion 3 `.wiki-context.json` constraints with page-level bounded `documentContext`, nested sections, and final task-bound `taskWikiRefs` / `globalWikiRefs` / `wiki/source task fingerprint`
+- Patch Superpowers `writing-plans` so plans link lightweight `Referenced Project Wiki` entries to detailed schemaVersion 4 `.wiki-context.json` constraints with page-level bounded `documentContext`, nested sections, per-section `destination` routing (`global` / `task-bound` + `tasks` / `planning-only`), and a `taskWikiRefs` roster carrying the `wiki/source task fingerprint`
 - Patch Superpowers spec/plan pre/review prompts with a short settings-driven sourceOfTruth policy, and run changed-path sourceOfTruth lint after tasks to guard actual truth-file edits
 - Patch Superpowers `systematic-debugging` so it may conditionally use `wiki-researcher` after evidence narrows the suspected project contract or component, without making wiki lookup a default prerequisite or imposing a wiki page cap
 - Let implementation and review consume plan `Referenced Project Wiki` plus task-scoped `.wiki-context.json` renders via `--task-id`, while sourceOfTruth enforcement is handled by deterministic changed-path lint instead of task-scoped source-truth sidecars
@@ -232,15 +232,15 @@ Lanhu output must not include final acceptance criteria, Given/When/Then, test c
 
 ## Progressive disclosure
 
-The default and only formal selection path is the installed `wiki-researcher` agent. The former `wiki-progressive-disclosure` fallback skill is removed; normal Superpowers `brainstorming` and `writing-plans` use `wiki-researcher` plus strict schemaVersion 3 `.wiki-context.json` validation.
+The default and only formal selection path is the installed `wiki-researcher` agent. The former `wiki-progressive-disclosure` fallback skill is removed; normal Superpowers `brainstorming` and `writing-plans` use `wiki-researcher` plus strict schemaVersion 4 `.wiki-context.json` validation.
 
 Progressive wiki reading still follows these rules:
 
 1. Read existing root indexes: `.superpowers/wiki/index.md` and `.shared-superpowers/wiki/index.md`
 2. Follow each root index to narrower indexes or per-document section indexes
 3. During brainstorming, stay index-only and do not read section full text
-4. During planning, read only candidate section full text; `wiki-researcher` returns a JSON selection that the planning agent turns into the sidecar mechanically with `wiki_context_render.py <sidecar> --scaffold <selection>` (schemaVersion 3, one bounded `documentContext` per wiki page, nested selected sections, auto reread for hard sections), then edits only the semantic routing
-5. After final tasks stabilize, scaffold task entries with `wiki_context_render.py <sidecar> --scaffold-tasks --plan-path`, assign routing into `taskWikiRefs` / `globalWikiRefs` / `destination`, stamp `wiki/source task fingerprint` mechanically with `wiki_context_render.py <sidecar> --bind-fingerprints --execution-ready --plan-path` (never hand-write it), then render execution context with `--task-id`
+4. During planning, read only candidate section full text; `wiki-researcher` returns a JSON selection that the planning agent turns into the sidecar mechanically with `wiki_context_render.py <sidecar> --scaffold <selection>` (schemaVersion 4, one bounded `documentContext` per wiki page, nested selected sections, auto reread for hard sections), then edits only the semantic routing
+5. After final tasks stabilize, scaffold the task roster with `wiki_context_render.py <sidecar> --scaffold-tasks --plan-path`, assign routing on each section's `destination` (`kind` + `reason`, plus `tasks` for task-bound), stamp `wiki/source task fingerprint` mechanically with `wiki_context_render.py <sidecar> --bind-fingerprints --execution-ready --plan-path` (never hand-write it), then render execution context with `--task-id`
 6. During implementation and review, use plan `Referenced Project Wiki` and render selected task constraints from linked `.wiki-context.json`; hard-constraint rereads inject document context plus the selected section body only
 7. Avoid full-tree wiki loading unless explicitly requested, and do not inject sibling sections or full pages just to recover section context
 
@@ -316,7 +316,7 @@ Detailed constraints are written to a plan sidecar file such as:
 docs/superpowers/plans/<plan-stem>.wiki-context.json
 ```
 
-Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 3 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. The planning agent generates the sidecar from the `wiki-researcher` selection with `wiki_context_render.py <sidecar> --scaffold <selection>` and edits only semantic routing; final task stabilization scaffolds `taskWikiRefs` with `--scaffold-tasks`, the agent assigns `taskRouting`/`globalWikiRefs`/`destination`, then stamps `wiki/source task fingerprint` mechanically via `--bind-fingerprints` (which also validates `--execution-ready`); execution preflights with `--fingerprint-preflight`, then renders selected task constraint blocks with `--task-id` instead of task-string filtering. Forced hard-constraint rereads use the task-scoped page context with the selected section body, not sibling sections or whole pages.
+Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 4 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. The planning agent generates the sidecar from the `wiki-researcher` selection with `wiki_context_render.py <sidecar> --scaffold <selection>` and edits only semantic routing; final task stabilization scaffolds the `taskWikiRefs` roster with `--scaffold-tasks`, the agent assigns `taskRouting` and each section's `destination` routing (`kind` + `reason` + `tasks` for task-bound), then stamps `wiki/source task fingerprint` mechanically via `--bind-fingerprints` (which also validates `--execution-ready`); execution preflights with `--fingerprint-preflight`, then renders selected task constraint blocks with `--task-id` instead of task-string filtering. Forced hard-constraint rereads use the task-scoped page context with the selected section body, not sibling sections or whole pages.
 
 
 ## Worktree origin tracking

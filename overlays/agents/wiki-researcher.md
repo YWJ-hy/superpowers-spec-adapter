@@ -173,11 +173,11 @@ Rules:
 - Output `relevanceTo` as a coarse human-readable task-area description, never specific task numbers.
 - Include the `sharedWikiSource` block only when at least one selected page is `source: github_mcp`; preserve `repoUrl`, `baseBranch`, and `revision` from `shared_wiki_status` so the generator can record shared-wiki identity for drift detection.
 
-You select candidate pages and sections ONLY. You must NOT emit, compute, or invent any of: `destination`, `reread`, `taskRouting`, `taskWikiRefs`, `globalWikiRefs`, `taskFingerprint`, future task IDs, or legacy `appliesTo` execution routing. The sidecar generator fills every mechanical field (schema constants, the `taskRouting` block, a per-section `reread` block for hard sections, the top-level `sharedWiki` identity, and default `destination` kinds); the main agent then authors only the semantic routing after the plan has stable task IDs. Concretely, the main agent (not you):
+You select candidate pages and sections ONLY. You must NOT emit, compute, or invent any of: `destination`, `reread`, `taskRouting`, `taskWikiRefs`, `taskFingerprint`, or future task IDs. The sidecar generator fills every mechanical field (schema constants, the `taskRouting` block, a per-section `reread` block for hard sections, the top-level `sharedWiki` identity, and default `destination` kinds); the main agent then authors only the semantic routing after the plan has stable task IDs. Concretely, the main agent (not you):
 
 1. Saves your JSON to `docs/superpowers/plans/<plan-stem>.wiki-selection.json`.
 2. Runs `scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --scaffold docs/superpowers/plans/<plan-stem>.wiki-selection.json --strict --plan-path docs/superpowers/plans/<plan-stem>.md` to generate a complete-shaped sidecar skeleton; on success this consumes and removes the transient selection file (a structural error leaves it in place for repair).
-3. Edits only `destination.reason`, each task's `wikiRefs`, `globalWikiRefs`, and `taskRouting.status`/`selectedSectionsFrozen`, then after tasks stabilize runs `--scaffold-tasks --plan-path <plan>` and finally `--bind-fingerprints --strict --execution-ready --plan-path <plan>`.
+3. Edits only each section's `destination` (reason, kind, and the `tasks` list for task-bound sections) and `taskRouting.status`/`selectedSectionsFrozen`, then after tasks stabilize runs `--scaffold-tasks --plan-path <plan>` and finally `--bind-fingerprints --strict --execution-ready --plan-path <plan>`.
 
 You do not write any files yourself, and you do not need to know the sidecar format — your contract is the selection JSON above.
 

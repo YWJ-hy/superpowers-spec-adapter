@@ -393,7 +393,7 @@ check_native_skill_residuals() {
   local writing_skill="$TARGET_DIR/skills/writing-plans/SKILL.md"
   for required in \
     'sharedWikiSource: auto' \
-    'schemaVersion 3 JSON' \
+    'schemaVersion 4 JSON' \
     '.wiki-context.json' \
     'page-rooted `wikiPages`' \
     'bounded `documentContext`' \

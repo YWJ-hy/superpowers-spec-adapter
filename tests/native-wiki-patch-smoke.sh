@@ -165,10 +165,10 @@ fi
 
 for required in \
   'sharedWikiSource: auto' \
-  'wiki-context-v3.example.jsonc' \
+  'wiki-context-v4.example.jsonc' \
   '--validate-only --strict' \
   'infer the JSON format from `scripts/wiki_context_render.py`' \
-  'schemaVersion 3 JSON' \
+  'schemaVersion 4 JSON' \
   'page-rooted `wikiPages`' \
   'bounded `documentContext`' \
   'taskWikiRefs' \
@@ -239,7 +239,7 @@ if grep -Fq 'Before attempting ANY fix, use wiki-researcher' "$SYSTEMATIC_SKILL"
   exit 1
 fi
 
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 3' 'page-rooted `wikiPages` tree' 'documentContext' 'taskWikiRefs' 'taskFingerprint' 'globalWikiRefs' 'sharedWiki' 'shared_wiki_status'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'sharedWikiSource: auto' 'schemaVersion: 4' 'page-rooted `wikiPages` tree' 'documentContext' 'taskWikiRefs' 'taskFingerprint' 'destination.tasks' 'sharedWiki' 'shared_wiki_status'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/writing-plans/SKILL.md"; then
     printf 'Expected writing-plans patch to contain source-aware wiki context: %s\n' "$required" >&2
     exit 1

@@ -5,13 +5,20 @@
   // wiki-researcher selects candidate sections only; it must not create taskWikiRefs or taskFingerprint.
   // taskWikiRefs are generated only after the final Superpowers plan has real stable task IDs.
   // Do not inspect scripts/wiki_context_render.py to infer this format; that script is only for validation/rendering.
-  // After authoring the JSON sidecar and assigning routing (globalWikiRefs + one taskWikiRefs entry
-  // per plan task, with taskId/taskTitle/wikiRefs), stamp taskFingerprint mechanically — this also
-  // validates execution readiness and writes the sidecar in place. Never hand-write taskFingerprint:
+  //
+  // schemaVersion 4 routing model: ALL routing lives on each section's `destination` block. There are no
+  // separate globalWikiRefs / wikiRefs collections and no legacy `appliesTo` field. A section is reached by:
+  //   - destination.kind = "global"        -> every task and reviewer (no destination.tasks)
+  //   - destination.kind = "task-bound"    -> only the plan tasks listed in destination.tasks: ["T1", ...]
+  //   - destination.kind = "planning-only" -> not injected at execution (shaped task design only)
+  // So after authoring the JSON sidecar you only: write each section's destination.reason, fix any wrong
+  // destination.kind, and list destination.tasks for task-bound sections. Then stamp taskFingerprint
+  // mechanically -- this also validates execution readiness and writes the sidecar in place. Never
+  // hand-write taskFingerprint:
   // python3 <plugin-root>/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --bind-fingerprints --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
   // Before execution/SDD, run exactly one fingerprint preflight:
   // python3 <plugin-root>/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --fingerprint-preflight --strict --execution-ready --plan-path docs/superpowers/plans/<plan-stem>.md
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "kind": "superpower-adapter.wiki-context",
   "generatedBy": "superpower-adapter",
   "planPath": "docs/superpowers/plans/example.md",
@@ -62,11 +69,12 @@
           "reason": "Field updates are in scope.",
           "relevanceTo": "form field updates and adapter state writes",
           "hardConstraint": true,
-          // destination is assigned only after final plan tasks exist.
-          // hardConstraint/direct sections must be task-bound or global, never planning-only.
+          // Routing for this section. hardConstraint/direct sections must be task-bound or global,
+          // never planning-only. task-bound sections list the plan task ids they apply to in `tasks`.
           "destination": {
             "kind": "task-bound",
-            "reason": "Only tasks that change generated form adapter field updates need this section injected."
+            "reason": "Only tasks that change generated form adapter field updates need this section injected.",
+            "tasks": ["T1"]
           },
           // Constraint categories are exactly implementation, test, review, and general.
           // Use general when a selected constraint cannot be categorized confidently.
@@ -98,6 +106,7 @@
           "reason": "Nested paths are nearby selected context.",
           "relevanceTo": "nested object paths",
           "hardConstraint": false,
+          // planning-only context shaped task design but is not injected at execution; no tasks list.
           "destination": {
             "kind": "planning-only",
             "reason": "This context shaped task design but does not need execution prompt injection."
@@ -138,14 +147,13 @@
         {
           "sectionId": "contract-review",
           "section_name": "contract-review",
-          // appliesTo is legacy metadata only; execution must not use it for task routing.
-          "appliesTo": ["Task 1", "Task 3"],
           "readDepth": "full",
           "relevance": "direct",
           "confidence": "high",
           "reason": "Task touches shared contract shape.",
           "relevanceTo": "shared contract payload naming",
           "hardConstraint": true,
+          // global sections reach every task and reviewer; they carry no destination.tasks list.
           "destination": {
             "kind": "global",
             "reason": "Portable shared contract naming must be visible to every implementation and review task."
@@ -171,46 +179,21 @@
       "caveats": []
     }
   ],
-  "globalWikiRefs": [
-    {
-      "sectionRef": {
-        "root": "shared",
-        "source": "github_mcp",
-        "displayPath": ".shared-superpowers/wiki/frontend/contracts.md",
-        "wikiPath": "frontend/contracts.md",
-        "sectionId": "contract-review"
-      },
-      "reason": "This shared contract applies to every task and reviewer prompt."
-    }
-  ],
+  // The task roster + fingerprint anchor. One entry per stable plan task (scaffolded by --scaffold-tasks).
+  // No per-task wiki refs: which sections a task receives is read from each section's destination above.
   "taskWikiRefs": [
     {
       "taskId": "T1",
       "taskTitle": "Implement path-based form updates",
       // Stamped by `--bind-fingerprints` from the normalized final task text (algorithm declared once
-      // in taskRouting.fingerprintAlgorithm). Illustrative value only — never hand-write or copy it;
+      // in taskRouting.fingerprintAlgorithm). Illustrative value only -- never hand-write or copy it;
       // a stale or placeholder digest passes structure checks but fails the execution-side preflight.
-      "taskFingerprint": "a3f5c8e2b7d0419c6e8a2f5d7b0c3e9f1a4d6b8c0e2f5a7d9c1b3e6f8a0d2c4b",
-      "wikiRefs": [
-        {
-          "sectionRef": {
-            "root": "project",
-            "source": "local",
-            "displayPath": ".superpowers/wiki/frontend/hook-guidelines.md",
-            "localPath": "frontend/hook-guidelines.md",
-            "sectionId": "path-based-update"
-          },
-          "reason": "T1 changes form adapter state writes and must follow the path update rule."
-        }
-      ],
-      "caveats": []
+      "taskFingerprint": "a3f5c8e2b7d0419c6e8a2f5d7b0c3e9f1a4d6b8c0e2f5a7d9c1b3e6f8a0d2c4b"
     },
     {
       "taskId": "T2",
       "taskTitle": "Add contract coverage",
-      "taskFingerprint": "b8d2f6a0c4e7193b5d8f0a2c6e9b1d4f7a3c5e8b0d2f4a6c8e1b3d5f7a9c0e2d",
-      "wikiRefs": [],
-      "caveats": []
+      "taskFingerprint": "b8d2f6a0c4e7193b5d8f0a2c6e9b1d4f7a3c5e8b0d2f4a6c8e1b3d5f7a9c0e2d"
     }
   ],
   "caveats": []

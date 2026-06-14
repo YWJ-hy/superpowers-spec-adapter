@@ -7,16 +7,16 @@
   // Flow: wiki-researcher emits THIS JSON object as its final structured result. The planning (main)
   // agent writes it verbatim to docs/superpowers/plans/<plan-stem>.wiki-selection.json and runs
   // --scaffold to get a complete-shaped <plan-stem>.wiki-context.json skeleton. The agent then edits
-  // ONLY the semantic routing in the generated sidecar (each section's destination.reason, taskWikiRefs
-  // wikiRefs, globalWikiRefs, and taskRouting.status/selectedSectionsFrozen), runs --scaffold-tasks once
-  // the plan has stable `### Task T1:` headings, and finally --bind-fingerprints.
+  // ONLY the semantic routing in the generated sidecar (each section's destination: reason, kind, and
+  // the tasks list for task-bound sections, plus taskRouting.status/selectedSectionsFrozen), runs
+  // --scaffold-tasks once the plan has stable `### Task T1:` headings, and finally --bind-fingerprints.
   //
   // The generator fills everything mechanical, so this selection must NOT carry it:
   //   - schemaVersion / kind / generatedBy / planPath / taskRouting block
   //   - per-section `reread` (auto-derived for every hardConstraint section)
-  //   - per-section `destination` (kind defaulted from relevance; reason authored later)
+  //   - per-section `destination` (kind defaulted from relevance; reason/tasks authored later)
   //   - top-level `sharedWiki` identity (copied from sharedWikiSource when a github_mcp page is selected)
-  //   - globalWikiRefs / taskWikiRefs / taskFingerprint (routing, authored/stamped after task stabilization)
+  //   - taskWikiRefs / taskFingerprint (the task roster, scaffolded/stamped after task stabilization)
   //
   // If --scaffold reports a structural error in this selection, fix THIS file (the shallow input) rather
   // than hand-editing the deep generated sidecar. This selection is a transient intermediate: on a

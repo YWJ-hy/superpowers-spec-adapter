@@ -64,7 +64,7 @@ PY
 
 cat > "$CONTEXT" <<JSON
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "kind": "superpower-adapter.wiki-context",
   "generatedBy": "superpower-adapter",
   "planPath": "${PLAN}",
@@ -114,7 +114,8 @@ cat > "$CONTEXT" <<JSON
           ],
           "destination": {
             "kind": "task-bound",
-            "reason": "This hard constraint applies to the task that changes field update behavior."
+            "reason": "This hard constraint applies to the task that changes field update behavior.",
+            "tasks": ["T1"]
           }
         },
         {
@@ -191,43 +192,16 @@ cat > "$CONTEXT" <<JSON
       ]
     }
   ],
-  "globalWikiRefs": [
-    {
-      "sectionRef": {
-        "root": "shared",
-        "source": "github_mcp",
-        "displayPath": ".shared-superpowers/wiki/frontend/contracts.md",
-        "wikiPath": "frontend/contracts.md",
-        "sectionId": "contract-review"
-      },
-      "reason": "This shared contract applies to every task and reviewer prompt."
-    }
-  ],
   "taskWikiRefs": [
     {
       "taskId": "T1",
       "taskTitle": "Implement path-based form updates",
-      "taskFingerprint": "${T1_HASH}",
-      "wikiRefs": [
-        {
-          "sectionRef": {
-            "root": "project",
-            "source": "local",
-            "displayPath": ".superpowers/wiki/frontend/hook-guidelines.md",
-            "localPath": "frontend/hook-guidelines.md",
-            "sectionId": "path-based-update"
-          },
-          "reason": "T1 changes form adapter state writes and must follow the path update rule."
-        }
-      ],
-      "caveats": []
+      "taskFingerprint": "${T1_HASH}"
     },
     {
       "taskId": "T2",
       "taskTitle": "Add contract coverage",
-      "taskFingerprint": "${T2_HASH}",
-      "wikiRefs": [],
-      "caveats": []
+      "taskFingerprint": "${T2_HASH}"
     }
   ],
   "caveats": []
@@ -254,7 +228,7 @@ assert_not_contains() {
   fi
 }
 
-EXAMPLE="${TARGET_INPUT}/contracts/wiki-context-v3.example.jsonc"
+EXAMPLE="${TARGET_INPUT}/contracts/wiki-context-v4.example.jsonc"
 if [[ ! -f "$EXAMPLE" ]]; then
   printf 'Missing wiki context example contract: %s\n' "$EXAMPLE" >&2
   exit 1
@@ -382,7 +356,7 @@ assert_contains "T2 reread list" 'contract-review' "$REREAD_T2"
 assert_not_contains "T2 reread list" 'path-based-update' "$REREAD_T2"
 
 EMPTY_CONTEXT="$TMP/empty.wiki-context.json"
-printf '{"schemaVersion":3,"kind":"superpower-adapter.wiki-context","wikiPages":[]}' > "$EMPTY_CONTEXT"
+printf '{"schemaVersion":4,"kind":"superpower-adapter.wiki-context","wikiPages":[]}' > "$EMPTY_CONTEXT"
 EMPTY_OUT="$(python3 "$SCRIPT" "$EMPTY_CONTEXT" --role implementer --strict)"
 assert_contains "empty render" 'No selected wiki constraints for this role.' "$EMPTY_OUT"
 
@@ -407,7 +381,7 @@ if python3 "$SCRIPT" "$BAD_SCHEMA" --validate-only >/tmp/wiki-context-bad-schema
   printf 'Expected bad schema to fail\n' >&2
   exit 1
 fi
-assert_contains "bad schema failure" 'schemaVersion must be 3' "$(cat /tmp/wiki-context-bad-schema.out)"
+assert_contains "bad schema failure" 'schemaVersion must be 4' "$(cat /tmp/wiki-context-bad-schema.out)"
 
 BAD_CATEGORY="$TMP/bad-category.wiki-context.json"
 python3 - <<'PY' "$CONTEXT" "$BAD_CATEGORY"
@@ -443,33 +417,45 @@ python3 - <<'PY' "$CONTEXT" "$TASKBOUND_MISSING"
 import json, sys
 src, dst = sys.argv[1:3]
 data = json.load(open(src, encoding='utf-8'))
-data['wikiPages'][0]['sections'][0]['destination'] = {
-    'kind': 'task-bound',
-    'reason': 'legacy routing claims this applies to T1'
-}
-data['wikiPages'][0]['sections'][0]['appliesTo'] = ['T1']
-data['taskWikiRefs'][0]['wikiRefs'] = []
+# A task-bound section with no destination.tasks must fail execution-ready validation.
+data['wikiPages'][0]['sections'][0]['destination'].pop('tasks', None)
 open(dst, 'w', encoding='utf-8').write(json.dumps(data))
 PY
 if python3 "$SCRIPT" "$TASKBOUND_MISSING" --validate-only --strict --execution-ready --plan-path "$PLAN" >/tmp/wiki-context-taskbound-missing.out 2>&1; then
-  printf 'Expected missing taskWikiRefs for task-bound section to fail\n' >&2
+  printf 'Expected task-bound section with no destination.tasks to fail\n' >&2
   exit 1
 fi
-assert_contains "task-bound missing failure" 'task-bound' "$(cat /tmp/wiki-context-taskbound-missing.out)"
+assert_contains "task-bound missing failure" 'destination.tasks' "$(cat /tmp/wiki-context-taskbound-missing.out)"
 
-UNRESOLVED_REF="$TMP/unresolved-ref.wiki-context.json"
-python3 - <<'PY' "$CONTEXT" "$UNRESOLVED_REF"
+# appliesTo is removed in schemaVersion 4: strict validation rejects it with a migration hint.
+APPLIES_TO="$TMP/applies-to.wiki-context.json"
+python3 - <<'PY' "$CONTEXT" "$APPLIES_TO"
 import json, sys
 src, dst = sys.argv[1:3]
 data = json.load(open(src, encoding='utf-8'))
-data['globalWikiRefs'][0]['sectionRef']['sectionId'] = 'missing-section'
+data['wikiPages'][0]['sections'][0]['appliesTo'] = ['T1']
 open(dst, 'w', encoding='utf-8').write(json.dumps(data))
 PY
-if python3 "$SCRIPT" "$UNRESOLVED_REF" --validate-only --strict --execution-ready --plan-path "$PLAN" >/tmp/wiki-context-unresolved-ref.out 2>&1; then
-  printf 'Expected unresolved sectionRef to fail\n' >&2
+if python3 "$SCRIPT" "$APPLIES_TO" --validate-only --strict >/tmp/wiki-context-applies-to.out 2>&1; then
+  printf 'Expected removed appliesTo field to fail strict validation\n' >&2
   exit 1
 fi
-assert_contains "unresolved ref failure" 'missing-section' "$(cat /tmp/wiki-context-unresolved-ref.out)"
+assert_contains "appliesTo removed failure" 'appliesTo is removed' "$(cat /tmp/wiki-context-applies-to.out)"
+
+UNKNOWN_TASK_REF="$TMP/unknown-task-ref.wiki-context.json"
+python3 - <<'PY' "$CONTEXT" "$UNKNOWN_TASK_REF"
+import json, sys
+src, dst = sys.argv[1:3]
+data = json.load(open(src, encoding='utf-8'))
+# A task-bound section binding to a task id that is not in the roster must fail.
+data['wikiPages'][0]['sections'][0]['destination']['tasks'] = ['T99']
+open(dst, 'w', encoding='utf-8').write(json.dumps(data))
+PY
+if python3 "$SCRIPT" "$UNKNOWN_TASK_REF" --validate-only --strict --execution-ready --plan-path "$PLAN" >/tmp/wiki-context-unknown-task-ref.out 2>&1; then
+  printf 'Expected destination.tasks referencing an unknown task id to fail\n' >&2
+  exit 1
+fi
+assert_contains "unknown task ref failure" 'unknown task id T99' "$(cat /tmp/wiki-context-unknown-task-ref.out)"
 
 BAD_DESTINATION="$TMP/bad-destination.wiki-context.json"
 python3 - <<'PY' "$CONTEXT" "$BAD_DESTINATION"
