@@ -49,14 +49,18 @@ URL like `[[http://x]]` or a bare path is not misread as a type). The four types
 An unrecognized prefix (e.g. a typo like `[[depend-on: …]]`) is reported as an
 **unknown edge type** by `wiki_update_check.py`. Do not invent other types.
 
-### Do not expand context by following edges at execution time
+### Edge following at execution time is bounded to depends-on
 
-These edges are for authoring, navigation, and maintenance only. Execution still consumes
-only the sections explicitly selected into the plan's `Referenced Project Wiki` (plus their
-`reread`). Never pull a linked section into a page just because it is referenced — even a
-`depends-on` target is **not** auto-pulled at execution in this version; if a constraint
-genuinely needs another section's content to be correct, that target must be selected on
-its own during planning, not inlined here.
+Most edges are authoring/navigation/maintenance only and are **never** followed at
+execution (`see-also`, `supersedes`, `contradicts`). The one exception is `depends-on` on a
+**hard-constraint** section: `wiki_context_render.py --reread-list` closes it **1 hop** —
+the depends-on target section is pulled into the task's reread set so a load-bearing
+dependency is never left behind a link. This closure is bounded (the target's own
+depends-on edges are NOT followed transitively) and applies to local project sections only.
+
+So a `depends-on` edge is a promise: "execution will also reread this target." Use it only
+when the target's full section text is genuinely required to satisfy this section's
+constraint. For mere related context, use a bare `[[ ]]` (`see-also`), which is not pulled.
 
 ## 9c. Backlink-aware editing
 

@@ -423,25 +423,106 @@ def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None)
     return "\n".join(lines).rstrip()
 
 
+def _load_project_section_graph() -> dict[str, Any] | None:
+    """Load the project wiki's derived .graph.json, or None if unavailable.
+
+    Read lazily and defensively: depends-on closure is an additive convenience, so any
+    failure to locate/parse the graph must degrade to "no closure", never break rereads.
+    """
+    try:
+        from wiki_common import PROJECT_WIKI_REL, repo_root  # local import keeps the renderer stdlib-only otherwise
+
+        graph_path = repo_root(Path.cwd()) / PROJECT_WIKI_REL / ".graph.json"
+        if not graph_path.is_file():
+            return None
+        graph = json.loads(graph_path.read_text(encoding="utf-8"))
+        return graph if isinstance(graph, dict) else None
+    except Exception:
+        return None
+
+
+def _depends_on_closure_entries(
+    project_source_nodes: list[str],
+    emitted_keys: set[tuple[str, str]],
+) -> list[dict[str, Any]]:
+    """1-hop selection-time closure of depends-on edges for hard-constraint sections.
+
+    For each selected project hard-constraint section, pull its `depends-on` targets into
+    the reread set so a load-bearing dependency is never left behind a link at execution.
+    Bounded to one hop (a target's own depends-on edges are NOT followed) and deduped
+    against the directly-emitted rereads. Returns synthesized reread entries (project root,
+    section-level targets only); page-level depends-on targets are skipped (not rereadable
+    as a section).
+    """
+    if not project_source_nodes:
+        return []
+    graph = _load_project_section_graph()
+    if not graph:
+        return []
+
+    depends_on: dict[str, list[str]] = {}
+    for edge in graph.get("edges", []):
+        if edge.get("type") == "depends-on":
+            depends_on.setdefault(edge.get("from", ""), []).append(edge.get("to", ""))
+
+    entries: list[dict[str, Any]] = []
+    for source_node in project_source_nodes:
+        for target_node in depends_on.get(source_node, []):
+            if "#" not in target_node:
+                continue  # whole-page depends-on is not rereadable as a single section
+            local_path, _, section_id = target_node.rpartition("#")
+            if not local_path or not section_id:
+                continue
+            key = ("project", f"{local_path}#{section_id}")
+            if key in emitted_keys:
+                continue
+            emitted_keys.add(key)
+            entries.append({
+                "root": "project",
+                "source": "local",
+                "displayPath": local_path,
+                "localPath": local_path,
+                "wikiPath": local_path,
+                "sectionId": section_id,
+                "reread": {"localPath": local_path, "sectionId": section_id, "includeDocumentContext": True},
+                "closureType": "depends-on",
+                "closedVia": source_node,
+            })
+    return entries
+
+
 def render_reread_list(data: dict[str, Any], task_id: str | None = None) -> str:
     section_keys = _task_section_keys(data, task_id) if task_id else None
-    lines: list[str] = []
+    entries: list[dict[str, Any]] = []
+    emitted_keys: set[tuple[str, str]] = set()
+    project_source_nodes: list[str] = []
+
     for page in _selected_pages(data, section_keys):
+        root = page.get("root")
+        local_path = page.get("localPath")
         for section in _as_list(page.get("sections"), "sections"):
             if not section.get("hardConstraint") or not section.get("reread"):
                 continue
             section_id = section.get("sectionId") or section.get("section_name")
             entry = {
-                "root": page.get("root"),
+                "root": root,
                 "source": page.get("source"),
                 "displayPath": page.get("displayPath"),
-                "localPath": page.get("localPath"),
+                "localPath": local_path,
                 "wikiPath": page.get("wikiPath"),
                 "revision": page.get("revision"),
                 "sectionId": section_id,
                 "reread": section.get("reread"),
             }
-            lines.append(json.dumps({key: value for key, value in entry.items() if value is not None}, ensure_ascii=False, sort_keys=True))
+            entries.append({key: value for key, value in entry.items() if value is not None})
+            # Track project-root hard sections so we can close their depends-on edges below.
+            if root in (None, "project") and local_path and section_id:
+                emitted_keys.add(("project", f"{local_path}#{section_id}"))
+                project_source_nodes.append(f"{local_path}#{section_id}")
+
+    entries.extend(_depends_on_closure_entries(project_source_nodes, emitted_keys))
+
+    lines = [json.dumps(entry, ensure_ascii=False, sort_keys=True) for entry in entries]
     if lines:
         return "\n".join(lines)
     if task_id:
