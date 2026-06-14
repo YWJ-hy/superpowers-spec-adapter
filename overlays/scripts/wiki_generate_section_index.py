@@ -13,6 +13,7 @@ Scans section markers in wiki documents and generates companion .index.md files.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -20,14 +21,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from wiki_section import extract_section, list_section_ids  # noqa: E402
 from wiki_common import (  # noqa: E402
+    build_section_graph,
     build_wiki_index_graph,
     existing_wiki_roots,
+    rel_posix,
     repo_root,
     select_wiki_root,
 )
 
 HARD_KEYWORDS = {"必须", "禁止", "MUST", "MUST NOT", "REQUIRED", "SHALL NOT"}
 GENERATED_HEADER = "> Auto-generated from section markers. Do not edit manually.\n"
+SECTION_GRAPH_FILE = ".graph.json"
 
 
 def _split_header_and_table(content: str) -> tuple[str, str]:
@@ -64,16 +68,51 @@ def _with_trailing_newline(content: str) -> str:
     return content if content.endswith("\n") else content + "\n"
 
 
-def generate_index(file_path: Path, existing_content: str | None = None) -> str | None:
+def _format_link_cell(values: list[str]) -> str:
+    if not values:
+        return "—"
+    return "<br>".join(f"`{value}`" for value in values)
+
+
+def build_links_index(graph) -> dict[str, dict[str, dict[str, list[str]]]]:
+    """Index a SectionGraph as {page_rel: {section_id: {"out": [...], "in": [...]}}}.
+
+    Only section-targeted backlinks are surfaced per section row; page-level
+    [[page]] edges still live in full fidelity inside .graph.json.
+    """
+    index: dict[str, dict[str, dict[str, list[str]]]] = {}
+
+    def ensure(rel: str, sid: str) -> dict[str, list[str]]:
+        return index.setdefault(rel, {}).setdefault(sid, {"out": [], "in": []})
+
+    for edge in graph.edges:
+        rel, _, sid = edge["from"].rpartition("#")
+        if rel and sid:
+            ensure(rel, sid)["out"].append(edge["to"])
+    for to_node, sources in graph.backlinks.items():
+        if "#" not in to_node:
+            continue
+        rel, _, sid = to_node.rpartition("#")
+        if rel and sid:
+            ensure(rel, sid)["in"].extend(sources)
+    return index
+
+
+def generate_index(
+    file_path: Path,
+    existing_content: str | None = None,
+    links_for_file: dict[str, dict[str, list[str]]] | None = None,
+) -> str | None:
     """Generate index content for a wiki file. Returns None if no markers found."""
     text = file_path.read_text(encoding="utf-8")
     section_ids = list_section_ids(text)
     if not section_ids:
         return None
 
+    links_for_file = links_for_file or {}
     table_lines = [
-        "| section | 描述 | 约束强度 |",
-        "|---|---|---|",
+        "| section | 描述 | 约束强度 | 引用 | 被引用 |",
+        "|---|---|---|---|---|",
     ]
 
     for sid in section_ids:
@@ -82,7 +121,10 @@ def generate_index(file_path: Path, existing_content: str | None = None) -> str 
             continue
         desc = first_description(content)
         strength = detect_strength(content)
-        table_lines.append(f"| {sid} | {desc} | {strength} |")
+        section_links = links_for_file.get(sid, {})
+        out_cell = _format_link_cell(section_links.get("out", []))
+        in_cell = _format_link_cell(section_links.get("in", []))
+        table_lines.append(f"| {sid} | {desc} | {strength} | {out_cell} | {in_cell} |")
 
     table_lines.append("")
     table_part = "\n".join(table_lines)
@@ -106,16 +148,25 @@ def index_path_for(file_path: Path) -> Path:
     return file_path.parent / f"{file_path.stem}.index.md"
 
 
-def process_file(file_path: Path) -> bool:
+def process_file(file_path: Path, links_for_file: dict[str, dict[str, list[str]]] | None = None) -> bool:
     """Process a single file. Returns True if index was written."""
     out = index_path_for(file_path)
     existing = out.read_text(encoding="utf-8") if out.is_file() else None
-    content = generate_index(file_path, existing)
+    content = generate_index(file_path, existing, links_for_file)
     if content is None:
         return False
     out.write_text(content, encoding="utf-8")
     print(f"  Generated: {out.name}")
     return True
+
+
+def write_section_graph(wiki_root: Path):
+    """Build and persist the section graph for a wiki root; return (graph, links_index)."""
+    graph = build_section_graph(wiki_root)
+    payload = json.dumps(graph.to_payload(), indent=2, ensure_ascii=False) + "\n"
+    (wiki_root / SECTION_GRAPH_FILE).write_text(payload, encoding="utf-8")
+    print(f"  Generated: {SECTION_GRAPH_FILE} ({len(graph.edges)} edge(s), {len(graph.dangling)} dangling)")
+    return graph, build_links_index(graph)
 
 
 def process_all(project_root: Path, wiki_root_selector: str) -> int:
@@ -125,12 +176,14 @@ def process_all(project_root: Path, wiki_root_selector: str) -> int:
     for root in roots:
         if not (root.path / "index.md").is_file():
             continue
+        _, links_index = write_section_graph(root.path)
         graph = build_wiki_index_graph(root.path)
         for leaf in graph.leaves:
             if leaf.name == "index.md" or leaf.suffix == ".index.md":
                 continue
             print(f"Scanning: {leaf.relative_to(root.path)}")
-            if process_file(leaf):
+            leaf_rel = rel_posix(root.path.resolve(), leaf.resolve())
+            if process_file(leaf, links_index.get(leaf_rel)):
                 count += 1
     return count
 
@@ -160,14 +213,18 @@ def main() -> None:
         count = process_all(project, args.wiki_root)
         print(f"\nGenerated {count} section index file(s).")
     elif args.file_path:
+        wiki = select_wiki_root(project, "project" if args.wiki_root == "all" else args.wiki_root)
         file_path = Path(args.file_path)
         if not file_path.is_absolute():
-            wiki = select_wiki_root(project, args.wiki_root)
             file_path = wiki.path / file_path
         if not file_path.is_file():
             print(f"Error: file not found: {file_path}", file=sys.stderr)
             sys.exit(1)
-        if not process_file(file_path):
+        # A single edited page can shift the whole root's graph, so rebuild the
+        # root-level .graph.json and feed this file's slice into its index.
+        _, links_index = write_section_graph(wiki.path)
+        leaf_rel = rel_posix(wiki.path.resolve(), file_path.resolve())
+        if not process_file(file_path, links_index.get(leaf_rel)):
             print("No section markers found. No index generated.")
     else:
         parser.print_help()

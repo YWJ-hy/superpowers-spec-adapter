@@ -38,7 +38,7 @@ check_file() {
     exit 1
   fi
   case "$relative" in
-    commands/*.md|skills/*/SKILL.md)
+    commands/*.md|skills/*/SKILL.md|skills/*/references/*.md)
       if grep -Fq 'python3 superpowers/scripts/' "$target"; then
         printf 'Invalid project-relative script path in installed file: %s\n' "$target" >&2
         exit 1

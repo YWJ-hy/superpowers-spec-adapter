@@ -323,11 +323,24 @@ if [[ ! -f "${TARGET_INPUT}/skills/update-wiki/SKILL.md" ]]; then
 fi
 
 UPDATE_WIKI_SKILL="${TARGET_INPUT}/skills/update-wiki/SKILL.md"
+
+# update-wiki is a thin router + on-demand companions. Confirm the pack installed.
+for companion in targeting content-templates shared-wiki graph-maintenance; do
+  if [[ ! -f "${TARGET_INPUT}/skills/update-wiki/references/${companion}.md" ]]; then
+    printf 'Expected installed update-wiki companion: references/%s.md\n' "$companion" >&2
+    exit 1
+  fi
+done
+
+# Combined pack content (router + companions) for guardrails that may live in a companion.
+UPDATE_WIKI_PACK="$(cat "${UPDATE_WIKI_SKILL}" "${TARGET_INPUT}"/skills/update-wiki/references/*.md)"
+
 if ! grep -Fq 'durable implementation knowledge' "${UPDATE_WIKI_SKILL}"; then
   printf 'Expected update-wiki skill to describe durable knowledge review\n' >&2
   exit 1
 fi
 
+# Completion-boundary and inclusion-gate guardrails must stay in the always-loaded router.
 for required in \
   'Adapter Maintenance Boundary' \
   'wiki maintenance and durable-knowledge review only' \
@@ -339,8 +352,17 @@ for required in \
   'reuse threshold' \
   'explicit skip reason' \
   'local business logic already represented in code/spec' \
+  'nearest-match fallback'
+do
+  if ! grep -Fq -- "$required" "${UPDATE_WIKI_SKILL}"; then
+    printf 'Expected update-wiki router (SKILL.md) to contain boundary guardrail: %s\n' "$required" >&2
+    exit 1
+  fi
+done
+
+# Detailed targeting / neutrality / authorization guardrails may live in a companion file.
+for required in \
   'ownership boundary' \
-  'nearest-match fallback' \
   'masked secret' \
   'type-safety.md' \
   'API/form payload' \
@@ -356,8 +378,8 @@ for required in \
   '--authorized-update' \
   '--authorized-create'
 do
-  if ! grep -Fq -- "$required" "${UPDATE_WIKI_SKILL}"; then
-    printf 'Expected update-wiki skill to contain ownership guardrail: %s\n' "$required" >&2
+  if ! grep -Fq -- "$required" <<<"${UPDATE_WIKI_PACK}"; then
+    printf 'Expected update-wiki skill pack to contain guardrail: %s\n' "$required" >&2
     exit 1
   fi
 done

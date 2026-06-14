@@ -19,6 +19,12 @@ OPEN_RE = re.compile(r"^<!-- wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
 CLOSE_RE = re.compile(r"^<!-- /wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
 FENCE_OPEN_RE = re.compile(r"^(`{3,}|~{3,})")
 
+# Knowledge edges are only the explicit [[page#section]] form (a deliberate
+# "this is a knowledge edge" signal). Plain markdown links like (path#anchor)
+# are incidental prose and are NOT treated as section edges.
+WIKILINK_RE = re.compile(r"\[\[([^\[\]]+)\]\]")
+INLINE_CODE_RE = re.compile(r"`[^`]*`")
+
 
 @dataclass
 class _SectionSpan:
@@ -185,3 +191,54 @@ def validate_section_markers(text: str) -> list[str]:
     """Validate section markers, returning a list of error messages (empty = valid)."""
     _, errors = _parse_spans(text)
     return errors
+
+
+def _parse_wikilink(raw: str) -> tuple[str, str | None]:
+    """Parse the inside of a [[...]] into (page, target_section_id).
+
+    Supports an optional Obsidian-style display alias ([[target|alias]]) and an
+    optional section anchor ([[page#section]] / [[page]] / [[#section]]). An empty
+    page means a same-page link; a missing anchor means target_section_id is None.
+    """
+    target = raw.split("|", 1)[0].strip()
+    page, _, section = target.partition("#")
+    page = page.strip()
+    section = section.strip()
+    return page, (section or None)
+
+
+def _innermost_section_at(spans: list[_SectionSpan], line: int) -> str | None:
+    """Return the deepest section id whose content range strictly contains ``line``."""
+    for span in spans:
+        if span.end_line is None:
+            continue
+        if span.start_line < line < span.end_line:
+            return _innermost_section_at(span.children, line) or span.section_id
+    return None
+
+
+def extract_section_links(text: str) -> dict[str, list[tuple[str, str | None]]]:
+    """Map each section id to the [[page#section]] knowledge edges declared inside it.
+
+    Each [[...]] is attributed to the innermost enclosing section (so a link in a
+    child section is not double-counted on its parent). Links in fenced code blocks
+    and inline code spans are ignored, and links outside any section are dropped
+    (edges are section-to-section). page="" denotes a same-page link.
+    """
+    lines = text.splitlines()
+    fenced = _skip_fenced_blocks(lines)
+    top_level, _ = _parse_spans(text)
+    result: dict[str, list[tuple[str, str | None]]] = {}
+
+    for i, line in enumerate(lines):
+        if i in fenced:
+            continue
+        section_id = _innermost_section_at(top_level, i)
+        if section_id is None:
+            continue
+        scrubbed = INLINE_CODE_RE.sub("", line)
+        for match in WIKILINK_RE.finditer(scrubbed):
+            page, target_section = _parse_wikilink(match.group(1))
+            result.setdefault(section_id, []).append((page, target_section))
+
+    return result

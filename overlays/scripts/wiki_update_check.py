@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from wiki_common import (
+    build_section_graph,
     build_wiki_index_graph,
     display_wiki_path,
     repo_root,
@@ -116,6 +117,16 @@ def check_root(project_root: Path, root_desc) -> dict:
     if not graph.leaves:
         warnings.append(f"No indexed leaf wiki pages found in {root_desc.display_path}")
 
+    # Dangling [[page#section]] knowledge edges. Reported as warnings to stay
+    # consistent with broken page references (graph.missing) and to avoid blocking
+    # existing wikis. Only [[ ]] edges are checked; plain (path#anchor) is ignored.
+    section_graph = build_section_graph(wiki_root)
+    for item in section_graph.dangling:
+        location = item["from"]
+        raw = item.get("raw") or ""
+        detail = f"{raw} ({item['reason']})" if raw else item["reason"]
+        warnings.append(f"{root_desc.display_path}: dangling section link in {location}: {detail}")
+
     status = INVALID if errors else WARNING if warnings else VALID
     return {
         "status": status,
@@ -125,6 +136,7 @@ def check_root(project_root: Path, root_desc) -> dict:
         "filesChecked": len(graph.files),
         "indexesChecked": len(graph.indexes),
         "leavesChecked": len(graph.leaves),
+        "danglingSectionLinks": len(section_graph.dangling),
         "warnings": warnings,
         "errors": errors,
     }

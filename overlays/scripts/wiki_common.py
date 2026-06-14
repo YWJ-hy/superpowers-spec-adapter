@@ -8,6 +8,8 @@ from pathlib import Path
 import json
 import re
 
+from wiki_section import extract_section_links, list_section_ids
+
 DEFAULT_IGNORED_DIR_NAMES = {"draft", "archive", "examples"}
 AUTO_START = "<!-- superpower-adapter:auto:start -->"
 AUTO_END = "<!-- superpower-adapter:auto:end -->"
@@ -69,6 +71,32 @@ class WikiIndexGraph:
     @property
     def warnings(self) -> list[str]:
         return [*self.invalid, *self.missing, *self.cycles]
+
+
+@dataclass
+class SectionGraph:
+    """Section-level knowledge graph derived from [[page#section]] wikilinks.
+
+    Nodes are addressed as "rel/path.md#section-id"; a page-level edge target (a
+    [[page]] without an anchor) is the bare "rel/path.md". This is a wiki-layer
+    artifact, orthogonal to the plan-side wiki-context schema; it is consumed by
+    maintenance (update-wiki) and lint (doctor), never by execution-time context.
+    """
+
+    wiki_root: Path
+    nodes: list[str] = field(default_factory=list)
+    edges: list[dict] = field(default_factory=list)
+    backlinks: dict[str, list[str]] = field(default_factory=dict)
+    dangling: list[dict] = field(default_factory=list)
+
+    def to_payload(self) -> dict:
+        return {
+            "schema": "section-graph/1",
+            "nodes": self.nodes,
+            "edges": self.edges,
+            "backlinks": self.backlinks,
+            "dangling": self.dangling,
+        }
 
 
 def repo_root(start: Path) -> Path:
@@ -572,6 +600,111 @@ def build_wiki_index_graph(wiki_root: Path) -> WikiIndexGraph:
     graph.indexes.sort(key=lambda path: (path != root_index, rel_posix(wiki_root.resolve(), path)))
     graph.leaves.sort(key=lambda path: rel_posix(wiki_root.resolve(), path))
     graph.directories.sort(key=lambda path: rel_posix(wiki_root.resolve(), path))
+    return graph
+
+
+def _resolve_section_link_page(
+    source_leaf: Path,
+    wiki_root: Path,
+    page: str,
+    ignored_dir_names: set[str],
+) -> tuple[Path | None, str | None]:
+    """Resolve the page part of a [[page#section]] link to a file path.
+
+    Page paths are wiki-root-relative so a given edge means the same thing
+    regardless of which page declares it. An empty page denotes a same-page link.
+    Returns (resolved_path, reason); reason is set only on rejection.
+    """
+    clean = page.strip()
+    if not clean:
+        return source_leaf.resolve(), None
+    if _is_external_ref(clean):
+        return None, "external or unsupported reference"
+
+    if clean.endswith((".md", ".markdown", ".mdx")):
+        rel_str = clean
+    elif clean.endswith("/"):
+        rel_str = clean + "index.md"
+    else:
+        rel_str = clean + ".md"
+
+    rel_path = Path(rel_str)
+    if any(part == ".." for part in rel_path.parts):
+        return None, "reference escapes the wiki root"
+    if _has_hidden_part(rel_path):
+        return None, "reference points into a hidden path"
+    if any(part in ignored_dir_names for part in rel_path.parts[:-1]):
+        return None, "reference points into an ignored directory"
+
+    candidate = (wiki_root.resolve() / rel_path).resolve()
+    if not is_path_within(wiki_root.resolve(), candidate):
+        return None, "reference resolves outside the wiki root"
+    return candidate, None
+
+
+def build_section_graph(wiki_root: Path) -> SectionGraph:
+    """Build the section-level [[page#section]] graph for one wiki root.
+
+    Reuses build_wiki_index_graph to enumerate indexed leaf pages, then parses the
+    [[ ]] knowledge edges in each section. A target is dangling when its page is
+    unresolvable/missing or its named section does not exist. build_wiki_index_graph
+    itself is left untouched (it intentionally strips anchors for page discovery).
+    """
+    wiki_root_resolved = wiki_root.resolve()
+    graph = SectionGraph(wiki_root=wiki_root_resolved)
+    ignored_dir_names = load_ignored_dir_names(wiki_root)
+    leaves = build_wiki_index_graph(wiki_root).leaves
+
+    section_ids_by_page: dict[Path, set[str]] = {}
+
+    def section_ids_for(path: Path) -> set[str]:
+        resolved = path.resolve()
+        if resolved not in section_ids_by_page:
+            try:
+                text = resolved.read_text(encoding="utf-8")
+                section_ids_by_page[resolved] = set(list_section_ids(text))
+            except OSError:
+                section_ids_by_page[resolved] = set()
+        return section_ids_by_page[resolved]
+
+    for leaf in leaves:
+        leaf_rel = rel_posix(wiki_root_resolved, leaf)
+        try:
+            text = leaf.read_text(encoding="utf-8")
+        except OSError as exc:
+            graph.dangling.append({"from": leaf_rel, "raw": "", "reason": f"could not read page: {exc}"})
+            continue
+
+        for section_id in list_section_ids(text):
+            graph.nodes.append(f"{leaf_rel}#{section_id}")
+
+        for section_id, links in extract_section_links(text).items():
+            source_node = f"{leaf_rel}#{section_id}"
+            for page, target_section in links:
+                raw = f"[[{page}{('#' + target_section) if target_section else ''}]]"
+                target_path, reason = _resolve_section_link_page(leaf, wiki_root_resolved, page, ignored_dir_names)
+                if reason is not None:
+                    graph.dangling.append({"from": source_node, "raw": raw, "reason": reason})
+                    continue
+                if not target_path.is_file():
+                    graph.dangling.append({"from": source_node, "raw": raw, "reason": "target page does not exist"})
+                    continue
+
+                target_rel = rel_posix(wiki_root_resolved, target_path)
+                if target_section is not None and target_section not in section_ids_for(target_path):
+                    graph.dangling.append(
+                        {"from": source_node, "raw": raw, "reason": f"target section '{target_section}' not found in {target_rel}"}
+                    )
+                    continue
+
+                target_node = f"{target_rel}#{target_section}" if target_section else target_rel
+                graph.edges.append({"from": source_node, "to": target_node, "raw": raw})
+                graph.backlinks.setdefault(target_node, []).append(source_node)
+
+    graph.nodes = sorted(dict.fromkeys(graph.nodes))
+    graph.edges.sort(key=lambda edge: (edge["from"], edge["to"]))
+    graph.backlinks = {key: sorted(dict.fromkeys(value)) for key, value in sorted(graph.backlinks.items())}
+    graph.dangling.sort(key=lambda item: (item["from"], item["raw"]))
     return graph
 
 

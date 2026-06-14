@@ -9,6 +9,12 @@ When you learn something valuable from implementation, debugging, review, or dis
 
 **Timing**: After completing a task, fixing a bug, discovering a new pattern, or making a design decision that future sessions should know.
 
+This skill is a thin router. Load a companion file under `references/` only when you reach the branch that needs it — the common "no durable knowledge, skip" path needs none of them:
+- `references/targeting.md` — read indexed pages, semantic-duplicate checks, target ownership, page-size/overload, and update-authorization policy (steps 3–5, 7–8).
+- `references/content-templates.md` — content depth requirements, page templates, and the final quality checklist (load when you actually write).
+- `references/shared-wiki.md` — shared-wiki neutrality and the GitHub-backed shared-wiki MCP PR flow (load only when the target is the shared root, steps 6 and 10).
+- `references/graph-maintenance.md` — section markers, `[[page#section]]` knowledge edges, backlink-aware editing, and index/graph refresh (load when editing or creating a page with section markers, steps 9 and 11).
+
 ## Adapter Maintenance Boundary
 
 This skill performs wiki maintenance and durable-knowledge review only. Its local completion proves at most that wiki maintenance ran, indexes were refreshed, mechanical validation was checked, or no durable knowledge needed to persist; it does not prove that implementation, debugging, tests, builds, review, commit readiness, PR readiness, or plan tasks are complete.
@@ -83,7 +89,7 @@ Reuse is not the only reason to persist knowledge. Independently of the reuse th
 2. **Surprising without context** — a future reader would ask "why was it done this way?" and could plausibly regress or undo it.
 3. **The result of a real trade-off** — there were genuine alternatives and one was chosen for specific reasons.
 
-When all three hold, record it under the owning page using the existing **Design Decision** template, even if it fails the reuse threshold or looks like single-context business logic. Capture what was decided and **why** (the rejected alternatives and their cost), not how to implement it. Most decisions will not qualify; this carve-out is only for the few that are both irreversible and non-obvious.
+When all three hold, record it under the owning page using the **Design Decision** template (`references/content-templates.md`), even if it fails the reuse threshold or looks like single-context business logic. Capture what was decided and **why** (the rejected alternatives and their cost), not how to implement it. Most decisions will not qualify; this carve-out is only for the few that are both irreversible and non-obvious.
 
 If the candidate passes neither the reuse threshold nor the decision carve-out, state an explicit skip reason such as: `No wiki update: this is local business logic already represented in code/spec, not durable reusable knowledge.`
 
@@ -93,206 +99,21 @@ Do not treat `index.md` files as the main place for detailed rules. Keep detaile
 
 ## Agent-Led Update Flow
 
-Do the semantic work yourself. Python scripts are only mechanical helpers.
+Do the semantic work yourself. Python scripts are only mechanical helpers. Work through these steps; each line links the companion that holds its detail.
 
-### 1. Decide whether there is durable knowledge
+1. **Decide whether there is durable knowledge.** Start from skip; promote only what passes the Wiki First Rule above. Reconstruct each decision's rationale from durable sources (plan, git diff/log, handoff artifacts), not only the current conversation. If nothing qualifies, report an explicit skip reason and stop — load no companion.
+2. **Split the input into atomic candidates.** Separate multiple durable ideas before choosing targets; classify each as implementation guidance, checklist guidance, a contract, a design decision, or a reusable workflow/process (the last is usually a skill pack — see *Skill-Pack Candidates*).
+3. **Read existing indexed wiki pages before writing** — `references/targeting.md`. Do not scan the full tree.
+4. **Check semantic duplicates yourself** — `references/targeting.md`.
+5. **Choose target root and owning leaf page yourself** — `references/targeting.md`.
+6. **If the target is the shared root, neutralize the content** — `references/shared-wiki.md`.
+7. **Check target ownership shape (overload / split)** — `references/targeting.md`.
+8. **Check update authorization policy** — `references/targeting.md`.
+9. **Maintain section markers and `[[page#section]]` knowledge edges** — `references/graph-maintenance.md`.
+10. **Choose local edit or remote shared-wiki MCP PR.** Use local `Read`/`Edit` for project wiki; a shared-root target uses the MCP PR flow in `references/shared-wiki.md`.
+11. **Refresh and validate the mechanical state** — `references/graph-maintenance.md`.
 
-Review the completed work and identify only implementation knowledge that future sessions should reuse outside the immediate code context.
-
-Start from skip. Promote a candidate to wiki only when it passes the reuse threshold or the decision carve-out above, and is better preserved in long-term wiki than in code, spec, plan, PR, or commit message.
-
-When reviewing, reconstruct each decision's rationale and rejected alternatives from durable sources — the plan, git diff/log, and any break-loop or handoff artifacts — not only from what remains in the current conversation; by the end of a long implementation or SDD flow, earlier decisions and their trade-offs may have dropped out of context.
-
-Skip the update when the work only produced:
-- temporary task notes
-- one-off debugging history
-- local business logic or single-context branch rules
-- obvious facts already visible from code
-- local compatibility handling tied to one call site
-- unverified guesses
-- formatting-only or typo-only changes
-
-If nothing should be written, report that conclusion and explain the judgment briefly with an explicit skip reason. Do not force a wiki edit.
-
-### 2. Split the input into atomic candidates
-
-The work may contain multiple durable ideas. Split them into separate update candidates before choosing targets.
-
-For each candidate, identify:
-- the durable rule, decision, or gotcha
-- why it matters
-- likely owner area
-- whether it is implementation guidance, checklist guidance, a contract, a design decision, or a **reusable workflow/process** (a stable multi-step procedure, file-restructuring order, or review routine). A reusable workflow is usually better captured as an executable skill pack than a wiki page — see *Skill-Pack Candidates* below.
-
-Examples:
-- "Modal content must expose validate, and list pages must keep pagination local" = two candidates.
-- "API errors should include code and message" = one candidate with two fields in one contract.
-
-### 3. Read existing indexed wiki pages before writing
-
-For each candidate:
-
-1. Read existing root indexes: `.superpowers/wiki/index.md` and `.shared-superpowers/wiki/index.md` when present.
-2. Follow relevant child indexes inside each root.
-3. Read the small set of leaf wiki pages that may already cover the same rule.
-
-Do not scan either full wiki tree unless the user explicitly asks for a full audit.
-A wiki page is already covered when an existing indexed file states the same durable rule, even if the wording differs. Check both roots before writing so shared knowledge is not duplicated into project wiki and project-specific knowledge is not promoted accidentally.
-
-You may list indexed leaf candidates mechanically:
-
-```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_select_target.py --wiki-root all --json
-```
-
-This only lists candidates. It does not choose the target for you.
-
-### 4. Check semantic duplicates yourself
-
-If the same meaning already exists:
-- do not update any wiki page for that candidate
-- tell the user which file already covers it
-- quote or summarize the existing matching rule
-
-If the idea is only partially covered:
-- update only the missing part
-- mention the existing coverage and the delta being added
-
-Do not let a script decide whether an update is needed.
-
-### 5. Choose target ownership yourself
-
-Each candidate should update exactly one indexed leaf wiki page unless it genuinely spans unrelated areas.
-Choose both the target root and the target page:
-- `.shared-superpowers/wiki/` owns cross-project architecture, conventions, workflows, shared API contracts, shared component rules, and gotchas likely to apply to sibling projects.
-- `.superpowers/wiki/` owns project-specific business rules, local integration details, deployment/environment details, local overrides, and decisions that should not affect sibling projects.
-
-Prefer the most specific indexed leaf that owns the rule.
-Use broader guide wiki pages only when the candidate is a checklist or thinking prompt.
-
-Use this rule:
-- **This is how to implement safely** → a relevant indexed leaf wiki page in the owning root
-- **This is what to think about before implementing** → an indexed guide/checklist wiki page in the owning root
-
-Before writing, run a bounded ownership boundary check. Use the cheapest sufficient signals first:
-1. the parent index description for the candidate page;
-2. the page title and first summary paragraph;
-3. the overview section when it is near the top;
-4. section headings already visible from excerpts read for duplicate checks.
-
-Only read more of a candidate page when:
-- the ownership boundary is still ambiguous;
-- the candidate appears partially covered;
-- you are about to edit a specific section;
-- the page may be large or semantically overloaded.
-
-Do not scan the full wiki tree or read full pages by default just to compensate for unclear ownership.
-A page owns the candidate only when the durable rule naturally fits the page's explicit owner boundary.
-
-Do not use nearest-match fallback. Weak keyword overlap is not ownership. For example:
-- `type`, `interface`, or `payload type` appearing in a rule does not automatically make it type-safety knowledge.
-- `validation` appearing in a page does not mean all validation or submission rules belong there.
-- `security`, `token`, or `secret` appearing near typed payload code does not make the rule type-safety knowledge.
-
-Ownership examples:
-- Type safety owns TypeScript declarations, generics, `import type`, props/emits typing, generated component declarations, and type organization.
-- API/form payload contracts own submitted, omitted, transformed, or rejected fields; dirty flags; request/response semantics; and save helper behavior.
-- Security-sensitive field pages own masked secrets, tokens, passwords, placeholder/sentinel values, and constraints on persistence, logging, or submission.
-- "Masked secret display values must not be submitted as real payload values" should prefer an API/form payload or security-sensitive field page, not `type-safety.md`, unless the durable rule is specifically about TypeScript modeling.
-
-If no indexed leaf page clearly owns the candidate, do not append to the closest-looking page. Create a specific leaf page under the nearest clearly owned directory and reference it from the appropriate `index.md`, or ask the user when the long-term taxonomy is unclear.
-
-If two or more candidate files or roots are equally plausible and the difference affects long-term wiki organization, ask the user which target should own it instead of guessing.
-
-### 6. Shared Wiki Neutrality
-
-Before writing to `.shared-superpowers/wiki/`, rewrite the candidate into neutral/portable language. Shared wiki pages must not contain system-specific identifiers such as product codenames, tenant/customer names, project-private service or repository names, environment names, internal domains or URLs, absolute local paths, deployment instance identifiers, or business branch rules that only make sense for the current system.
-
-If the knowledge depends on those identifiers, write it to `.superpowers/wiki/` instead. If the rule is genuinely reusable but the source wording names the current system, replace the identifier with neutral terms such as `<system>`, `<service>`, `<tenant>`, or `<provider>`. If neutralizing would remove essential meaning, ask the user instead of guessing.
-
-The shared root may also configure `wiki.sharedNeutrality.blockedTerms` and `wiki.sharedNeutrality.blockedPatterns` in `.shared-superpowers/settings.json`. Mechanical scripts reject matching shared-wiki paths, page bodies, imports, and refreshed indexes; this guard catches known identifiers but does not replace your semantic neutrality check.
-
-### 7. Check target ownership shape
-
-Do not split or reject a wiki page because it is mechanically large. With the required two-layer index structure, a cohesive leaf wiki page may be long as long as its companion index and section markers keep constraints independently citable.
-
-Before editing the chosen leaf page, only check whether the target ownership is semantically overloaded:
-- it covers multiple unrelated modules, workflows, contracts, or design decisions;
-- you cannot summarize its owner in one sentence;
-- the new candidate has no fitting existing or new section under that owner;
-- the companion index summary no longer represents the page's main content.
-
-If the page is semantically overloaded, split by ownership into indexed leaf wiki pages. Do not split by arbitrary chunks, line count, character count, or create `part-1` / `part-2` pages.
-
-Prefer sibling leaf pages in the current directory when splitting a small number of peer owners. Create a topic directory with its own `index.md` only when the original page has become a collection of stable subtopics, when there are three or more child topics, or when local navigation/overview constraints are needed.
-
-If the existing page may already be referenced elsewhere, prefer keeping the original path as an overview or navigation page unless you have verified and updated the references. If sibling pages vs. a topic directory would affect long-term wiki organization, ask the user which structure should own it.
-
-### 8. Check update authorization policy
-
-Before editing or creating wiki content, read the selected root's settings file:
-- `.superpowers/settings.json` controls `.superpowers/wiki/`.
-- `.shared-superpowers/settings.json` controls `.shared-superpowers/wiki/`.
-
-Use these defaults when the settings file or keys are missing:
-- `wiki.updateAuthorization.updateExistingPage`: `skip`
-- `wiki.updateAuthorization.createNewDocument`: `ask`
-
-Allowed values are:
-- `skip`: proceed after the normal durable-knowledge, duplicate, ownership, and size checks.
-- `ask`: ask the user for explicit authorization before editing or creating. If using a mechanical script after approval, pass `--authorized-update` for existing pages or `--authorized-create` for new documents.
-- `refuse`: do not write; report that the selected root's settings refuse the operation.
-
-New leaf creation, topic-directory creation, and missing index creation are governed by `createNewDocument`. Editing an existing leaf or refreshing an existing index is governed by `updateExistingPage`.
-
-### 9. Maintain section markers
-
-When editing a wiki page that already uses `<!-- wiki-section:xxx -->` markers:
-- Preserve existing section markers and their IDs.
-- Place new content inside the most appropriate existing section, or create a new section if the content represents an independent constraint topic.
-- New section IDs must be kebab-case (`[a-z0-9][a-z0-9_-]*`) and reflect the constraint's core semantics.
-
-When creating a new wiki page that will contain multiple independent constraint topics:
-- Add section markers from the start.
-- Each section should be an independently citable constraint unit.
-- For hard-constraint sections (mandatory rules — 必须/禁止/MUST/MUST NOT), keep the rule and its do/don't examples together inside the markers, but keep the section tight: it is reread in full at execution (including nested children, no length limit), so put only compliance-irrelevant background/rationale in the document overview or a separate soft section. Never externalize or lossily summarize the "don't"/anti-pattern content.
-
-After editing or creating a page with section markers, regenerate the per-document section index:
-
-```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_generate_section_index.py <wiki-file-path> --wiki-root <project|shared> --project-root .
-```
-
-### 10. Choose local edit or remote shared-wiki MCP PR
-
-For normal project wiki updates, edit the chosen leaf wiki page with `Read` and `Edit` whenever possible.
-Keep the existing style of the target file.
-Do not force every update into a generic template.
-
-If you create a new leaf wiki page, ensure it is referenced by an appropriate `index.md`, subject to `createNewDocument` authorization.
-Detailed rules belong in leaf wiki pages; indexes should contain navigation and short summaries only.
-
-If the selected target is shared wiki and the user/project uses the GitHub-backed shared-wiki MCP flow, do not directly edit local `.shared-superpowers/wiki/`. The `wiki-researcher` selection path may already have used read-only MCP tools to gather source-aware context, but write decisions still belong here. Instead:
-1. Use shared-wiki MCP read/search tools to check indexed pages and duplicates.
-2. Prepare a neutral unified diff for the shared wiki repo.
-3. Call `shared_wiki_validate_patch` with the required authorization flags.
-4. If validation passes, call `shared_wiki_create_patch_pr` to create a branch and PR.
-5. Report the PR URL, branch, changed files, and validation summary; do not claim the shared wiki has been merged or published.
-
-### 11. Refresh and validate the mechanical state
-
-After editing body content, refresh indexed summaries:
-
-```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root project --authorized-update
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/update-wiki.py --wiki-root shared --authorized-update
-```
-
-Run only the command for the local root you changed. If the shared update went through the GitHub-backed MCP PR flow, use the MCP validation summary instead of refreshing local `.shared-superpowers/wiki/`. Optionally run the mechanical validator across both local roots:
-
-```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_update_check.py --wiki-root all --json
-```
+When you write content, follow the depth requirements, templates, and quality checklist in `references/content-templates.md`.
 
 ---
 
@@ -309,88 +130,6 @@ A candidate that is a fact, contract, decision, or gotcha still belongs in the w
 
 ---
 
-## Content Quality Requirements
-
-### Mandatory depth for infra / cross-layer / contract changes
-
-Use deeper code-wiki structure when the update includes any of:
-- new or changed command/API signature
-- cross-layer request/response contract change
-- database schema/migration change
-- infra integration: storage, queue, cache, secrets, env wiring
-
-For triggered updates, include these sections in the target wiki page:
-
-1. Scope / Trigger
-2. Signatures
-3. Contracts
-4. Validation & Error Matrix
-5. Good/Base/Bad Cases
-6. Tests Required
-7. Wrong vs Correct
-
-### Design Decision
-
-```markdown
-### Design Decision: <name>
-
-**Context**: What problem were we solving?
-
-**Options Considered**:
-1. ...
-2. ...
-
-**Decision**: We chose X because...
-
-**Example**:
-```text
-...
-```
-```
-
-### Project Convention
-
-```markdown
-### Convention: <name>
-
-**What**: ...
-
-**Why**: ...
-
-**Example**:
-```text
-...
-```
-```
-
-### Contract / Rule Update
-
-```markdown
-## Update: <title>
-
-### Why
-- ...
-
-### Rules / Contracts
-- ...
-
-### Validation / Notes
-- ...
-```
-
-### Gotcha / Common Mistake
-
-```markdown
-### Common Mistake: <name>
-
-**Symptom**: ...
-**Cause**: ...
-**Fix**: ...
-**Prevention**: ...
-```
-
----
-
 ## Mechanical Helper Scripts
 
 These scripts are helpers only. They do not replace agent judgment.
@@ -399,7 +138,8 @@ These scripts are helpers only. They do not replace agent judgment.
 |---|---|
 | `wiki_select_target.py --wiki-root all` | List indexed leaf candidates across project/shared roots. It must not make the final target decision. |
 | `wiki_apply_update.py --wiki-root project|shared` | Safely write a simple update after the agent already decided target root, target page, content, neutrality, and satisfied update authorization. Complex updates should be edited directly. |
-| `wiki_update_check.py --wiki-root all` | Validate index/format mechanics across roots and configured shared-wiki neutrality guards. It must not decide whether durable knowledge exists. |
+| `wiki_generate_section_index.py <file>` | Regenerate a page's companion section index and rebuild the root `.graph.json` (section nodes, `[[ ]]` edges, backlinks, dangling). It must not decide content. |
+| `wiki_update_check.py --wiki-root all` | Validate index/format mechanics, configured shared-wiki neutrality guards, and dangling `[[page#section]]` edges across roots. It must not decide whether durable knowledge exists. |
 | `update-wiki.py --wiki-root project|shared` | Refresh indexed wiki page summaries for the changed local root; shared root refreshes reject configured neutrality violations. |
 | shared-wiki MCP tools | Optional GitHub-backed shared wiki read/search/validate/branch+PR path. They submit mechanical PRs only and must not decide durable knowledge, ownership, or neutrality. |
 
@@ -414,34 +154,6 @@ Do not:
 - treat type-safety pages as owners for API/form payload or security-sensitive field rules unless the rule is specifically about TypeScript modeling
 - treat token scores or filename matches as semantic duplicate checks
 - write detailed rules into `index.md`
-
----
-
-## Quality Checklist
-
-Before finishing the update:
-
-- [ ] Did you start from the default of not updating wiki and require durable reusable knowledge before editing?
-- [ ] Did you route reusable workflow/process knowledge to a skill pack via `scaffold-practice-skill` instead of writing it as a wiki page?
-- [ ] Did you exclude local business logic, single-context branch rules, and code-obvious implementation details unless they passed the reuse threshold or the decision carve-out?
-- [ ] Did you separately apply the decision carve-out — promoting a hard-to-reverse, surprising, real-trade-off decision even when it does not reuse across modules?
-- [ ] If you skipped all candidates, did you state an explicit skip reason instead of forcing a wiki edit?
-- [ ] Did you split multi-point input into atomic candidates?
-- [ ] Did you read relevant indexed wiki pages before writing?
-- [ ] Did you skip candidates that are already covered and tell the user where?
-- [ ] Did you choose target root and page ownership yourself rather than outsourcing it to a script?
-- [ ] If writing to `.shared-superpowers/wiki/`, did you neutralize system-specific identifiers and confirm the content is portable across sibling projects?
-- [ ] Did you verify the target page's ownership boundary with bounded signals instead of weak keyword overlap?
-- [ ] Did you avoid nearest-match fallback when no clear owner existed?
-- [ ] If the candidate concerns API/form payload or security-sensitive fields, did you avoid filing it under type-safety unless it is specifically about TypeScript modeling?
-- [ ] If the target page is large or overloaded, did you split by ownership instead of chunking?
-- [ ] Did you ask the user when ownership or split structure was ambiguous?
-- [ ] Is the content durable and reusable?
-- [ ] Is the content specific instead of generic?
-- [ ] Did you explain **why**, not just **what**?
-- [ ] Did you avoid putting detailed rules into `index.md`?
-- [ ] If a new leaf wiki page was created, is it referenced by an index?
-- [ ] Did you refresh the index chain after updating body content?
 
 ---
 
