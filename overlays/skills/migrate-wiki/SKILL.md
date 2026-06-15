@@ -9,6 +9,15 @@ Use this skill to migrate existing `.superpowers/wiki/` and/or `.shared-superpow
 
 This skill performs deep semantic analysis of each wiki document to identify independent constraint units, then inserts section markers and generates companion `.index.md` files.
 
+## Modes
+
+When invoked, **first ask the user which mode to run** (do not assume):
+
+1. **Sections only** (current behavior) — convert pages to the two-layer section-marker format and generate companion indexes. Follow the Workflow below and stop.
+2. **Sections + graph enrichment** — do everything in mode 1 for any page still lacking section markers, then re-organize the wiki into a typed knowledge graph: assign each page a node `type:` (constraint / domain / decision / guide) and add `[[page#section]]` knowledge edges between related sections, then regenerate `.graph.json` / indexes and lint. After the Workflow below, load and follow `references/graph-enrichment.md`.
+
+Mode 2 is a superset of mode 1. A wiki already in section-marker format skips straight to enrichment (the Workflow's marker steps become no-ops for already-migrated pages).
+
 ---
 
 ## Goal
@@ -121,3 +130,9 @@ Summarize what was migrated:
 - Number of sections created
 - Number of companion `.index.md` files generated or updated
 - Remind user to commit the changes
+
+---
+
+## Mode 2: graph enrichment
+
+If the user chose **mode 2**, the Workflow above only ensured section-marker format. Now load and follow `references/graph-enrichment.md` to assign node types and author `[[ ]]` knowledge edges as a batched, confirm-before-write pass, then regenerate the graph and lint. If the user chose mode 1, stop after Step 6.

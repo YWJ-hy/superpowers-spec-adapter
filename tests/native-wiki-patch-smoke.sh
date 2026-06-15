@@ -384,6 +384,25 @@ do
   fi
 done
 
+# migrate-wiki offers two modes; mode 2 (graph enrichment) lives in an on-demand companion.
+MIGRATE_WIKI_SKILL="${TARGET_INPUT}/skills/migrate-wiki/SKILL.md"
+for required in 'Sections only' 'Sections + graph enrichment' 'references/graph-enrichment.md'; do
+  if ! grep -Fq -- "$required" "${MIGRATE_WIKI_SKILL}"; then
+    printf 'Expected migrate-wiki SKILL.md to offer mode selection: %s\n' "$required" >&2
+    exit 1
+  fi
+done
+if [[ ! -f "${TARGET_INPUT}/skills/migrate-wiki/references/graph-enrichment.md" ]]; then
+  printf 'Expected installed migrate-wiki graph-enrichment companion\n' >&2
+  exit 1
+fi
+for required in 'propose-then-confirm' 'wiki.updateAuthorization.updateExistingPage' 'depends-on' 'bounded batches'; do
+  if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/migrate-wiki/references/graph-enrichment.md"; then
+    printf 'Expected migrate-wiki enrichment companion to contain: %s\n' "$required" >&2
+    exit 1
+  fi
+done
+
 for deprecated_command in \
   update-wiki \
   init-wiki \

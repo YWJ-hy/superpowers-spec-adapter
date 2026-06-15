@@ -173,6 +173,8 @@ The only fixed file is a thin `SKILL.md` router; heavy content (`implement.md` /
 
 Use `migrate-wiki` skill in Claude Code to migrate existing wiki documents to the two-layer index structure with `<!-- wiki-section:xxx -->` markers. The AI agent analyzes each document semantically, identifies independent constraint units, inserts section markers, and generates per-document `<stem>.index.md` companion files that include a document-level overview plus a section table.
 
+The skill offers two modes at invocation: **(1) Sections only** — the section-marker migration above; **(2) Sections + graph enrichment** — additionally re-organizes an already-sectioned wiki into a typed knowledge graph (assigns each page a node `type:` and authors `[[page#section]]` knowledge edges) as a batched, propose-then-confirm pass that respects `wiki.updateAuthorization`, then regenerates `.graph.json` / indexes and lints. Mode 2 detail lives in the on-demand `references/graph-enrichment.md` companion, so mode-1 users load only the base skill.
+
 The mechanical helper is also available via CLI:
 
 ```bash
