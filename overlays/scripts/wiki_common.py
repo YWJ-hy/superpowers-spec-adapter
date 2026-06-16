@@ -117,6 +117,21 @@ def known_wiki_roots(project_root: Path) -> list[WikiRoot]:
     ]
 
 
+def wiki_root_from_dir(wiki_dir: Path, kind: str = "shared") -> WikiRoot:
+    """A WikiRoot whose content is rooted directly at ``wiki_dir``.
+
+    The standard layout nests the wiki under ``.superpowers/wiki`` or
+    ``.shared-superpowers/wiki`` inside a project root. A standalone wiki
+    repository instead keeps ``index.md`` and the page tree at the repository
+    root, so the repo-local author/migrate skills point the CLI at the repo with
+    ``--wiki-dir``. The display prefix is empty (display == the page's rel path),
+    and ``kind`` defaults to ``shared`` so neutrality guards apply and settings
+    resolve to ``<wiki_dir>/.shared-superpowers/settings.json`` when the caller
+    passes ``wiki_dir`` as the project root.
+    """
+    return WikiRoot(kind, Path(wiki_dir).resolve(), "")
+
+
 def wiki_root_by_name(project_root: Path, name: str) -> WikiRoot:
     for root in known_wiki_roots(project_root):
         if root.name == name:
@@ -156,7 +171,9 @@ def selected_wiki_roots(project_root: Path, selector: str = "all", require_index
 
 
 def display_wiki_path(root: WikiRoot, file_path: Path) -> str:
-    return f"{root.display_path}/{rel_posix(root.path.resolve(), file_path.resolve())}"
+    rel = rel_posix(root.path.resolve(), file_path.resolve())
+    prefix = root.display_path.strip().strip("/")
+    return f"{prefix}/{rel}" if prefix else rel
 
 
 def wiki_settings_path(project_root: Path, root: WikiRoot) -> Path:

@@ -17,6 +17,7 @@ from wiki_common import (
     selected_wiki_roots,
     shared_wiki_neutrality_violations,
     wiki_root_by_name,
+    wiki_root_from_dir,
 )
 from wiki_section import KNOWN_PAGE_TYPES, extract_page_frontmatter, list_section_ids, validate_section_markers
 
@@ -153,10 +154,34 @@ def aggregate_status(roots: list[dict], warnings: list[str], errors: list[str]) 
     return VALID
 
 
-def check_wiki_tree(selector: str) -> dict:
+def check_wiki_tree(selector: str, wiki_dir: str | None = None) -> dict:
+    if wiki_dir:
+        # Repo-root wiki layout: the wiki lives directly at wiki_dir; settings /
+        # neutrality resolve from <wiki_dir>/.shared-superpowers/settings.json.
+        root = Path(wiki_dir).resolve()
+        root_desc = wiki_root_from_dir(root)
+        missing_warnings: list[str] = []
+        if not (root_desc.path / "index.md").is_file():
+            missing_warnings.append(f"No wiki index (index.md) found at {root}")
+        root_results = [check_root(root, root_desc)] if not missing_warnings else []
+        warnings = [*missing_warnings, *(warning for item in root_results for warning in item["warnings"])]
+        errors = [error for item in root_results for error in item["errors"]]
+        status = aggregate_status(root_results, missing_warnings, errors)
+        return {
+            "status": status,
+            "wikiRoot": str(root),
+            "roots": root_results,
+            "filesChecked": sum(item["filesChecked"] for item in root_results),
+            "indexesChecked": sum(item["indexesChecked"] for item in root_results),
+            "leavesChecked": sum(item["leavesChecked"] for item in root_results),
+            "warnings": warnings,
+            "errors": errors,
+            "mechanicalOnly": True,
+        }
+
     root = repo_root(Path.cwd())
     root_descs = selected_wiki_roots(root, selector, require_index=True)
-    missing_warnings: list[str] = []
+    missing_warnings = []
     if selector in {"project", "shared"} and not root_descs:
         root_desc = wiki_root_by_name(root, selector)
         root_descs = [root_desc]
@@ -192,7 +217,8 @@ def render_text(result: dict) -> str:
     if result["roots"]:
         lines.extend(["", "Roots:"])
         for root_result in result["roots"]:
-            lines.append(f"- {root_result['displayPath']}: {root_result['filesChecked']} files checked")
+            label = root_result["displayPath"] or root_result["wikiRoot"]
+            lines.append(f"- {label}: {root_result['filesChecked']} files checked")
     if result["warnings"]:
         lines.extend(["", "Warnings:"])
         lines.extend(f"- {warning}" for warning in result["warnings"])
@@ -209,6 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--summary", default="", help="Deprecated compatibility option; ignored.")
     parser.add_argument("--changed-file", action="append", default=[], help="Deprecated compatibility option; ignored.")
     parser.add_argument("--wiki-root", choices=["project", "shared", "all"], default="project", help="Wiki root to validate")
+    parser.add_argument("--wiki-dir", default=None, help="Validate this directory as the wiki root directly (repo-root wiki layout); overrides --wiki-root")
     return parser
 
 
@@ -225,7 +252,7 @@ def _configure_stdio() -> None:
 def main() -> int:
     _configure_stdio()
     args = build_parser().parse_args()
-    result = check_wiki_tree(args.wiki_root)
+    result = check_wiki_tree(args.wiki_root, wiki_dir=args.wiki_dir)
     if args.summary or args.changed_file:
         result["warnings"].append("Deprecated semantic inputs were ignored: --summary / --changed-file")
         if result["status"] == VALID:

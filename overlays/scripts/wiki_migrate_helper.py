@@ -25,8 +25,21 @@ from wiki_common import (  # noqa: E402
     repo_root,
     select_wiki_root,
     selected_wiki_roots,
+    wiki_root_from_dir,
 )
 from wiki_section import list_section_ids, validate_section_markers  # noqa: E402
+
+
+def _roots_for(project_root: Path, wiki_root_selector: str, wiki_dir: str | None):
+    """Resolve the wiki roots to operate on.
+
+    ``--wiki-dir`` wins: the wiki is rooted directly at that directory (repo-root
+    wiki layout) and the selector is ignored. Otherwise fall back to the standard
+    .superpowers/.shared-superpowers project layout.
+    """
+    if wiki_dir:
+        return [wiki_root_from_dir(wiki_dir)]
+    return selected_wiki_roots(project_root, wiki_root_selector)
 
 
 def heading_structure(text: str) -> list[dict]:
@@ -39,9 +52,9 @@ def heading_structure(text: str) -> list[dict]:
     return headings
 
 
-def inventory(project_root: Path, wiki_root_selector: str) -> list[dict]:
+def inventory(project_root: Path, wiki_root_selector: str, wiki_dir: str | None = None) -> list[dict]:
     """List all indexed leaf pages with metadata."""
-    roots = selected_wiki_roots(project_root, wiki_root_selector)
+    roots = _roots_for(project_root, wiki_root_selector, wiki_dir)
     results = []
     for root in roots:
         if not (root.path / "index.md").is_file():
@@ -68,9 +81,9 @@ def inventory(project_root: Path, wiki_root_selector: str) -> list[dict]:
     return results
 
 
-def validate(project_root: Path, wiki_root_selector: str) -> list[dict]:
+def validate(project_root: Path, wiki_root_selector: str, wiki_dir: str | None = None) -> list[dict]:
     """Validate section markers in all indexed leaf pages."""
-    roots = selected_wiki_roots(project_root, wiki_root_selector)
+    roots = _roots_for(project_root, wiki_root_selector, wiki_dir)
     issues = []
     for root in roots:
         if not (root.path / "index.md").is_file():
@@ -87,10 +100,10 @@ def validate(project_root: Path, wiki_root_selector: str) -> list[dict]:
     return issues
 
 
-def generate_indexes(project_root: Path, wiki_root_selector: str) -> int:
+def generate_indexes(project_root: Path, wiki_root_selector: str, wiki_dir: str | None = None) -> int:
     """Generate section indexes for all documents with markers. Returns count."""
     from wiki_generate_section_index import process_all
-    return process_all(project_root, wiki_root_selector)
+    return process_all(project_root, wiki_root_selector, wiki_dir=wiki_dir)
 
 
 
@@ -111,12 +124,13 @@ def main() -> None:
     group.add_argument("--validate", metavar="PROJECT_ROOT", help="Validate section markers")
     group.add_argument("--generate-indexes", metavar="PROJECT_ROOT", help="Generate .index.md files")
     parser.add_argument("--wiki-root", choices=["project", "shared", "all"], default="all")
+    parser.add_argument("--wiki-dir", default=None, help="Treat this directory as the wiki root directly (repo-root wiki layout); overrides --wiki-root and the positional project root")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
     if args.inventory:
         project = Path(args.inventory).resolve()
-        results = inventory(project, args.wiki_root)
+        results = inventory(project, args.wiki_root, wiki_dir=args.wiki_dir)
         if args.json:
             print(json.dumps(results, indent=2, ensure_ascii=False))
         else:
@@ -130,7 +144,7 @@ def main() -> None:
 
     elif args.validate:
         project = Path(args.validate).resolve()
-        issues = validate(project, args.wiki_root)
+        issues = validate(project, args.wiki_root, wiki_dir=args.wiki_dir)
         if args.json:
             print(json.dumps(issues, indent=2, ensure_ascii=False))
         else:
@@ -146,7 +160,7 @@ def main() -> None:
 
     elif args.generate_indexes:
         project = Path(args.generate_indexes).resolve()
-        count = generate_indexes(project, args.wiki_root)
+        count = generate_indexes(project, args.wiki_root, wiki_dir=args.wiki_dir)
         print(f"Generated {count} section index file(s).")
 
 

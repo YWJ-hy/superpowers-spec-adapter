@@ -27,6 +27,7 @@ from wiki_common import (  # noqa: E402
     rel_posix,
     repo_root,
     select_wiki_root,
+    wiki_root_from_dir,
 )
 
 HARD_KEYWORDS = {"必须", "禁止", "MUST", "MUST NOT", "REQUIRED", "SHALL NOT"}
@@ -192,9 +193,8 @@ def write_section_graph(wiki_root: Path):
     return graph, build_links_index(graph)
 
 
-def process_all(project_root: Path, wiki_root_selector: str) -> int:
-    """Process all indexed leaf pages. Returns count of generated indexes."""
-    roots = existing_wiki_roots(project_root) if wiki_root_selector == "all" else [select_wiki_root(project_root, wiki_root_selector)]
+def process_roots(roots) -> int:
+    """Process every indexed leaf page under each given root. Returns count generated."""
     count = 0
     for root in roots:
         if not (root.path / "index.md").is_file():
@@ -209,6 +209,21 @@ def process_all(project_root: Path, wiki_root_selector: str) -> int:
             if process_file(leaf, links_index.get(leaf_rel)):
                 count += 1
     return count
+
+
+def process_all(project_root: Path, wiki_root_selector: str, wiki_dir: Path | str | None = None) -> int:
+    """Process all indexed leaf pages. Returns count of generated indexes.
+
+    When ``wiki_dir`` is set the wiki is rooted directly at that directory
+    (repo-root wiki layout) and ``wiki_root_selector`` is ignored.
+    """
+    if wiki_dir:
+        roots = [wiki_root_from_dir(wiki_dir)]
+    elif wiki_root_selector == "all":
+        roots = existing_wiki_roots(project_root)
+    else:
+        roots = [select_wiki_root(project_root, wiki_root_selector)]
+    return process_roots(roots)
 
 
 
@@ -228,15 +243,16 @@ def main() -> None:
     parser.add_argument("--all", action="store_true", help="Process all indexed leaf pages")
     parser.add_argument("--wiki-root", choices=["project", "shared", "all"], default="project")
     parser.add_argument("--project-root", default=None)
+    parser.add_argument("--wiki-dir", default=None, help="Treat this directory as the wiki root directly (repo-root wiki layout); overrides --wiki-root/--project-root resolution")
     args = parser.parse_args()
 
-    project = Path(args.project_root) if args.project_root else repo_root(Path.cwd())
+    project = Path(args.wiki_dir).resolve() if args.wiki_dir else (Path(args.project_root) if args.project_root else repo_root(Path.cwd()))
 
     if args.all:
-        count = process_all(project, args.wiki_root)
+        count = process_all(project, args.wiki_root, wiki_dir=args.wiki_dir)
         print(f"\nGenerated {count} section index file(s).")
     elif args.file_path:
-        wiki = select_wiki_root(project, "project" if args.wiki_root == "all" else args.wiki_root)
+        wiki = wiki_root_from_dir(args.wiki_dir) if args.wiki_dir else select_wiki_root(project, "project" if args.wiki_root == "all" else args.wiki_root)
         file_path = Path(args.file_path)
         if not file_path.is_absolute():
             file_path = wiki.path / file_path

@@ -22,6 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./manage.sh status
 ./manage.sh bootstrap-wiki /path/to/project --template standard
 ./manage.sh init-wiki /path/to/project "optional focus"
+./manage.sh export-wiki-skills /path/to/wiki-repo
 ./manage.sh doctor /path/to/project
 ./manage.sh self-test /path/to/project
 ./manage.sh release-check /path/to/project
@@ -34,6 +35,7 @@ bash tests/native-wiki-patch-smoke.sh <installed-superpowers-target>
 bash tests/wiki-update-check-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/wiki-index-graph-smoke.sh <installed-superpowers-target> /path/to/project
 bash tests/bootstrap-wiki-template-import.sh /path/to/project
+bash tests/export-wiki-skills-smoke.sh
 ```
 
 发布前总检查：
@@ -50,11 +52,12 @@ bash tests/bootstrap-wiki-template-import.sh /path/to/project
 
 - - `overlays/agents/`：安装到 Superpowers 的 subagent，例如 `wiki-researcher`，负责渐进式选择相关项目 wiki 页面。
 - `overlays/skills/`：安装到 Superpowers 的 skill，负责显式入口（如 Lanhu/import/init/shared-wiki MCP）、任务后 update-wiki 审查，以及把可复用实践固化/转换为分层技能包并登记 wiki 发现卡片的 `scaffold-practice-skill`。
-- `overlays/scripts/`：skill 背后的 Python 执行层，负责 wiki 初始化、导入、更新、索引和 manifest 等文件操作。
-- `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑。
+- `overlays/scripts/`：skill 背后的 Python 执行层，负责 wiki 初始化、导入、更新、索引和 manifest 等文件操作。其中 `wiki_generate_section_index.py` / `wiki_update_check.py` / `wiki_migrate_helper.py` 支持 `--wiki-dir`，把指定目录当作 wiki 根直接处理（仓库根即 wiki 的布局），不依赖 `.superpowers/wiki/` 嵌套。
+- `overlays/wiki-repo-skills/`：独立 wiki 仓库（仓库根即 wiki）用的 repo-local skill 源码（`update-wiki` 作者侧增量维护、`migrate-wiki` section 化+图谱）。不安装进 Superpowers，由 `export-wiki-skills` 连同 vendored 脚本闭包钉版本写入目标仓库 `.claude/`，运行时零依赖 adapter，且只改不提交。
+- `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑；`export_wiki_skills.py` 是 `export-wiki-skills` 的导出引擎（含 marker 防覆盖与脚本哈希 manifest）。
 - `wiki-template/`：bootstrap 到目标项目 `.superpowers/wiki/` 的标准模板。
 - `tests/`：面向安装后 Superpowers target 和目标项目 root 的 smoke / regression 测试。
-- 根目录 `manage.sh`：统一入口，转发 install、verify、bootstrap-wiki、doctor、self-test、release-check 等操作。
+- 根目录 `manage.sh`：统一入口，转发 install、verify、bootstrap-wiki、export-wiki-skills、doctor、self-test、release-check 等操作。
 
 ## 用户流程模型
 

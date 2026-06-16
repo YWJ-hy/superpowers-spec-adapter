@@ -14,6 +14,7 @@ usage() {
   printf '  %s shared-wiki-registration\n' "$0" >&2
   printf '  %s bootstrap-wiki <project-root> [--template name] [--wiki-root project|shared]\n' "$0" >&2
   printf '  %s init-wiki <project-root> [analysis-hint]\n' "$0" >&2
+  printf '  %s export-wiki-skills <wiki-repo-root>\n' "$0" >&2
   printf '  %s doctor <project-root> [superpowers-target]\n' "$0" >&2
   printf '  %s export-manifest <project-root> [output-path] [superpowers-target]\n' "$0" >&2
   printf '  %s self-test <project-root> [superpowers-target]\n' "$0" >&2
@@ -58,6 +59,10 @@ case "$COMMAND" in
   init-wiki)
     require_project_root "${1:-}"
     exec "$SCRIPT_DIR/init-wiki.sh" "$@"
+    ;;
+  export-wiki-skills)
+    require_project_root "${1:-}"
+    exec "$SCRIPT_DIR/export-wiki-skills.sh" "$@"
     ;;
   doctor)
     require_project_root "${1:-}"

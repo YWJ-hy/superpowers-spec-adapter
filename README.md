@@ -137,6 +137,24 @@ shared-wiki-mcp skill
 
 `update-wiki` still owns durable knowledge review, semantic duplicate checks, target ownership, and shared-wiki neutrality. The MCP server only performs indexed read/search, mechanical validation, and GitHub PR plumbing. Plan `.wiki-context.json` files should record MCP-sourced shared wiki pages with source metadata, `wikiPath`, and revision because `.shared-superpowers/wiki/<path>.md` is only a logical display path in that mode.
 
+### Maintain a standalone wiki repository directly
+
+The flows above are *consumer-side*: knowledge is pushed up from a project into shared wiki. To curate a standalone wiki repository **from inside the repo itself** — where the wiki content lives at the repo root (`index.md`, topic directories, leaf pages), not under `.superpowers/wiki/` — export two self-contained, repo-local skills into it:
+
+```bash
+./manage.sh export-wiki-skills /path/to/wiki-repo
+```
+
+This stamps a vendored toolchain and two skills under the repo's `.claude/`:
+
+```text
+.claude/wiki-tools/scripts/        # vendored mechanical helpers + .export-manifest.json
+.claude/skills/update-wiki/        # author-side: add/edit a page or section, regenerate indexes/graph, validate
+.claude/skills/migrate-wiki/       # section-ify existing pages + optional typed graph enrichment (two modes)
+```
+
+Once exported, open Claude Code in that repo and invoke `update-wiki` or `migrate-wiki`; they run with **zero dependency on superpower-adapter at runtime** (the helpers point at the repo root via `--wiki-dir`). Both skills are **edit-only**: they regenerate companion `*.index.md`, the directory `index.md` auto-blocks, and `.graph.json`, then run mechanical + neutrality validation — and stop, leaving the commit (or PR) to you. Re-run `export-wiki-skills` to refresh the vendored helpers after upgrading the adapter; it refuses to overwrite any file you authored yourself. Add a `.shared-superpowers/settings.json` at the repo root to drive the mechanical neutrality guards (`wiki.sharedNeutrality`) and write authorization (`wiki.updateAuthorization`).
+
 ## Initialize starter wiki knowledge
 
 After bootstrapping the directory structure, use `init-wiki` skill in Claude Code to initialize first-pass wiki content from a mechanical project inventory. The script behind this skill reports languages, stack signals, top directories, sample files, and indexed wiki pages; the agent decides whether to write lightweight starter notes.

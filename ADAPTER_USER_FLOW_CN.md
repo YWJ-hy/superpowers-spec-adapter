@@ -108,6 +108,7 @@ Superpowers 插件目录
 | 3 | 初始化 wiki 模板 | `./manage.sh bootstrap-wiki /path/to/project --template standard` | 每个目标项目一次 | 创建 `.superpowers/wiki/` wiki 目录；如需要共享知识库，可用 `--wiki-root shared` 创建 `.shared-superpowers/wiki/` |
 | 4 | 导入已有 wiki | `import-wiki` skill | 有已有 wiki 或文档时才需要 | 把已有 wiki 或文档导入到 `.superpowers/wiki/`，或用 `--wiki-root shared` 导入 `.shared-superpowers/wiki/` |
 | 4.5 | 可选 GitHub shared wiki MCP | `shared-wiki-mcp` skill | 使用独立 GitHub shared-wiki 仓库时 | 通过 copyable MCP server 读取 shared wiki，并把更新作为 branch + PR 提交 |
+| 4.6 | 可选 在独立 wiki 仓库内直接维护 | `./manage.sh export-wiki-skills /path/to/wiki-repo` 后在该仓库用 `update-wiki` / `migrate-wiki` skill | 拥有「仓库根即 wiki」的独立 wiki 仓库、想就地策展时 | 把 vendored 脚本闭包 + 两个 repo-local skill 钉版本写入仓库 `.claude/`（`.claude/wiki-tools/scripts/` + `.claude/skills/{update-wiki,migrate-wiki}/`）；运行时零依赖 adapter、经 `--wiki-dir` 把仓库根当 wiki 根；两个 skill 只改不提交（重建 `*.index.md`/目录 index auto-block/`.graph.json` + 中性与结构校验后停下，提交交给用户）。这是作者/策展侧，区别于 4.5 的消费者→PR 路径 |
 | 5 | 初始化 starter wiki | `init-wiki` skill | 每个目标项目首次使用时 | 从当前项目结构生成第一版轻量 wiki 知识 |
 | 6 | 可选蓝湖原始需求证据包 | `lanhu-requirements skill <蓝湖链接> 前端/后端` | 有蓝湖链接且已配置 lanhu-mcp 时 | 先确认前端/后端角色；如 URL 带 pageId，主会话先读取 URL 当前页及子树的轻量 page tree metadata，并结合用户描述选择目标页面；每个目标页面由 analyst 直接生成 `.lanhu/MM-DD-需求名称/` 或 `pages/<page-slug>/` evidence package 并只向主会话返回路径摘要和确认门禁；图片默认只按标注/箭头/缺失关键事实等信号选择性分析，不保存图片资产；frontend 生成统一 `frontend-prd/` 包；阻塞确认点清零且用户确认 `index.md` 后作为 Superpowers 需求输入 |
 | 7 | 描述需求并进入 `brainstorming` | Superpowers `brainstorming` | 复杂任务或需要设计时 | 写本次 Superpowers spec，并轻量参考项目 wiki |
