@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Smoke test for the section-level knowledge graph: typed [[type: page#section]] edge
-# parsing, .graph.json output, .index.md cross-reference columns, and dangling /
+# parsing, .graph.json output, a plain (relationship-free) .index.md table, and dangling /
 # unknown-type lint. Exercises the installed Superpowers target scripts.
 # Usage: bash tests/wiki-section-graph-smoke.sh [superpowers-target] [project-root]
 
@@ -90,20 +90,18 @@ assert not any("unknown edge type 'http'" in r for r in reasons), "URL was mispa
 print("graph.json OK")
 PY
 
-# --- .index.md cross-reference columns (typed) ---
+# --- .index.md renders a plain section table; relationships live ONLY in .graph.json ---
 contract_index="$(cat "${W}/backend/contract.index.md")"
-data_index="$(cat "${W}/backend/data.index.md")"
 case "${contract_index}" in
-  *"| 引用 | 被引用 |"*) : ;;
-  *) printf 'Expected cross-reference columns in contract.index.md\n' >&2; exit 1 ;;
+  *"| section | 描述 | 约束强度 |"*) : ;;
+  *) printf 'Expected plain 3-column section table in contract.index.md\n' >&2; exit 1 ;;
 esac
+# The relation column was removed: no 关联 / 引用 / 被引用 column and no edge targets
+# rendered into the index (those are queried from .graph.json, asserted above).
 case "${contract_index}" in
-  *"backend/data.md#tx-rules\` _(depends-on)_"*) : ;;
-  *) printf 'Expected typed outgoing reference in contract.index.md\n' >&2; exit 1 ;;
-esac
-case "${data_index}" in
-  *"backend/contract.md#response-format\` _(depends-on)_"*) : ;;
-  *) printf 'Expected typed backlink in data.index.md\n' >&2; exit 1 ;;
+  *关联*|*引用*|*被引用*|*"backend/data#tx-rules"*)
+    printf 'Relationship rendering leaked into contract.index.md (should live only in .graph.json)\n' >&2; exit 1 ;;
+  *) : ;;
 esac
 
 # --- Single-file mode also rebuilds the root graph (update-wiki uses this path) ---

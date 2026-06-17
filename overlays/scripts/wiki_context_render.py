@@ -460,14 +460,15 @@ def _depends_on_closure_entries(
     if not graph:
         return []
 
-    depends_on: dict[str, list[str]] = {}
-    for edge in graph.get("edges", []):
-        if edge.get("type") == "depends-on":
-            depends_on.setdefault(edge.get("from", ""), []).append(edge.get("to", ""))
+    from wiki_common import one_hop_neighbors  # local import keeps the renderer stdlib-only otherwise
 
+    slices = one_hop_neighbors(graph, project_source_nodes)
     entries: list[dict[str, Any]] = []
     for source_node in project_source_nodes:
-        for target_node in depends_on.get(source_node, []):
+        for edge in slices.get(source_node, {}).get("out", []):
+            if edge.get("type") != "depends-on":
+                continue
+            target_node = edge.get("to") or ""
             if "#" not in target_node:
                 continue  # whole-page depends-on is not rereadable as a single section
             local_path, _, section_id = target_node.rpartition("#")

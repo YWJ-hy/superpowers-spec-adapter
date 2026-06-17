@@ -24,7 +24,6 @@ from wiki_common import (  # noqa: E402
     build_section_graph,
     build_wiki_index_graph,
     existing_wiki_roots,
-    rel_posix,
     repo_root,
     select_wiki_root,
     wiki_root_from_dir,
@@ -33,6 +32,9 @@ from wiki_common import (  # noqa: E402
 HARD_KEYWORDS = {"必须", "禁止", "MUST", "MUST NOT", "REQUIRED", "SHALL NOT"}
 GENERATED_HEADER = "> Auto-generated from section markers. Do not edit manually.\n"
 SECTION_GRAPH_FILE = ".graph.json"
+# Stable substring of the now-removed relation-column maintenance note; used to strip
+# the line from preserved headers of any index regenerated while the column existed.
+LEGACY_NOTE_MARKER = "由源文档的 `[[page#section]]` 链接生成"
 
 
 def _split_header_and_table(content: str) -> tuple[str, str]:
@@ -69,57 +71,25 @@ def _with_trailing_newline(content: str) -> str:
     return content if content.endswith("\n") else content + "\n"
 
 
-def _format_link_cell(values: list[tuple[str, str]]) -> str:
-    if not values:
-        return "—"
-    parts = []
-    for node, edge_type in values:
-        label = f"`{node}`"
-        if edge_type and edge_type != "see-also":
-            label += f" _({edge_type})_"
-        parts.append(label)
-    return "<br>".join(parts)
-
-
-def build_links_index(graph) -> dict[str, dict[str, dict[str, list[tuple[str, str]]]]]:
-    """Index a SectionGraph as {page_rel: {section_id: {"out": [...], "in": [...]}}}.
-
-    Each entry is (node, edge_type). Only section-targeted backlinks are surfaced per
-    section row; page-level [[page]] edges still live in full fidelity inside .graph.json.
-    """
-    index: dict[str, dict[str, dict[str, list[tuple[str, str]]]]] = {}
-
-    def ensure(rel: str, sid: str) -> dict[str, list[tuple[str, str]]]:
-        return index.setdefault(rel, {}).setdefault(sid, {"out": [], "in": []})
-
-    for edge in graph.edges:
-        rel, _, sid = edge["from"].rpartition("#")
-        if rel and sid:
-            ensure(rel, sid)["out"].append((edge["to"], edge["type"]))
-    for to_node, sources in graph.backlinks.items():
-        if "#" not in to_node:
-            continue
-        rel, _, sid = to_node.rpartition("#")
-        if rel and sid:
-            ensure(rel, sid)["in"].extend((s["from"], s["type"]) for s in sources)
-    return index
-
-
 def generate_index(
     file_path: Path,
     existing_content: str | None = None,
-    links_for_file: dict[str, dict[str, list[str]]] | None = None,
 ) -> str | None:
-    """Generate index content for a wiki file. Returns None if no markers found."""
+    """Generate index content for a wiki file. Returns None if no markers found.
+
+    The table carries section name, description, and constraint strength — the fields the
+    wiki-researcher reads for section-level relevance. Knowledge-graph relationships are
+    NOT rendered here: they live in ``.graph.json`` and are queried mechanically
+    (``wiki_graph_neighbors.py`` / the shared-wiki MCP) rather than parsed from this table.
+    """
     text = file_path.read_text(encoding="utf-8")
     section_ids = list_section_ids(text)
     if not section_ids:
         return None
 
-    links_for_file = links_for_file or {}
     table_lines = [
-        "| section | 描述 | 约束强度 | 引用 | 被引用 |",
-        "|---|---|---|---|---|",
+        "| section | 描述 | 约束强度 |",
+        "|---|---|---|",
     ]
 
     for sid in section_ids:
@@ -128,10 +98,7 @@ def generate_index(
             continue
         desc = first_description(content)
         strength = detect_strength(content)
-        section_links = links_for_file.get(sid, {})
-        out_cell = _format_link_cell(section_links.get("out", []))
-        in_cell = _format_link_cell(section_links.get("in", []))
-        table_lines.append(f"| {sid} | {desc} | {strength} | {out_cell} | {in_cell} |")
+        table_lines.append(f"| {sid} | {desc} | {strength} |")
 
     table_lines.append("")
     table_part = "\n".join(table_lines)
@@ -148,7 +115,8 @@ def generate_index(
             title_line = file_path.stem
         header_part = f"# {title_line} — Section Index\n\n{GENERATED_HEADER}\n"
 
-    header_part = _with_trailing_newline(_reconcile_type_line(header_part, page_type(text)))
+    header_part = _reconcile_type_line(header_part, page_type(text))
+    header_part = _with_trailing_newline(_strip_legacy_note_line(header_part))
     return header_part + table_part
 
 
@@ -168,15 +136,26 @@ def _reconcile_type_line(header: str, ptype: str) -> str:
     return "\n".join(kept).rstrip() + "\n\n"
 
 
+def _strip_legacy_note_line(header: str) -> str:
+    """Drop the old relation-column maintenance note from a preserved header.
+
+    The relation column was removed; any index regenerated while it existed carries a
+    plain note line (see LEGACY_NOTE_MARKER) in its preserved header. Strip it so the
+    header converges cleanly on regeneration. Idempotent for headers that never had one.
+    """
+    kept = [line for line in header.splitlines() if LEGACY_NOTE_MARKER not in line]
+    return "\n".join(kept).rstrip() + "\n\n"
+
+
 def index_path_for(file_path: Path) -> Path:
     return file_path.parent / f"{file_path.stem}.index.md"
 
 
-def process_file(file_path: Path, links_for_file: dict[str, dict[str, list[str]]] | None = None) -> bool:
+def process_file(file_path: Path) -> bool:
     """Process a single file. Returns True if index was written."""
     out = index_path_for(file_path)
     existing = out.read_text(encoding="utf-8") if out.is_file() else None
-    content = generate_index(file_path, existing, links_for_file)
+    content = generate_index(file_path, existing)
     if content is None:
         return False
     out.write_text(content, encoding="utf-8")
@@ -185,12 +164,16 @@ def process_file(file_path: Path, links_for_file: dict[str, dict[str, list[str]]
 
 
 def write_section_graph(wiki_root: Path):
-    """Build and persist the section graph for a wiki root; return (graph, links_index)."""
+    """Build and persist the section graph for a wiki root; return the graph.
+
+    The graph (nodes / edges / backlinks / dangling) is the single source of truth for
+    knowledge-graph relationships, consumed by neighbor queries, update-wiki, and doctor.
+    """
     graph = build_section_graph(wiki_root)
     payload = json.dumps(graph.to_payload(), indent=2, ensure_ascii=False) + "\n"
     (wiki_root / SECTION_GRAPH_FILE).write_text(payload, encoding="utf-8")
     print(f"  Generated: {SECTION_GRAPH_FILE} ({len(graph.edges)} edge(s), {len(graph.dangling)} dangling)")
-    return graph, build_links_index(graph)
+    return graph
 
 
 def process_roots(roots) -> int:
@@ -199,14 +182,13 @@ def process_roots(roots) -> int:
     for root in roots:
         if not (root.path / "index.md").is_file():
             continue
-        _, links_index = write_section_graph(root.path)
+        write_section_graph(root.path)
         graph = build_wiki_index_graph(root.path)
         for leaf in graph.leaves:
             if leaf.name == "index.md" or leaf.suffix == ".index.md":
                 continue
             print(f"Scanning: {leaf.relative_to(root.path)}")
-            leaf_rel = rel_posix(root.path.resolve(), leaf.resolve())
-            if process_file(leaf, links_index.get(leaf_rel)):
+            if process_file(leaf):
                 count += 1
     return count
 
@@ -260,10 +242,9 @@ def main() -> None:
             print(f"Error: file not found: {file_path}", file=sys.stderr)
             sys.exit(1)
         # A single edited page can shift the whole root's graph, so rebuild the
-        # root-level .graph.json and feed this file's slice into its index.
-        _, links_index = write_section_graph(wiki.path)
-        leaf_rel = rel_posix(wiki.path.resolve(), file_path.resolve())
-        if not process_file(file_path, links_index.get(leaf_rel)):
+        # root-level .graph.json before regenerating this file's index.
+        write_section_graph(wiki.path)
+        if not process_file(file_path):
             print("No section markers found. No index generated.")
     else:
         parser.print_help()

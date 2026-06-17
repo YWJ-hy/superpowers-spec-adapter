@@ -7,6 +7,7 @@ import { readTool } from './tools/read.js';
 import { readSectionTool } from './tools/readSection.js';
 import { readSectionsTool } from './tools/readSections.js';
 import { searchTool } from './tools/search.js';
+import { graphNeighborsTool } from './tools/graphNeighbors.js';
 import { validatePatchTool } from './tools/validatePatch.js';
 import { createPatchPrTool } from './tools/createPatchPr.js';
 import { withCloneLock } from './lock.js';
@@ -64,6 +65,14 @@ export function createServer(config: SharedWikiConfig): McpServer {
     inputSchema: z.object({ query: z.string().min(1), maxResults: z.number().int().min(1).max(50).optional() }),
     annotations: { readOnlyHint: true, idempotentHint: true },
   }, async (input) => toResult(await withCloneLock(config, () => searchTool(config, input))));
+
+  server.registerTool('shared_wiki_graph_neighbors', {
+    description: 'Return bounded 1-hop graph neighbors (out/in edges with type and an indexed flag) for the given page#section nodes. Does NOT load the whole graph — output scales with the number of requested nodes.',
+    inputSchema: z.object({
+      nodes: z.array(z.string().min(1)).min(1).max(100),
+    }),
+    annotations: { readOnlyHint: true, idempotentHint: true },
+  }, async (input) => toResult(await withCloneLock(config, () => graphNeighborsTool(config, input))));
 
   server.registerTool('shared_wiki_validate_patch', {
     description: 'Validate a unified diff against shared wiki policy without pushing or opening a PR.',

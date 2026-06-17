@@ -52,7 +52,7 @@ bash tests/export-wiki-skills-smoke.sh
 
 - - `overlays/agents/`：安装到 Superpowers 的 subagent，例如 `wiki-researcher`，负责渐进式选择相关项目 wiki 页面。
 - `overlays/skills/`：安装到 Superpowers 的 skill，负责显式入口（如 Lanhu/import/init/shared-wiki MCP）、任务后 update-wiki 审查，以及把可复用实践固化/转换为分层技能包并登记 wiki 发现卡片的 `scaffold-practice-skill`。
-- `overlays/scripts/`：skill 背后的 Python 执行层，负责 wiki 初始化、导入、更新、索引和 manifest 等文件操作。其中 `wiki_generate_section_index.py` / `wiki_update_check.py` / `wiki_migrate_helper.py` 支持 `--wiki-dir`，把指定目录当作 wiki 根直接处理（仓库根即 wiki 的布局），不依赖 `.superpowers/wiki/` 嵌套。
+- `overlays/scripts/`：skill 背后的 Python 执行层，负责 wiki 初始化、导入、更新、索引和 manifest 等文件操作。其中 `wiki_generate_section_index.py` / `wiki_update_check.py` / `wiki_migrate_helper.py` 支持 `--wiki-dir`，把指定目录当作 wiki 根直接处理（仓库根即 wiki 的布局），不依赖 `.superpowers/wiki/` 嵌套。`wiki_graph_neighbors.py` 是 `wiki-researcher` 规划期 1 跳邻居发现的有界查询：输入候选 `page#section` 节点，从 `.graph.json` 只返回这些节点的 out/in 边切片（带 `type` 与 `indexed` 标志），输出与 wiki 规模无关；`.graph.json` 缺失时降级为空 + caveat，不报错。共享 wiki 走 MCP 同名对称工具 `shared_wiki_graph_neighbors`。核心 1 跳逻辑由 `wiki_common.one_hop_neighbors` 提供，`wiki_context_render.py` 的执行期 `depends-on` 闭包复用同一函数。
 - `overlays/wiki-repo-skills/`：独立 wiki 仓库（仓库根即 wiki）用的 repo-local skill 源码（`update-wiki` 作者侧增量维护、`migrate-wiki` section 化+图谱）。不安装进 Superpowers，由 `export-wiki-skills` 连同 vendored 脚本闭包钉版本写入目标仓库 `.claude/`，运行时零依赖 adapter，且只改不提交。
 - `lib/`：adapter 自身的安装、manifest、hook 配置维护、native skill patch、目标 Superpowers 目录解析逻辑；`export_wiki_skills.py` 是 `export-wiki-skills` 的导出引擎（含 marker 防覆盖与脚本哈希 manifest）。
 - `wiki-template/`：bootstrap 到目标项目 `.superpowers/wiki/` 的标准模板。

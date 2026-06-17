@@ -80,8 +80,8 @@ Let the user confirm, adjust, or drop items. Only write the confirmed set.
 
 1. Write the confirmed frontmatter types and `[[ ]]` edges into the pages (subject to the
    authorization policy above).
-2. Regenerate companion indexes + `.graph.json` (this fills `引用` / `被引用` columns,
-   the `> Type:` line, and `pageTypes`):
+2. Regenerate companion indexes + `.graph.json` (this rebuilds the graph edges/backlinks,
+   the `> Type:` line, and `pageTypes`; relationships live in `.graph.json`, not the index table):
 
    ```bash
    python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_migrate_helper.py --generate-indexes . --wiki-root $WIKI_ROOT

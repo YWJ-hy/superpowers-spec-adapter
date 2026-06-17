@@ -15,7 +15,7 @@ Your job is to find the minimum relevant project/shared wiki documents for the g
 You may:
 - Read local `.superpowers/wiki/`.
 - Read local `.shared-superpowers/wiki/` when it is the selected shared wiki source.
-- Call read-only shared-wiki MCP tools when a GitHub-backed shared wiki source is configured and available: `shared_wiki_status`, `shared_wiki_tree`, `shared_wiki_read`, `shared_wiki_read_section`, `shared_wiki_read_sections`, and `shared_wiki_search`.
+- Call read-only shared-wiki MCP tools when a GitHub-backed shared wiki source is configured and available: `shared_wiki_status`, `shared_wiki_tree`, `shared_wiki_read`, `shared_wiki_read_section`, `shared_wiki_read_sections`, `shared_wiki_search`, and `shared_wiki_graph_neighbors`.
 - Read the current task description, Superpowers spec, or implementation plan provided by the main agent.
 - Read a small number of related source files only when needed to verify whether a wiki page applies.
 
@@ -93,9 +93,12 @@ Do not mix local shared wiki and MCP shared wiki pages in the same selected resu
 
 Sections may declare `[[page#section]]` knowledge edges. After you have a set of candidate sections from index navigation, do **one** bounded pass to catch related sections that keyword/index scanning missed:
 
-1. For each candidate section, look up its 1-hop neighbors. Locally this is the project `.superpowers/wiki/.graph.json` (`edges` out of, and `backlinks` into, the candidate's `page#section` node); equivalently, each companion `<stem>.index.md` carries `引用` (outgoing) and `被引用` (incoming) columns with the edge type. For shared `github_mcp`, use the companion index columns via `shared_wiki_read`.
+1. For each candidate section, look up its 1-hop neighbors with a **bounded query** — never load the whole graph into context. Pass only your candidate `page#section` node ids and get back their outgoing/incoming edges (with edge type and an `indexed` flag):
+   - Local: run `scripts/wiki_graph_neighbors.py --node "<page>#<section>" [--node ...] --wiki-root project` (use `--wiki-dir` for a repo-root wiki layout).
+   - Shared `github_mcp`: call `shared_wiki_graph_neighbors({ nodes: ["<page>#<section>", ...] })`.
+   Both return `{ neighbors: { "<node>": { out: [{to,type,indexed}], in: [{from,type,indexed}] } } }`; output scales with the number of candidates, not with the wiki size. Do not read `.graph.json` directly for this — use the bounded query above. The companion `<stem>.index.md` does not render relationships; relationships live only in the graph.
 2. Treat each neighbor as a **candidate only** — evaluate its relevance like any other section and classify it (`direct` / `supporting` / `rejected`). Edge type is a hint, not a verdict: a `depends-on` neighbor is usually load-bearing (lean `direct`/`supporting`); `see-also` is weaker; `supersedes` / `contradicts` flag that one side may be stale — surface it but do not resolve it yourself.
-3. **Bounded**: expand neighbors of your original candidates only. Do not follow neighbors-of-neighbors (no transitive expansion), and a neighbor still participates only if it has a companion `<stem>.index.md`.
+3. **Bounded**: expand neighbors of your original candidates only. Do not follow neighbors-of-neighbors (no transitive expansion), and a neighbor still participates only if its query result is `indexed: true` (it has a usable companion `<stem>.index.md`).
 4. Record neighbors you considered but did not select in `rejectedWikiPages` with a short reason, so the discovery is visible.
 
 This pass improves recall during planning; it does not change execution. At execution, a `depends-on` target of a selected hard-constraint section is additionally reread automatically (1-hop closure), so you need not select a target solely to make it available at execution — select it when it is genuinely relevant to planning.

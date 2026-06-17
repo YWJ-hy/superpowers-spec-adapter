@@ -740,6 +740,38 @@ def build_section_graph(wiki_root: Path) -> SectionGraph:
     return graph
 
 
+def one_hop_neighbors(graph: dict, nodes: list[str]) -> dict[str, dict]:
+    """Bounded 1-hop slice of a persisted ``section-graph`` payload.
+
+    For each requested ``page#section`` (or bare ``page``) node, return its outgoing
+    edges (``out``) and incoming backlinks (``in``). Output size scales with the number
+    of requested nodes, never with the whole graph: this is the query that replaces
+    "load the entire .graph.json into context". Unknown nodes yield empty lists. The
+    function is pure (graph payload in, slice out); companion-index gating is layered on
+    by callers that have the wiki filesystem.
+    """
+    out_by_node: dict[str, list[dict]] = {}
+    edges = graph.get("edges") if isinstance(graph, dict) else None
+    if isinstance(edges, list):
+        for edge in edges:
+            if not isinstance(edge, dict):
+                continue
+            frm, to = edge.get("from"), edge.get("to")
+            if isinstance(frm, str) and isinstance(to, str):
+                out_by_node.setdefault(frm, []).append({"to": to, "type": edge.get("type")})
+
+    backlinks = graph.get("backlinks") if isinstance(graph, dict) else None
+    result: dict[str, dict] = {}
+    for node in nodes:
+        incoming: list[dict] = []
+        if isinstance(backlinks, dict):
+            for src in backlinks.get(node, []) or []:
+                if isinstance(src, dict) and isinstance(src.get("from"), str):
+                    incoming.append({"from": src["from"], "type": src.get("type")})
+        result[node] = {"out": out_by_node.get(node, []), "in": incoming}
+    return result
+
+
 def iter_indexed_wiki_files(wiki_root: Path, include_indexes: bool = False) -> list[Path]:
     graph = build_wiki_index_graph(wiki_root)
     return graph.files if include_indexes else graph.leaves
