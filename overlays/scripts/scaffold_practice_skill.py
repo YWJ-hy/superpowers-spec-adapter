@@ -46,6 +46,7 @@ from wiki_common import (  # noqa: E402
     replace_auto_section,
     repo_root,
     select_wiki_root,
+    write_text_lf,
 )
 from wiki_generate_section_index import generate_index, index_path_for  # noqa: E402
 from wiki_section import list_section_ids, validate_section_markers  # noqa: E402
@@ -264,7 +265,7 @@ def regenerate_companion_index(leaf: Path) -> Path | None:
     content = generate_index(leaf, existing)
     if content is None:
         return None
-    out.write_text(content, encoding="utf-8")
+    write_text_lf(out, content)
     return out
 
 
@@ -287,12 +288,12 @@ def ensure_index_ref(index_path: Path, ref: str, intro: str) -> bool:
     existing = _auto_block_lines(text)
     if line in existing:
         if not index_path.is_file():
-            index_path.write_text(text, encoding="utf-8")
+            write_text_lf(index_path, text)
             return True
         return False
     existing.append(line)
     content = "\n".join(dict.fromkeys(existing))
-    index_path.write_text(replace_auto_section(text, content), encoding="utf-8")
+    write_text_lf(index_path, replace_auto_section(text, content))
     return True
 
 
@@ -357,10 +358,7 @@ def cmd_scaffold(args: argparse.Namespace) -> None:
     if skill_md.exists() and not args.force:
         skipped.append("SKILL.md")
     else:
-        skill_md.write_text(
-            render_skill_md(name, args.description or DEFAULT_DESCRIPTION, extra),
-            encoding="utf-8",
-        )
+        write_text_lf(skill_md, render_skill_md(name, args.description or DEFAULT_DESCRIPTION, extra))
         created.append("SKILL.md")
 
     for rel in extra:
@@ -369,7 +367,7 @@ def cmd_scaffold(args: argparse.Namespace) -> None:
             skipped.append(rel)
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(render_extra_stub(rel), encoding="utf-8")
+        write_text_lf(dest, render_extra_stub(rel))
         created.append(rel)
 
     emit(
@@ -461,10 +459,7 @@ def cmd_convert(args: argparse.Namespace) -> None:
     skipped: list[str] = []
     skill_md = target / "SKILL.md"
     if not skill_md.exists() or args.force:
-        skill_md.write_text(
-            render_skill_md(name, fm.get("description") or DEFAULT_DESCRIPTION, extra),
-            encoding="utf-8",
-        )
+        write_text_lf(skill_md, render_skill_md(name, fm.get("description") or DEFAULT_DESCRIPTION, extra))
         created.append("SKILL.md")
     else:
         skipped.append("SKILL.md")
@@ -474,7 +469,7 @@ def cmd_convert(args: argparse.Namespace) -> None:
             skipped.append(rel)
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(render_extra_stub(rel), encoding="utf-8")
+        write_text_lf(dest, render_extra_stub(rel))
         created.append(rel)
 
     inventory = source_inventory(src_dir, src_skill)
@@ -520,13 +515,13 @@ def cmd_register_card(args: argparse.Namespace) -> None:
 
     guides.mkdir(parents=True, exist_ok=True)
     if not skills_md.is_file():
-        skills_md.write_text(SKILLS_INTRO, encoding="utf-8")
+        write_text_lf(skills_md, SKILLS_INTRO)
 
     title = args.title or title_from_name(name)
     triggers = args.triggers or "（补充触发场景关键词）"
-    skills_md.write_text(
+    write_text_lf(
+        skills_md,
         upsert_section(skills_md.read_text(encoding="utf-8"), name, render_card(name, title, triggers)),
-        encoding="utf-8",
     )
 
     companion = regenerate_companion_index(skills_md)

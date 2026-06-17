@@ -90,6 +90,16 @@ assert not any("unknown edge type 'http'" in r for r in reasons), "URL was mispa
 print("graph.json OK")
 PY
 
+# --- Generated artifacts use LF newlines (deterministic across platforms) ---
+python3 - "${GRAPH}" "${W}/backend/contract.index.md" "${W}/backend/data.index.md" <<'PY'
+import sys
+for path in sys.argv[1:]:
+    with open(path, "rb") as handle:
+        data = handle.read()
+    assert b"\r\n" not in data, f"{path} has CRLF; generated wiki artifacts must be LF"
+print("LF line endings OK")
+PY
+
 # --- .index.md renders a plain section table; relationships live ONLY in .graph.json ---
 contract_index="$(cat "${W}/backend/contract.index.md")"
 case "${contract_index}" in

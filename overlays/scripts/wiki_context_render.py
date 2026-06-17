@@ -821,7 +821,10 @@ def scaffold_tasks(data: dict[str, Any], plan_path: Path) -> tuple[list[str], li
 def _write_context(path: Path, data: dict[str, Any]) -> None:
     text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
+    # Pin LF so the sidecar is byte-deterministic across platforms (Windows text mode
+    # would otherwise translate "\n" to "\r\n" and churn against an LF-committed file).
+    with tmp.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
     tmp.replace(path)
 
 

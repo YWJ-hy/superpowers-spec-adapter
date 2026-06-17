@@ -27,6 +27,7 @@ from wiki_common import (  # noqa: E402
     repo_root,
     select_wiki_root,
     wiki_root_from_dir,
+    write_text_lf,
 )
 
 HARD_KEYWORDS = {"必须", "禁止", "MUST", "MUST NOT", "REQUIRED", "SHALL NOT"}
@@ -158,7 +159,7 @@ def process_file(file_path: Path) -> bool:
     content = generate_index(file_path, existing)
     if content is None:
         return False
-    out.write_text(content, encoding="utf-8")
+    write_text_lf(out, content)
     print(f"  Generated: {out.name}")
     return True
 
@@ -171,7 +172,7 @@ def write_section_graph(wiki_root: Path):
     """
     graph = build_section_graph(wiki_root)
     payload = json.dumps(graph.to_payload(), indent=2, ensure_ascii=False) + "\n"
-    (wiki_root / SECTION_GRAPH_FILE).write_text(payload, encoding="utf-8")
+    write_text_lf(wiki_root / SECTION_GRAPH_FILE, payload)
     print(f"  Generated: {SECTION_GRAPH_FILE} ({len(graph.edges)} edge(s), {len(graph.dangling)} dangling)")
     return graph
 

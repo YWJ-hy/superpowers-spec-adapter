@@ -23,6 +23,7 @@ from wiki_common import (
     repo_root,
     select_wiki_root,
     summary_from_markdown,
+    write_text_lf,
 )
 
 
@@ -36,7 +37,7 @@ def ensure_root_index(wiki_root: Path, project_root: Path, root_desc, authorized
             authorized_create=authorized_create,
         )
         index_path.parent.mkdir(parents=True, exist_ok=True)
-        index_path.write_text(ENTRY_STUB, encoding="utf-8")
+        write_text_lf(index_path, ENTRY_STUB)
     return index_path
 
 
@@ -80,7 +81,7 @@ def refresh_auto_section(index_path: Path, wiki_root: Path, project_root: Path, 
         WIKI_OPERATION_UPDATE,
         authorized_update=authorized_update,
     )
-    index_path.write_text(updated, encoding="utf-8")
+    write_text_lf(index_path, updated)
 
 
 def refresh_root(root_desc, project_root: Path, authorized_update: bool, authorized_create: bool) -> list[str]:

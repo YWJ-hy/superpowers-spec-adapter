@@ -20,6 +20,7 @@ from wiki_common import (
     repo_root,
     select_wiki_root,
     wiki_update_operation_for_target,
+    write_text_lf,
 )
 
 
@@ -223,7 +224,7 @@ def main() -> int:
     target.parent.mkdir(parents=True, exist_ok=True)
     if needs_index_reference:
         append_index_reference(wiki_root, target)
-    target.write_text(updated, encoding='utf-8')
+    write_text_lf(target, updated)
     print(f'Updated wiki page body: {target}')
     return 0
 

@@ -21,6 +21,7 @@ from wiki_common import (
     repo_root,
     select_wiki_root,
     summary_from_markdown,
+    write_text_lf,
 )
 
 SUPPORTED_SUFFIXES = {".md", ".markdown", ".mdx", ".txt"}
@@ -90,7 +91,7 @@ def copy_item(wiki_root: Path, item: ImportItem, merge_existing: bool) -> bool:
             raise SystemExit(f"Target already exists: {item.target_rel.as_posix()}")
         raise SystemExit(f"Refusing to overwrite existing wiki page: {item.target_rel.as_posix()}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(item.source_path.read_text(encoding="utf-8"), encoding="utf-8")
+    write_text_lf(target, item.source_path.read_text(encoding="utf-8"))
     return True
 
 
@@ -108,9 +109,9 @@ def ensure_index_file(index_path: Path, title: str) -> None:
         return
     index_path.parent.mkdir(parents=True, exist_ok=True)
     if index_path.name == "index.md" and index_path.parent.name == "wiki":
-        index_path.write_text(ENTRY_STUB, encoding="utf-8")
+        write_text_lf(index_path, ENTRY_STUB)
     else:
-        index_path.write_text(f"# {title}\n\nUse this index to navigate the wiki pages in this section.\n\n{AUTO_START}\n{AUTO_END}\n", encoding="utf-8")
+        write_text_lf(index_path, f"# {title}\n\nUse this index to navigate the wiki pages in this section.\n\n{AUTO_START}\n{AUTO_END}\n")
 
 
 def index_entry(base_dir: Path, target: Path) -> str:
@@ -153,7 +154,7 @@ def rebuild_indexes(wiki_root: Path, project_root: Path, root_desc) -> None:
         content = "\n".join(index_entry(directory, child) for child in children)
         updated = replace_auto_section(index_path.read_text(encoding="utf-8"), content)
         enforce_shared_wiki_neutrality(project_root, root_desc, updated, display_wiki_path(root_desc, index_path))
-        index_path.write_text(updated, encoding="utf-8")
+        write_text_lf(index_path, updated)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

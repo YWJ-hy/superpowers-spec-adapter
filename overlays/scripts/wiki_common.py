@@ -101,6 +101,19 @@ class SectionGraph:
         }
 
 
+def write_text_lf(path: Path, content: str) -> None:
+    """Write UTF-8 text with LF newlines, regardless of platform.
+
+    ``Path.write_text`` uses text mode, which on Windows translates ``\\n`` to ``\\r\\n``
+    and produces CRLF artifacts that churn against LF-committed wiki files (e.g. a
+    regenerated ``.graph.json`` showing a whole-file diff with no semantic change).
+    Pinning ``newline="\\n"`` keeps generated indexes / graphs / pages byte-deterministic
+    across platforms.
+    """
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(content)
+
+
 def repo_root(start: Path) -> Path:
     current = start.resolve()
     for candidate in (current, *current.parents):
@@ -795,7 +808,7 @@ def append_index_reference(wiki_root: Path, target: Path) -> None:
     root_index = wiki_root / "index.md"
     if not root_index.exists():
         root_index.parent.mkdir(parents=True, exist_ok=True)
-        root_index.write_text(ENTRY_STUB, encoding="utf-8")
+        write_text_lf(root_index, ENTRY_STUB)
 
     rel = target.relative_to(wiki_root).as_posix()
     if is_indexed_wiki_path(wiki_root, target, include_indexes=False):
@@ -812,7 +825,7 @@ def append_index_reference(wiki_root: Path, target: Path) -> None:
         existing = [item.rstrip() for item in text[start:end].splitlines() if item.strip()]
         existing.append(line)
         content = "\n".join(dict.fromkeys(existing))
-        root_index.write_text(replace_auto_section(text, content), encoding="utf-8")
+        write_text_lf(root_index, replace_auto_section(text, content))
         return
 
-    root_index.write_text(text.rstrip() + "\n\n" + AUTO_START + f"\n{line}\n" + AUTO_END + "\n", encoding="utf-8")
+    write_text_lf(root_index, text.rstrip() + "\n\n" + AUTO_START + f"\n{line}\n" + AUTO_END + "\n")
