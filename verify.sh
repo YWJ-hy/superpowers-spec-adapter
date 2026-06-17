@@ -16,7 +16,6 @@ PY
 )
 HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
 NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
-SUBAGENT_MODEL_PATCHER="$SCRIPT_DIR/lib/subagent_model_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -453,17 +452,14 @@ check_native_skill_residuals() {
     exit 1
   fi
 
-  local worktree_skill="$TARGET_DIR/skills/using-git-worktrees/SKILL.md"
-  local finishing_skill="$TARGET_DIR/skills/finishing-a-development-branch/SKILL.md"
-  for required in 'worktree-origin.json' 'originalBranch' 'originalWorktree' 'originalHead' 'rev-parse --absolute-git-dir'; do
-    if ! grep -Fq -- "$required" "$worktree_skill"; then
-      printf 'Missing worktree origin metadata requirement in using-git-worktrees patch: %s\n' "$required" >&2
-      exit 1
-    fi
-  done
-  for required in 'worktree-origin.json' 'Merge back to original branch' 'originalWorktree'; do
-    if ! grep -Fq -- "$required" "$finishing_skill"; then
-      printf 'Missing original branch finishing requirement in finishing-a-development-branch patch: %s\n' "$required" >&2
+  # The adapter no longer patches using-git-worktrees or finishing-a-development-branch
+  # (worktree-origin metadata mechanism removed; native base-branch detection is used).
+  for unpatched in \
+    "$TARGET_DIR/skills/using-git-worktrees/SKILL.md" \
+    "$TARGET_DIR/skills/finishing-a-development-branch/SKILL.md"
+  do
+    if [[ -f "$unpatched" ]] && grep -Fq 'superpower-adapter:native-skill' "$unpatched"; then
+      printf 'Adapter must no longer patch %s\n' "$unpatched" >&2
       exit 1
     fi
   done
@@ -483,8 +479,6 @@ check_post_merge_hook() {
     'PostToolUse' \
     'tool_input' \
     'MERGE_HEAD' \
-    'worktree-origin.json' \
-    'refs/remotes/origin/HEAD' \
     'gh' \
     'merge'
   do
@@ -524,7 +518,6 @@ PY
   check_removed_files
   python3 "$HOOK_PATCHER" verify "$TARGET_DIR"
   python3 "$NATIVE_SKILL_PATCHER" verify "$TARGET_DIR"
-  python3 "$SUBAGENT_MODEL_PATCHER" verify "$TARGET_DIR"
   check_source_truth_overlays
   check_optional_integration_overlays
   check_native_skill_residuals

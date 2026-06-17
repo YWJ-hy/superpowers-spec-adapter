@@ -272,7 +272,7 @@ assert_contains "bind output" 'bound taskFingerprint for 2 task(s)' "$BIND_OUT"
 # A clean bind guarantees the execution-side preflight passes.
 python3 "$SCRIPT" "$BIND_CTX" --fingerprint-preflight --strict --execution-ready --plan-path "$PLAN" >/dev/null
 # The stamped digest must equal the independently computed plan hash (one algorithm, one source of truth).
-BOUND_T1="$(python3 -c "import json,sys;print(next(r['taskFingerprint'] for r in json.load(open(sys.argv[1]))['taskWikiRefs'] if r['taskId']=='T1'))" "$BIND_CTX")"
+BOUND_T1="$(python3 -c "import json,sys;print(next(r['taskFingerprint'] for r in json.load(open(sys.argv[1], encoding='utf-8'))['taskWikiRefs'] if r['taskId']=='T1'))" "$BIND_CTX")"
 if [[ "$BOUND_T1" != "$T1_HASH" ]]; then
   printf 'Bound T1 fingerprint %s does not match expected %s\n' "$BOUND_T1" "$T1_HASH" >&2
   exit 1

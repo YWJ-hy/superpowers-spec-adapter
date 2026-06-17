@@ -557,7 +557,7 @@ def extract_plan_tasks(plan_path: Path) -> dict[str, dict[str, str]]:
         if match:
             starts.append((index, match.group(1), match.group(2)))
     if not starts:
-        raise FingerprintError("No stable task headings found; expected headings like `### Task T1: Title`")
+        raise FingerprintError("No stable task headings found; expected numeric headings like `### Task 1: Title`")
 
     tasks: dict[str, dict[str, str]] = {}
     for position, (start, task_id, title) in enumerate(starts):

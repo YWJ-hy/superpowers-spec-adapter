@@ -23,27 +23,9 @@ ADAPTER_AGENT_IDS = frozenset(
     }
 )
 
-UPSTREAM_TEMPLATE_IDS = frozenset(
-    {
-        'spec-document-reviewer',
-        'plan-document-reviewer',
-        'code-reviewer',
-        'final-code-reviewer',
-        'implementer',
-        'spec-compliance-reviewer',
-        'code-quality-reviewer',
-    }
-)
-
-
 @dataclass(frozen=True)
 class SubagentModelConfig:
     agents: dict[str, str]
-    upstream_prompt_templates: dict[str, str]
-
-    @property
-    def has_effective_upstream_models(self) -> bool:
-        return bool(self.upstream_prompt_templates)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -126,23 +108,16 @@ def load_subagent_model_config(root: Path) -> SubagentModelConfig:
     if not isinstance(raw, dict):
         raise SystemExit(f'Invalid {CONFIG_FILE}: subagentModels must be an object')
 
-    allowed_top_keys = {'agents', 'upstreamPromptTemplates'}
+    allowed_top_keys = {'agents'}
     unknown_top_keys = sorted(set(raw) - allowed_top_keys)
     if unknown_top_keys:
         raise SystemExit(
             f'Invalid {CONFIG_FILE}: unknown subagentModels key(s): {", ".join(unknown_top_keys)}. '
-            'Valid keys: agents, upstreamPromptTemplates'
+            'Valid keys: agents'
         )
 
     agents = _normalize_section(raw.get('agents', {}), ADAPTER_AGENT_IDS, 'agents', allow_inherit=True)
-    upstream = _normalize_section(
-        raw.get('upstreamPromptTemplates', {}),
-        UPSTREAM_TEMPLATE_IDS,
-        'upstreamPromptTemplates',
-        allow_inherit=False,
-        allowed_models=TASK_AGENT_MODEL_NAMES,
-    )
-    return SubagentModelConfig(agents=agents, upstream_prompt_templates=upstream)
+    return SubagentModelConfig(agents=agents)
 
 
 def non_standard_agent_model_warnings(config: SubagentModelConfig) -> list[str]:

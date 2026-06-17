@@ -47,9 +47,9 @@ Current compatibility baseline: Superpowers 5.1.0. `./manage.sh install` warns, 
 
 ### Optional subagent model configuration
 
-By default, `adapter.config.json` is `{}` and the adapter does not change subagent model routing. Adapter agents keep `model: inherit`, and upstream Superpowers prompt templates keep their native `Task tool (general-purpose)` shape.
+By default, `adapter.config.json` is `{}` and the adapter does not change subagent model routing. The adapter only sets the model on its own overlay agents (`wiki-researcher` and the Lanhu analysts); those keep `model: inherit` when unset. The adapter no longer patches upstream Superpowers prompt templates — since Superpowers 6.0.0 the implementer and task-reviewer templates carry a native `model:` slot with a `## Model Selection` section, so pin those by filling the native placeholder in the plan/SDD flow rather than through the adapter.
 
-To pin models, copy the relevant entries from `adapter.config.example.jsonc` into `adapter.config.json` as standard JSON without comments:
+To pin models for the adapter's own agents, copy the relevant entries from `adapter.config.example.jsonc` into `adapter.config.json` as standard JSON without comments:
 
 ```json
 {
@@ -58,21 +58,12 @@ To pin models, copy the relevant entries from `adapter.config.example.jsonc` int
       "wiki-researcher": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
-    },
-    "upstreamPromptTemplates": {
-      "spec-document-reviewer": "sonnet",
-      "plan-document-reviewer": "sonnet",
-      "code-reviewer": "sonnet",
-      "final-code-reviewer": "opus",
-      "implementer": "sonnet",
-      "spec-compliance-reviewer": "sonnet",
-      "code-quality-reviewer": "opus"
     }
   }
 }
 ```
 
-Empty or omitted entries are no-ops. `agents` entries write native agent frontmatter, so model names may include Claude Code-style bracket suffixes such as `deepseek-v4-pro[1m]`; install warns for non-standard values so you can verify your Claude Code runtime supports them. `upstreamPromptTemplates` entries become Claude Code Task/Agent model parameters, so install only accepts `sonnet`, `opus`, or `haiku` there because Claude Code currently restricts that model field to those values; custom values can otherwise make the installed markdown look configured while Claude Code runtime subagents ignore the field, fall back, or fail later. `code-reviewer` configures the shared requesting-code-review template, `code-quality-reviewer` configures SDD per-task quality review, and `final-code-reviewer` configures the terminal SDD whole-implementation review. If `final-code-reviewer` is omitted, the terminal review falls back to `code-reviewer` when configured. If Superpowers changes an upstream prompt template after an upgrade, `./manage.sh install` reports every configured subagent whose model could not be applied, including the subagent id and target path.
+Empty or omitted entries are no-ops. `agents` entries write native agent frontmatter, so model names may include Claude Code-style bracket suffixes such as `deepseek-v4-pro[1m]`; install warns for non-standard values so you can verify your Claude Code runtime supports them. `agents` is the only supported `subagentModels` key; any other key (such as the removed `upstreamPromptTemplates`) fails install.
 
 ## Bootstrap wiki
 
@@ -347,21 +338,16 @@ docs/superpowers/plans/<plan-stem>.wiki-context.json
 Implementation and review consume this plan section and linked sidecar context instead of reselecting wiki pages from scratch. The sidecar is schemaVersion 4 JSON with page-rooted `wikiPages`, one bounded `documentContext` from `<stem>.index.md` per page, nested selected `sections`, and categorized implementation/test/review/general constraints. The planning agent generates the sidecar from the `wiki-researcher` selection with `wiki_context_render.py <sidecar> --scaffold <selection>` and edits only semantic routing; final task stabilization scaffolds the `taskWikiRefs` roster with `--scaffold-tasks`, the agent assigns `taskRouting` and each section's `destination` routing (`kind` + `reason` + `tasks` for task-bound), then stamps `wiki/source task fingerprint` mechanically via `--bind-fingerprints` (which also validates `--execution-ready`); execution preflights with `--fingerprint-preflight`, then renders selected task constraint blocks with `--task-id` instead of task-string filtering. Forced hard-constraint rereads use the task-scoped page context with the selected section body, not sibling sections or whole pages.
 
 
-## Worktree origin tracking
-
-The adapter also patches Superpowers `using-git-worktrees` and `finishing-a-development-branch`. When a new linked worktree is created, the source branch, source worktree, and source HEAD are recorded as transient metadata in the new worktree's private git-dir under `superpower-adapter/worktree-origin.json`.
-
-That metadata is not written to `plan.md`, `spec.md`, `.superpowers/`, or the repository working tree. At finishing time, Superpowers can offer an explicit option to merge the feature branch back into the original branch from the original worktree, which is safer for nested feature work and multiple concurrent sessions.
-
 ## Post-merge wiki reminder
 
 Knowledge review can be lost when work is accepted outside `finishing-a-development-branch` — for example when a task is paused for manual testing and later finished with a bare `git merge` back to `main` or an iteration branch. To close that gap, the adapter installs a `PostToolUse` hook (`hooks/post-merge-update-wiki`, registered against the `Bash` tool in `hooks/hooks.json`).
 
-The hook keys off the merge action, not a fixed target branch, so it works whether work merges back into `main` or an iteration branch. After a Bash command runs, it injects a system-reminder asking the agent to review durable knowledge with `update-wiki` when the command was `git merge <branch>`, `git merge --continue`, or `gh pr merge` (including `git -C <dir> merge`). It stays silent for:
+The hook keys off the merge action, not a fixed target branch, so it works whether work merges back into `main` or an iteration branch. After a Bash command runs, it injects a system-reminder asking the agent to review durable knowledge with `update-wiki` when the command was `git merge <branch>`, `git merge --continue`, or `gh pr merge` (including `git -C <dir> merge`). It deliberately does **not** judge merge direction — any completed merge fires. It stays silent only for:
 
-- sync merges that bring the trunk/default branch *into* the current branch — detected exactly via `worktree-origin.json` `originalBranch` when present, otherwise via a `main`/`master`/`origin/HEAD` heuristic;
 - merges still in progress or conflicted (`MERGE_HEAD` present);
 - `git merge --abort`/`--quit` and non-merge commands.
+
+(Suppressing sync-direction merges — trunk merged *into* the current branch — was intentionally dropped to keep the hook simple; it can be reintroduced later if a real need arises.)
 
 The hook deliberately does **not** gate on local wiki presence. Shared wiki may be a globally-configured shared-wiki MCP server with no local `.superpowers/` or `.shared-superpowers/` footprint, so any filesystem gate would miss it. Instead the hook fires on any finalize merge and lets `update-wiki`'s own gate decide: that skill starts from skip, reads project wiki, local shared wiki, and remote MCP shared wiki only when present, and persists nothing when there is no durable knowledge or no wiki at all. The reminder is therefore advisory and explicitly does not assert that implementation is verified or complete. Because the hook observes local tool calls, it cannot see merges performed in the GitHub web UI. Removing the adapter (`./manage.sh uninstall`) drops the `PostToolUse` registration and leaves the native `SessionStart` hook untouched.
 

@@ -41,7 +41,7 @@ If the break-loop handoff says no durable knowledge should persist, skip wiki ed
 When a `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar exists, read it as candidate input. It is a transient, liberally-captured scratch log written during execution/SDD so durable knowledge surfaced mid-flow is not lost to context compaction before this review — it is NOT a list of decisions to write. Each line is one raw, unverified candidate, for example:
 
 ```jsonl
-{"taskId":"T3","kind":"decision","claim":"List pagination uses a cursor, not offset","why":"offset skips/dupes rows under concurrent inserts; offset was considered and rejected","sourceRefs":["src/list/api.ts"],"carveOut":true}
+{"taskId":"3","kind":"decision","claim":"List pagination uses a cursor, not offset","why":"offset skips/dupes rows under concurrent inserts; offset was considered and rejected","sourceRefs":["src/list/api.ts"],"carveOut":true}
 ```
 
 Apply this skill's normal responsibilities to every line: decide whether it is durable, split into atomic candidates, read indexed wiki progressively, check semantic duplicates, choose target ownership, neutralize for shared wiki, and respect update authorization. Expect to skip many lines — the sidecar over-captures by design. Reconcile each candidate against the plan and the final code so you record the decision as it actually settled, not a superseded mid-flow version.

@@ -7,7 +7,6 @@ TARGETS_JSON="$(python3 "$SCRIPT_DIR/lib/resolve_target.py" --all "$TARGET_INPUT
 OVERLAY_DIR="$SCRIPT_DIR/overlays"
 HOOK_PATCHER="$SCRIPT_DIR/lib/hook_patch.py"
 NATIVE_SKILL_PATCHER="$SCRIPT_DIR/lib/native_skill_patch.py"
-SUBAGENT_MODEL_PATCHER="$SCRIPT_DIR/lib/subagent_model_patch.py"
 MARKER="$(python3 - <<'PY' "$SCRIPT_DIR"
 from pathlib import Path
 import sys
@@ -203,7 +202,6 @@ PY
     "$target_dir/scripts/scaffold_practice_skill.py"
   python3 "$HOOK_PATCHER" install "$target_dir"
   python3 "$NATIVE_SKILL_PATCHER" install "$target_dir"
-  python3 "$SUBAGENT_MODEL_PATCHER" install "$target_dir"
 }
 
 for target_dir in "${TARGET_DIRS[@]}"; do

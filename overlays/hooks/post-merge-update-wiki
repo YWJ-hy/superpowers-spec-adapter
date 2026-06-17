@@ -12,9 +12,10 @@
 # Design (locked with the user):
 # - Trigger on the merge ACTION, not on a hardcoded target branch. `git merge`
 #   (incl. `git -C <dir> merge`), `git merge --continue`, and `gh pr merge` count.
-# - Skip the one common non-finalize shape: merging the trunk/default branch INTO
-#   the current branch (sync direction). When worktree-origin.json is present it
-#   is used for an exact direction check; otherwise a trunk-name heuristic applies.
+# - Deliberately simple: any completed merge fires the reminder. Merge direction
+#   (which branch merged into which) is NOT judged. Only `--abort`/`--quit` and an
+#   unfinished/conflicted merge (MERGE_HEAD present) are skipped. Refine later if a
+#   real need to suppress sync-direction merges arises.
 # - Do NOT gate on local wiki presence: fire on every finalize merge and let the
 #   update-wiki skill's built-in gate decide whether anything should persist (it
 #   defaults to skip and handles project wiki, local shared wiki, and remote MCP
@@ -187,36 +188,9 @@ def main():
     if git(repo_dir, "rev-parse", "-q", "--verify", "MERGE_HEAD") is not None:
         emit_nothing()
 
-    # Sync guard: skip "trunk merged INTO current branch" (a sync, not a finalize).
-    if merged_ref:
-        ref_candidates = {merged_ref, basename(merged_ref)}
-        if merged_ref.startswith("origin/"):
-            ref_candidates.add(merged_ref[len("origin/") :])
-
-        git_dir = git(repo_dir, "rev-parse", "--absolute-git-dir")
-        origin_branch = None
-        if git_dir:
-            origin_file = os.path.join(git_dir, "superpower-adapter", "worktree-origin.json")
-            if os.path.isfile(origin_file):
-                try:
-                    with open(origin_file, encoding="utf-8") as handle:
-                        origin_meta = json.load(handle)
-                    origin_branch = origin_meta.get("originalBranch") or None
-                except (OSError, ValueError):
-                    origin_branch = None
-
-        if origin_branch:
-            # Exact direction check: merging the origin branch back in == sync.
-            if origin_branch in ref_candidates or basename(origin_branch) in ref_candidates:
-                emit_nothing()
-        else:
-            # No metadata: treat merging the trunk/default branch in as sync.
-            trunk = {"main", "master"}
-            default_ref = git(repo_dir, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
-            if default_ref:
-                trunk.add(basename(default_ref))
-            if ref_candidates & trunk:
-                emit_nothing()
+    # Any completed merge fires the reminder. Merge direction (which branch was
+    # merged into which) is intentionally NOT judged — kept deliberately simple;
+    # refine later if a real need to suppress sync-direction merges arises.
 
     reminder = (
         "A merge that integrates a development branch into its integration branch just completed. "

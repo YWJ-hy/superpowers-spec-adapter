@@ -9,7 +9,7 @@
   // schemaVersion 4 routing model: ALL routing lives on each section's `destination` block. There are no
   // separate globalWikiRefs / wikiRefs collections and no legacy `appliesTo` field. A section is reached by:
   //   - destination.kind = "global"        -> every task and reviewer (no destination.tasks)
-  //   - destination.kind = "task-bound"    -> only the plan tasks listed in destination.tasks: ["T1", ...]
+  //   - destination.kind = "task-bound"    -> only the plan tasks listed in destination.tasks: ["1", ...]
   //   - destination.kind = "planning-only" -> not injected at execution (shaped task design only)
   // So after authoring the JSON sidecar you only: write each section's destination.reason, fix any wrong
   // destination.kind, and list destination.tasks for task-bound sections. Then stamp taskFingerprint
@@ -74,7 +74,7 @@
           "destination": {
             "kind": "task-bound",
             "reason": "Only tasks that change generated form adapter field updates need this section injected.",
-            "tasks": ["T1"]
+            "tasks": ["1"]
           },
           // Constraint categories are exactly implementation, test, review, and general.
           // Use general when a selected constraint cannot be categorized confidently.
@@ -183,7 +183,7 @@
   // No per-task wiki refs: which sections a task receives is read from each section's destination above.
   "taskWikiRefs": [
     {
-      "taskId": "T1",
+      "taskId": "1",
       "taskTitle": "Implement path-based form updates",
       // Stamped by `--bind-fingerprints` from the normalized final task text (algorithm declared once
       // in taskRouting.fingerprintAlgorithm). Illustrative value only -- never hand-write or copy it;
@@ -191,7 +191,7 @@
       "taskFingerprint": "a3f5c8e2b7d0419c6e8a2f5d7b0c3e9f1a4d6b8c0e2f5a7d9c1b3e6f8a0d2c4b"
     },
     {
-      "taskId": "T2",
+      "taskId": "2",
       "taskTitle": "Add contract coverage",
       "taskFingerprint": "b8d2f6a0c4e7193b5d8f0a2c6e9b1d4f7a3c5e8b0d2f4a6c8e1b3d5f7a9c0e2d"
     }

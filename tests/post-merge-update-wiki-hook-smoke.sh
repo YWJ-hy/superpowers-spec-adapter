@@ -76,10 +76,11 @@ assert_fires "git merge --no-ff feature/login" "$REPO" "merge feature with --no-
 assert_fires "git checkout iter-2026 && git merge feature/login" "$REPO" "compound checkout + merge into iteration branch"
 assert_fires "gh pr merge 42 --squash" "$REPO" "gh pr merge"
 
-# Sync direction without metadata: merging the trunk INTO the branch -> silent.
-assert_silent "git merge main" "$REPO" "sync main into feature"
-assert_silent "git merge master" "$REPO" "sync master into feature"
-assert_silent "git merge origin/main" "$REPO" "sync origin/main into feature"
+# Direction is intentionally NOT judged: any completed merge fires, including
+# what used to be treated as a sync (trunk merged into the branch).
+assert_fires "git merge main" "$REPO" "merge main (direction not judged)"
+assert_fires "git merge master" "$REPO" "merge master (direction not judged)"
+assert_fires "git merge origin/main" "$REPO" "merge origin/main (direction not judged)"
 
 # Non-merge and abort commands -> silent.
 assert_silent "git status" "$REPO" "non-merge git command"
@@ -94,32 +95,6 @@ assert_silent "git merge --abort" "$REPO" "merge --abort"
 NOMARKERS="$WORK/nomarkers"
 git_init "$NOMARKERS"
 assert_fires "git merge feature" "$NOMARKERS" "no local wiki markers (shared wiki may be global MCP)"
-
-# --- Worktree origin metadata: exact direction check ------------------------
-# The user's case: a worktree created from an iteration branch (not main),
-# finalized by merging back into that iteration branch. The trunk heuristic
-# cannot recognize the iteration branch, so the metadata must drive the call.
-META="$WORK/meta"
-git_init "$META"
-mkdir -p "$META/.superpowers/wiki"
-GIT_DIR_ABS="$(git -C "$META" rev-parse --absolute-git-dir)"
-mkdir -p "$GIT_DIR_ABS/superpower-adapter"
-cat >"$GIT_DIR_ABS/superpower-adapter/worktree-origin.json" <<'JSON'
-{
-  "schemaVersion": 1,
-  "adapter": "superpower-adapter",
-  "featureBranch": "feature/login",
-  "originalBranch": "iter-2026-q2",
-  "originalWorktree": "/tmp/orig",
-  "originalHead": "deadbeef"
-}
-JSON
-
-# Finalize: merging the feature branch into the iteration branch -> fire.
-assert_fires "git merge feature/login" "$META" "metadata finalize (feature -> iteration branch)"
-# Sync: merging the recorded iteration branch back in -> silent, even though
-# the iteration branch name is not a trunk name.
-assert_silent "git merge iter-2026-q2" "$META" "metadata sync (iteration branch -> feature)"
 
 # --- Conflict guard: do not nag while a merge is unfinished ------------------
 CONFLICT="$WORK/conflict"

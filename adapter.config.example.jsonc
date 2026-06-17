@@ -5,22 +5,14 @@
     // Adapter overlay agents installed into Superpowers agents/.
     // These are native agent frontmatter model values, so custom model names may include bracketed Claude Code suffixes such as deepseek-v4-pro[1m].
     // Install warns for non-standard values so you can verify your Claude Code runtime supports them.
+    // "agents" is the only supported subagentModels key. The adapter no longer
+    // patches upstream Superpowers prompt templates: since 6.0.0 the implementer
+    // and task-reviewer templates carry a native model: slot (## Model Selection),
+    // so pin those by filling the native placeholder in the plan/SDD flow instead.
     "agents": {
       "wiki-researcher": "sonnet",
       "lanhu-frontend-requirements-analyst": "opus",
       "lanhu-backend-requirements-analyst": "opus"
-    },
-
-    // Upstream Superpowers prompt templates that dispatch Task/general-purpose subagents.
-    // These become Claude Code Task/Agent model parameters; Claude Code currently restricts that field to sonnet, opus, or haiku, so install rejects other values to avoid configs that appear installed but are ignored or fail at runtime.
-    "upstreamPromptTemplates": {
-      "spec-document-reviewer": "sonnet",
-      "plan-document-reviewer": "sonnet",
-      "code-reviewer": "sonnet",
-      "final-code-reviewer": "opus",
-      "implementer": "sonnet",
-      "spec-compliance-reviewer": "sonnet",
-      "code-quality-reviewer": "opus"
     }
   }
 }

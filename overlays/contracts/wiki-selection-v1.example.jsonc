@@ -9,7 +9,7 @@
   // --scaffold to get a complete-shaped <plan-stem>.wiki-context.json skeleton. The agent then edits
   // ONLY the semantic routing in the generated sidecar (each section's destination: reason, kind, and
   // the tasks list for task-bound sections, plus taskRouting.status/selectedSectionsFrozen), runs
-  // --scaffold-tasks once the plan has stable `### Task T1:` headings, and finally --bind-fingerprints.
+  // --scaffold-tasks once the plan has stable numeric `### Task 1:` headings, and finally --bind-fingerprints.
   //
   // The generator fills everything mechanical, so this selection must NOT carry it:
   //   - schemaVersion / kind / generatedBy / planPath / taskRouting block
