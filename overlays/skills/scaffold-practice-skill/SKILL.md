@@ -61,9 +61,15 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
   --name <skill-name> --files rules.md,review.md
 
 # register / update the wiki discovery card + companion index + index linkage
+# --summary is an authored one-line THEME abstraction (not the trigger list); it is
+# written verbatim into the section index so wiki-researcher can judge relevance during
+# brainstorm. Run register-card from the PROJECT ROOT (or pass an absolute --project-root):
+# the wiki must already exist (init-wiki/bootstrap-wiki first) — register-card never mints one.
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
   --project-root . --json register-card --name <skill-name> \
-  --title "<card title>" --triggers "<scenario keywords>" [--authorized-create|--authorized-update]
+  --title "<card title>" --triggers "<scenario keywords>" \
+  --summary "<one-line theme summary; ≤140 chars; single line; no \" or >>" \
+  [--doc-summary "<override page overview>"] [--authorized-create|--authorized-update]
 
 # validate pack invariants + discoverability (+ optional source coverage)
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
@@ -74,11 +80,11 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
 
 ### Create
 
-1. Confirm the project root and that `.superpowers/wiki/index.md` exists.
+1. Confirm the project root and that `.superpowers/wiki/index.md` exists. Run the script from the project root (or pass an absolute `--project-root`); `register-card` will NOT create a wiki, so a mis-pointed root fails loudly instead of spawning a stray `.superpowers/wiki/`.
 2. Choose a kebab-case `name`, a trigger-rich `description`, and decide which sibling files the content actually needs (the open set).
 3. Run `scaffold` to write the skeleton, then author the real content into `SKILL.md` and each file. Keep `SKILL.md` thin; push heavy rules/examples into siblings.
-4. Run `register-card` (see authorization below) to create the discovery card and make it discoverable.
-5. Run `validate --name <name>` and fix any errors.
+4. Run `register-card` (see authorization below) with an authored `--summary` to create the discovery card and make it discoverable. The `--summary` is the section's one-line **theme abstraction** (what the practice is + that it must be bound), NOT the comma-listed trigger keywords — a keyword "清单" just re-states the body and must be re-edited whenever a trigger changes. It is shown verbatim in the companion index, which is what `wiki-researcher` reads during brainstorm; keep it to one tight line (≤140 chars, no `"` or `>`). Omitting `--summary` falls back to a generic title-based line.
+5. Run `validate --name <name>` and fix any errors (and address the summary/overview warnings so the card is a 规范 wiki document).
 
 ### Convert (non-destructive)
 
@@ -86,11 +92,11 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
 2. Author the layered files so every `uncovered` heading/section is represented somewhere; never drop content. Bundled non-markdown files are already carried over.
 3. Run `validate --name <name> --from <existing skill>` until there are no coverage gaps.
 4. Show the user the new pack and a diff against the original. **Replace the original only after the user confirms** (the script never deletes the original). If the staged pack was written to `<name>.converted/`, move it into place on confirmation.
-5. Run `register-card`.
+5. Run `register-card` with an authored `--summary` (theme abstraction, see Create step 4).
 
 ## Authorization
 
-`register-card` writes to the project wiki and respects the selected root's `wiki.updateAuthorization` policy (`.superpowers/settings.json`). Defaults: `createNewDocument` = `ask`, `updateExistingPage` = `skip`. When the policy is `ask`, get explicit user authorization first, then pass `--authorized-create` (first card / new `skills.md`) or `--authorized-update` (existing `skills.md`). When it is `refuse`, do not write; report it.
+`register-card` writes to an **existing** project wiki and respects the selected root's `wiki.updateAuthorization` policy (`.superpowers/settings.json`). It never creates the wiki root itself — if `.superpowers/wiki/index.md` is missing it errors (run init-wiki/bootstrap-wiki first, or fix the project root). Defaults: `createNewDocument` = `ask`, `updateExistingPage` = `skip`. When the policy is `ask`, get explicit user authorization first, then pass `--authorized-create` (first card / new `skills.md`) or `--authorized-update` (existing `skills.md`). When it is `refuse`, do not write; report it.
 
 ## Boundaries
 
@@ -103,5 +109,5 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
 - [ ] `SKILL.md` is a thin router with a trigger-rich `description`; heavy content lives in sibling files.
 - [ ] Only the files the content needs were created (open set, not a forced template).
 - [ ] For convert: all source headings/sections are represented and all bundled files (incl. `scripts/`) were preserved; the original was replaced only after user confirmation.
-- [ ] The discovery card was registered under the policy, and `validate` reports the pack discoverable with no errors.
+- [ ] The discovery card was registered under the policy with an authored `--summary` (theme abstraction, not a trigger list), and its companion `skills.index.md` carries a document overview — i.e. it is a 规范 wiki document; `validate` reports the pack discoverable with no errors or summary/overview warnings.
 - [ ] The pack is usable outside Superpowers (context-priority phrasing, no hard-coded wiki routing table).

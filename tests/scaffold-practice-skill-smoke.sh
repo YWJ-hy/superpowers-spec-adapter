@@ -58,23 +58,56 @@ else
 fi
 assert_no_file "skills.md not created without authorization" "$WIKI/guides/skills.md"
 
-printf '\nTest: register-card with --authorized-create\n'
+printf '\nTest: register-card with --authorized-create (规范 wiki document)\n'
 run --json register-card --name management-page-practices \
   --title "管理页面统一布局" --triggers "后台管理页, CRUD, 列表筛选, 表单弹窗" \
+  --summary "管理页统一布局（筛选+列表+弹窗）的实现与审查规范；命中即必须绑定 skill" \
   --authorized-create > /dev/null
 assert_file "skills.md created" "$WIKI/guides/skills.md"
 assert_file "companion index created" "$WIKI/guides/skills.index.md"
 SKILLS_MD="$(cat "$WIKI/guides/skills.md")"
+SKILLS_IDX="$(cat "$WIKI/guides/skills.index.md")"
 assert_contains "card section present" "wiki-section:management-page-practices" "$SKILLS_MD"
+assert_contains "card carries authored summary= attribute" 'summary="管理页统一布局' "$SKILLS_MD"
 assert_contains "card requires the skill (hard)" "必须使用 skill：\`management-page-practices\`" "$SKILLS_MD"
-assert_contains "companion index marks hard" "| management-page-practices |" "$(cat "$WIKI/guides/skills.index.md")"
+assert_contains "companion index marks hard" "| management-page-practices |" "$SKILLS_IDX"
+assert_contains "index 描述 is the authored summary verbatim" "管理页统一布局（筛选+列表+弹窗）的实现与审查规范" "$SKILLS_IDX"
+assert_contains "index has canonical Sections header" "# Sections: guides/skills.md" "$SKILLS_IDX"
+assert_contains "index has document overview blockquote" "> 项目最佳实践 skill 的发现目录" "$SKILLS_IDX"
 assert_contains "guides/index.md lists skills.md" '`skills.md`' "$(cat "$WIKI/guides/index.md")"
 
-printf '\nTest: idempotent re-register (updateExistingPage=skip default)\n'
+printf '\nTest: register-card without --summary falls back to a theme line (not a trigger 清单)\n'
+run register-card --name fallback-practice --title "回退实践" --triggers "kw-a, kw-b, kw-c" \
+  --authorized-update > /dev/null
+FB_MD="$(cat "$WIKI/guides/skills.md")"
+assert_contains "fallback card carries a summary= attribute" 'wiki-section:fallback-practice summary="' "$FB_MD"
+[[ "$FB_MD" == *'summary="kw-a, kw-b, kw-c"'* ]] && bad "fallback summary should NOT be the trigger list" || ok "fallback summary is not the trigger list"
+
+printf '\nTest: idempotent re-register (updateExistingPage=skip default), summary marker preserved\n'
 run register-card --name management-page-practices \
-  --title "管理页面统一布局" --triggers "后台管理页, CRUD" > /dev/null 2>&1
-COUNT="$(grep -c '<!-- wiki-section:management-page-practices -->' "$WIKI/guides/skills.md")"
-[[ "$COUNT" == "1" ]] && ok "no duplicate card section" || bad "duplicate card section (count=$COUNT)"
+  --title "管理页面统一布局" --triggers "后台管理页, CRUD" \
+  --summary "管理页统一布局（筛选+列表+弹窗）的实现与审查规范；命中即必须绑定 skill" > /dev/null 2>&1
+OPEN_COUNT="$(grep -c '<!-- wiki-section:management-page-practices summary=' "$WIKI/guides/skills.md")"
+CLOSE_COUNT="$(grep -c '<!-- /wiki-section:management-page-practices -->' "$WIKI/guides/skills.md")"
+[[ "$OPEN_COUNT" == "1" && "$CLOSE_COUNT" == "1" ]] && ok "no duplicate card section" || bad "duplicate card section (open=$OPEN_COUNT close=$CLOSE_COUNT)"
+
+printf '\nTest: register-card never mints a wiki root (mis-pointed root fails loudly)\n'
+NOWIKI="$(mktemp -d)"
+if python3 "$SCRIPT" --project-root "$NOWIKI" register-card --name x --authorized-create > /dev/null 2>&1; then
+  bad "register-card should fail when no wiki exists"
+else
+  ok "register-card refused (no wiki to write into)"
+fi
+assert_no_file "no stray .superpowers/wiki minted" "$NOWIKI/.superpowers/wiki/index.md"
+rm -rf "$NOWIKI"
+
+printf '\nTest: running from a subdir with --project-root . anchors to the real root (no stray wiki)\n'
+mkdir -p "$TMP/.claude/skills"
+( cd "$TMP/.claude/skills" && python3 "$SCRIPT" --project-root . register-card \
+    --name subdir-practice --title "子目录实践" --triggers "x" \
+    --summary "子目录实践概述；命中即绑定 skill" --authorized-update > /dev/null 2>&1 )
+assert_no_file "no stray wiki under .claude/skills" "$TMP/.claude/skills/.superpowers/wiki/index.md"
+assert_contains "card landed in the real project wiki" "wiki-section:subdir-practice" "$(cat "$WIKI/guides/skills.md")"
 
 printf '\nTest: validate happy path\n'
 if run validate --name management-page-practices > /dev/null; then
