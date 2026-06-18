@@ -7,6 +7,39 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from adapter_manifest import min_superpowers_version, version_below  # noqa: E402
+
+# manifest.json lives at the adapter root (the parent of this lib/ dir).
+ADAPTER_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _floor() -> str:
+    try:
+        return min_superpowers_version(ADAPTER_ROOT)
+    except Exception:
+        return ''
+
+
+def _split_by_floor(
+    entries: list[dict[str, object]],
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Partition discovered targets into (compatible, below-floor) by the adapter's minimum version.
+
+    A target with no/unparseable version is treated as compatible — we only drop one we can prove is
+    below the floor. This keeps the adapter from ever auto-installing into an incompatible (e.g.
+    pre-6.0.0) Superpowers it was not written for.
+    """
+    floor = _floor()
+    compatible: list[dict[str, object]] = []
+    below: list[dict[str, object]] = []
+    for entry in entries:
+        if version_below(str(entry.get('version') or ''), floor):
+            below.append(entry)
+        else:
+            compatible.append(entry)
+    return compatible, below
+
 
 def installed_superpowers_entries() -> list[dict[str, object]]:
     installed = Path.home() / '.claude' / 'plugins' / 'installed_plugins.json'
@@ -35,10 +68,10 @@ def installed_superpowers_entries() -> list[dict[str, object]]:
 
 
 def resolve_installed_superpowers() -> Path | None:
-    entries = installed_superpowers_entries()
-    if not entries:
+    compatible, _ = _split_by_floor(installed_superpowers_entries())
+    if not compatible:
         return None
-    return Path(str(entries[0]['target']))
+    return Path(str(compatible[0]['target']))
 
 
 def resolve_target(base: Path, explicit: str | None) -> tuple[Path, str]:
@@ -58,7 +91,21 @@ def resolve_targets(base: Path, explicit: str | None) -> list[dict[str, object]]
 
     installed = installed_superpowers_entries()
     if installed:
-        return installed
+        compatible, below = _split_by_floor(installed)
+        for entry in below:
+            print(
+                f"Skipping incompatible Superpowers {entry.get('version')} at {entry.get('target')} "
+                f"(adapter requires >= {_floor()}).",
+                file=sys.stderr,
+            )
+        if compatible:
+            return compatible
+        # Every discovered target is below the floor: fail loudly rather than silently falling
+        # through to a repo-local guess, so the user upgrades or passes an explicit target.
+        raise SystemExit(
+            f'All {len(below)} installed Superpowers target(s) are below the minimum {_floor()}; '
+            'adapter requires >= ' + _floor() + '. Upgrade Superpowers, or pass an explicit target path.'
+        )
 
     repo_local = base / 'superpowers'
     if (repo_local / 'hooks' / 'hooks.json').is_file():

@@ -43,7 +43,7 @@ If this adapter lives as `superpower-adapter/` inside another project, run the s
 
 Install-related commands target all unique installed Superpowers Claude Code plugin directories by default, so multiple installed versions are patched together. Pass an explicit Superpowers target path to operate on only one plugin directory. Commands that read or write `.superpowers/wiki/` or `.shared-superpowers/wiki/` require an explicit project root argument.
 
-Current compatibility baseline: Superpowers 5.1.0. `./manage.sh install` warns, but does not block, when the detected target version is newer than the baseline. The compatibility check reads the installed Superpowers target's `package.json` version when available.
+Current compatibility baseline: Superpowers 6.0.0, and 6.0.0 is the hard minimum. Targets below 6.0.0 are **skipped**: `./manage.sh` target discovery filters them out, and `install` refuses to write into a sub-6.0.0 target even when one is passed explicitly (`minSuperpowersVersion` in `manifest.json`). Install no longer warns about in-baseline 6.0.x patch/minor bumps — it only nudges you to re-verify when the detected target is a newer MAJOR than the adapted version. The version check reads the target's `package.json` (or the `installed_plugins.json` entry) version when available.
 
 ### Optional subagent model configuration
 
@@ -176,7 +176,7 @@ Use the installed `scaffold-practice-skill` in Claude Code to turn a reusable en
 scaffold-practice-skill   # create a new pack, or convert an existing one
 ```
 
-The only fixed file is a thin `SKILL.md` router; heavy content (`implement.md` / `review.md` / `rules.md` / `examples.md` / `scripts/` / …) is an open set loaded on demand, so the skill stays complete and usable outside Superpowers while keeping `SKILL.md` small. Convert is non-destructive: it stages a new pack, carries over every bundled file, reports any source content not yet represented, and never replaces the original without your confirmation. The skill registers a discovery card in `.superpowers/wiki/guides/skills.md` (honoring `wiki.updateAuthorization`) so `wiki-researcher` can bind "use skill X" during planning. The wiki points at the skill — the skill does not hard-code wiki paths. `update-wiki` hands reusable workflow/process knowledge to this skill rather than writing it as a wiki page.
+The only fixed file is a thin `SKILL.md` router; heavy content (`implement.md` / `review.md` / `rules.md` / `examples.md` / `scripts/` / …) is an open set loaded on demand, so the skill stays complete and usable outside Superpowers while keeping `SKILL.md` small. Convert is non-destructive: it stages a new pack, carries over every bundled file, reports any source content not yet represented, and never replaces the original without your confirmation. The skill registers a discovery card in `.superpowers/wiki/guides/skills.md` (honoring `wiki.updateAuthorization`) so `wiki-researcher` can bind "use skill X" during planning. `register-card --roles` scopes which execution role the card binds (default both; `review` for a reviewer-only checklist that's never injected into implementer prompts, `implement` for a pure generator) — recorded on the card marker and enforced mechanically at execution render time. The wiki points at the skill — the skill does not hard-code wiki paths. `update-wiki` hands reusable workflow/process knowledge to this skill rather than writing it as a wiki page.
 
 ### Migrating wiki to section-marker format
 
@@ -435,7 +435,7 @@ The self-test covers:
 
 ## Compatibility
 
-- Adapter compatibility baseline: Superpowers 5.1.0.
+- Adapter compatibility baseline: Superpowers 6.0.0 (hard minimum; sub-6.0.0 targets are skipped).
 - `./manage.sh install` warns, but does not block, when the detected Superpowers target version is newer than the compatibility baseline.
 - Default target discovery currently keys off the Claude Code plugin install record for `superpowers@claude-plugins-official`.
 - Native skill patches depend on upstream skill headings and anchor text staying stable; if Superpowers changes those files, the adapter patch points need a sync pass.

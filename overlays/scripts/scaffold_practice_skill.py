@@ -52,8 +52,11 @@ from wiki_common import (  # noqa: E402
 from wiki_generate_section_index import generate_index, index_path_for  # noqa: E402
 from wiki_section import (  # noqa: E402
     AUTO_GENERATED_INDEX_NOTICE,
+    KNOWN_BINDING_ROLES,
     extract_section_summaries,
     list_section_ids,
+    parse_binding_roles,
+    section_role_warnings,
     validate_section_markers,
 )
 
@@ -152,6 +155,26 @@ def parse_files(raw: str | None) -> list[str]:
         if rel not in out:
             out.append(rel)
     return out
+
+
+def parse_roles(raw: str | None) -> list[str]:
+    """Parse --roles into ordered, validated binding roles (default: every known role).
+
+    A card binds to both implement and review by default. Pass a strict subset to scope it —
+    e.g. ``review`` for a review-checklist skill so only reviewers get bound. Unknown tokens are
+    rejected loudly so a typo (``reviewer``) never silently widens the card back to both roles.
+    """
+    if raw is None:
+        return list(KNOWN_BINDING_ROLES)
+    tokens = [token.strip().lower() for token in raw.split(",") if token.strip()]
+    if not tokens:
+        return list(KNOWN_BINDING_ROLES)
+    unknown = sorted({token for token in tokens if token not in KNOWN_BINDING_ROLES})
+    if unknown:
+        raise ScaffoldError(
+            f"invalid --roles value(s) {', '.join(unknown)}; allowed: {', '.join(KNOWN_BINDING_ROLES)}"
+        )
+    return parse_binding_roles(",".join(tokens))
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:
@@ -281,13 +304,29 @@ def default_card_summary(name: str, title: str) -> str:
     return f"{title} — 命中相关实现/审查场景时必须使用 skill `{name}`。"
 
 
-def render_card(name: str, title: str, triggers: str, summary: str) -> str:
+# Card body verb phrase per role binding. The wiki-researcher selects the card by relevance; the
+# phrase makes the binding direction readable, while the machine-enforced restriction is the
+# roles= marker attribute consumed by the execution-time render filter.
+ROLE_CARD_PHRASE = {
+    ("implement", "review"): "实现或审查相关产物时",
+    ("implement",): "实现相关产物时",
+    ("review",): "审查相关产物时",
+}
+
+
+def render_card(name: str, title: str, triggers: str, summary: str, roles: list[str]) -> str:
     summary = sanitize_summary(summary) or default_card_summary(name, title)
+    # Normalize to known order; an empty/unknown list falls back to binding every role.
+    roles = [role for role in KNOWN_BINDING_ROLES if role in roles] or list(KNOWN_BINDING_ROLES)
+    phrase = ROLE_CARD_PHRASE.get(tuple(roles), "实现或审查相关产物时")
+    # Binding to every role is the default and writes NO roles= attribute, so existing both-role
+    # cards stay byte-identical; only a strict subset records the restriction on the marker.
+    roles_attr = "" if len(roles) >= len(KNOWN_BINDING_ROLES) else f' roles="{",".join(roles)}"'
     return (
-        f'<!-- wiki-section:{name} summary="{summary}" -->\n'
+        f'<!-- wiki-section:{name} summary="{summary}"{roles_attr} -->\n'
         f"## {title}\n\n"
         f"适用：{triggers}\n\n"
-        f"实现或审查相关产物时，**必须使用 skill：`{name}`**。\n"
+        f"{phrase}，**必须使用 skill：`{name}`**。\n"
         f"<!-- /wiki-section:{name} -->"
     )
 
@@ -602,12 +641,13 @@ def cmd_register_card(args: argparse.Namespace) -> None:
 
     title = args.title or title_from_name(name)
     triggers = args.triggers or "（补充触发场景关键词）"
+    roles = parse_roles(getattr(args, "roles", None))
     write_text_lf(
         skills_md,
         upsert_section(
             skills_md.read_text(encoding="utf-8"),
             name,
-            render_card(name, title, triggers, args.summary),
+            render_card(name, title, triggers, args.summary, roles),
         ),
     )
 
@@ -630,6 +670,7 @@ def cmd_register_card(args: argparse.Namespace) -> None:
             "companionIndex": str(companion) if companion else None,
             "linkageChanged": linkage,
             "discoverable": discoverable,
+            "roles": roles,
         },
         args.json,
     )
@@ -683,6 +724,8 @@ def cmd_validate(args: argparse.Namespace) -> None:
             skills_text = skills_md.read_text(encoding="utf-8")
             for marker_error in validate_section_markers(skills_text):
                 errors.append(f"skills.md section markers: {marker_error}")
+            for role_warning in section_role_warnings(skills_text):
+                errors.append(f"skills.md {role_warning}")
             if name not in list_section_ids(skills_text):
                 errors.append(f"no discovery card section for {name!r} in guides/skills.md")
             elif not extract_section_summaries(skills_text).get(name, "").strip():
@@ -750,6 +793,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--doc-summary",
         default=None,
         help="Override the guides/skills.index.md document overview. Defaults to keeping any authored overview, else boilerplate describing the discovery directory.",
+    )
+    p_card.add_argument(
+        "--roles",
+        default=None,
+        help="Comma-separated execution roles this skill binds to: implement,review (default both). "
+        "Use 'review' for a review-checklist skill (only reviewers get bound), 'implement' for a pure "
+        "generator. Recorded on the card marker and enforced mechanically at execution render time.",
     )
     p_card.add_argument("--authorized-update", action="store_true")
     p_card.add_argument("--authorized-create", action="store_true")

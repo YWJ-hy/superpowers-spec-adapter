@@ -22,6 +22,15 @@ AUTO_GENERATED_INDEX_NOTICE = "Auto-generated from section markers. Do not edit 
 OPEN_RE = re.compile(r"^<!-- wiki-section:(" + SECTION_ID_PATTERN + r")(\s[^>]*?)?\s*-->$")
 CLOSE_RE = re.compile(r"^<!-- /wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
 SUMMARY_ATTR_RE = re.compile(r'\bsummary="([^"]*)"')
+# A discovery-card marker may also declare which execution roles the card binds to:
+#   <!-- wiki-section:id summary="…" roles="review" -->
+# roles is a comma-separated subset of KNOWN_BINDING_ROLES. Role binding is intrinsic to the
+# skill (a review-checklist skill is review-only no matter which plan selects it), so it lives
+# on the card marker — the single source of truth — and is read mechanically by the sidecar
+# generator, never authored per-plan. An ABSENT attribute (and an all-roles value) both mean
+# "binds to every role", so existing cards without the attribute keep matching unchanged.
+ROLES_ATTR_RE = re.compile(r'\broles="([^"]*)"')
+KNOWN_BINDING_ROLES = ("implement", "review")
 # Catches lines that intend to be a marker but match neither OPEN_RE nor CLOSE_RE — e.g. a
 # summary containing '>' truncates the comment, which would otherwise silently drop the
 # whole section from parsing/indexing instead of surfacing an error.
@@ -249,6 +258,73 @@ def extract_section_summaries(text: str) -> dict[str, str]:
             if value:
                 summaries[m.group(1)] = value
     return summaries
+
+
+def parse_binding_roles(raw: str) -> list[str]:
+    """Normalize a comma-separated roles attribute into ordered, deduped known roles.
+
+    Tokens are lowercased and trimmed; unknown or empty tokens are dropped. The result is
+    ordered as KNOWN_BINDING_ROLES (implement before review) so a card serializes
+    deterministically. An empty or all-roles result both mean "binds to every role".
+    """
+    seen = {token.strip().lower() for token in raw.split(",")}
+    return [role for role in KNOWN_BINDING_ROLES if role in seen]
+
+
+def extract_section_roles(text: str) -> dict[str, list[str]]:
+    """Map section id -> declared binding roles from a ``roles="…"`` open-marker attribute.
+
+    Only markers that RESTRICT to a strict subset of the known roles are returned; a section
+    with no roles attribute, an empty/unrecognized one, or one covering every known role binds
+    to all roles and is omitted (the filter treats omission as "no restriction"). Markers in
+    fenced code blocks are ignored, mirroring the other section parsers.
+    """
+    lines = text.splitlines()
+    fenced = _skip_fenced_blocks(lines)
+    roles: dict[str, list[str]] = {}
+    for i, line in enumerate(lines):
+        if i in fenced:
+            continue
+        m = OPEN_RE.match(line.strip())
+        if not m:
+            continue
+        attrs = m.group(2) or ""
+        roles_match = ROLES_ATTR_RE.search(attrs)
+        if not roles_match:
+            continue
+        parsed = parse_binding_roles(roles_match.group(1))
+        if parsed and len(parsed) < len(KNOWN_BINDING_ROLES):
+            roles[m.group(1)] = parsed
+    return roles
+
+
+def section_role_warnings(text: str) -> list[str]:
+    """Flag any ``roles="…"`` attribute whose tokens are not all recognized binding roles.
+
+    extract_section_roles silently treats an unrecognized roles attr as "binds to every role",
+    so a typo (e.g. roles="reviewer" instead of "review") would quietly widen a card back to both
+    roles. This surfaces such markers so validation can reject them.
+    """
+    lines = text.splitlines()
+    fenced = _skip_fenced_blocks(lines)
+    warnings: list[str] = []
+    for i, line in enumerate(lines):
+        if i in fenced:
+            continue
+        m = OPEN_RE.match(line.strip())
+        if not m:
+            continue
+        roles_match = ROLES_ATTR_RE.search(m.group(2) or "")
+        if not roles_match:
+            continue
+        tokens = [token.strip().lower() for token in roles_match.group(1).split(",") if token.strip()]
+        unknown = [token for token in tokens if token not in KNOWN_BINDING_ROLES]
+        if not tokens or unknown:
+            warnings.append(
+                f"section '{m.group(1)}' has roles=\"{roles_match.group(1)}\"; expected a non-empty "
+                f"subset of {list(KNOWN_BINDING_ROLES)}"
+            )
+    return warnings
 
 
 def _parse_wikilink(raw: str) -> tuple[str, str | None, str]:

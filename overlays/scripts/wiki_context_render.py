@@ -18,6 +18,11 @@ ROLE_CATEGORIES = {
     "implementer": ("implementation", "test", "general"),
     "reviewer": ("implementation", "test", "review", "general"),
 }
+# Map the renderer's task role onto the card-marker binding role (wiki_section.KNOWN_BINDING_ROLES).
+# A section may declare `roles` (stamped mechanically from a discovery-card marker) to bind to only
+# some roles; render + reread skip a section whose roles exclude the active role. Absent roles =
+# binds to every role (historical behavior; non-card sections never carry roles).
+ROLE_TO_BINDING = {"implementer": "implement", "reviewer": "review"}
 DESTINATION_KINDS = {"task-bound", "global", "planning-only"}
 SCAFFOLD_GENERATED_BY = "superpower-adapter"
 # taskRouting block emitted by --scaffold. These are the pre-confirmation values: the author flips
@@ -230,6 +235,15 @@ def _validate_context(data: dict[str, Any], strict: bool, execution_ready: bool 
                 raise ValidationError(f"wikiPages[{page_index}].sections[{section_index}].appliesTo is removed in schemaVersion {SCHEMA_VERSION}; bind tasks via section.destination.tasks instead")
             if "sourceAnchors" in section_obj:
                 _as_list(section_obj.get("sourceAnchors"), f"wikiPages[{page_index}].sections[{section_index}].sourceAnchors")
+            if "roles" in section_obj:
+                where = f"wikiPages[{page_index}].sections[{section_index}].roles"
+                role_values = _as_list(section_obj.get("roles"), where)
+                known = set(ROLE_TO_BINDING.values())
+                unknown = [r for r in role_values if not (isinstance(r, str) and r in known)]
+                if not role_values or unknown:
+                    raise ValidationError(
+                        f"{where} must be a non-empty subset of {sorted(known)} (got {section_obj.get('roles')!r})"
+                    )
     if execution_ready:
         _validate_execution_ready(data)
     return caveats
@@ -277,6 +291,31 @@ def _task_section_keys(data: dict[str, Any], task_id: str) -> set[tuple[str, str
 
 def _format_bool(value: Any) -> str:
     return "true" if bool(value) else "false"
+
+
+def _section_roles(section: dict[str, Any]) -> list[str] | None:
+    """Return a section's binding-role restriction, or None when it binds to every role.
+
+    A section restricts to a subset only when `roles` is a non-empty list of known binding
+    roles that is a strict subset; anything else (absent, empty, unknown-only, or all roles)
+    means no restriction. Non-card sections never carry `roles`, so they always return None.
+    """
+    raw = section.get("roles")
+    if not isinstance(raw, list) or not raw:
+        return None
+    known = set(ROLE_TO_BINDING.values())
+    roles = [role for role in raw if role in known]
+    if not roles or len(set(roles)) == len(known):
+        return None
+    return roles
+
+
+def _role_allows(section: dict[str, Any], role: str) -> bool:
+    """Whether a section is visible to the active task role given its `roles` restriction."""
+    roles = _section_roles(section)
+    if roles is None:
+        return True
+    return ROLE_TO_BINDING.get(role, role) in roles
 
 
 def _append_metadata(lines: list[str], page: dict[str, Any]) -> None:
@@ -396,6 +435,10 @@ def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None)
         lines.append("")
 
         for section in _as_list(page.get("sections"), "sections"):
+            # A role-restricted section (roles stamped from a discovery-card marker) is invisible
+            # to roles it does not bind — e.g. a review-only skill card never reaches implementers.
+            if not _role_allows(section, role):
+                continue
             section_id = section.get("sectionId") or section.get("section_name")
             lines.append(f"### Section: `{section_id}`")
             if section.get("relevanceTo"):
@@ -492,7 +535,7 @@ def _depends_on_closure_entries(
     return entries
 
 
-def render_reread_list(data: dict[str, Any], task_id: str | None = None) -> str:
+def render_reread_list(data: dict[str, Any], role: str = "implementer", task_id: str | None = None) -> str:
     section_keys = _task_section_keys(data, task_id) if task_id else None
     entries: list[dict[str, Any]] = []
     emitted_keys: set[tuple[str, str]] = set()
@@ -503,6 +546,10 @@ def render_reread_list(data: dict[str, Any], task_id: str | None = None) -> str:
         local_path = page.get("localPath")
         for section in _as_list(page.get("sections"), "sections"):
             if not section.get("hardConstraint") or not section.get("reread"):
+                continue
+            # Honor the section's role binding here too: a review-only card's full-text reread
+            # must not be injected into an implementer prompt (and vice versa).
+            if not _role_allows(section, role):
                 continue
             section_id = section.get("sectionId") or section.get("section_name")
             entry = {
@@ -678,6 +725,32 @@ def _derive_reread(page: dict[str, Any], section_id: str) -> dict[str, Any]:
     return {key: value for key, value in reread.items() if value is not None}
 
 
+def _read_card_roles(page: dict[str, Any], section_id: str) -> list[str] | None:
+    """Read a section's binding-role restriction from its source wiki file, or None.
+
+    Role binding is intrinsic to the skill and authoritative on the discovery-card marker, so the
+    generator stamps it mechanically rather than trusting the researcher selection to carry it.
+    Only project-local pages have a readable marker file; the path is resolved like the rest of the
+    tool's relative paths (CWD = project root). Any failure — non-local page, missing file, parse
+    error — degrades to None ("binds to every role"), never a hard error. extract_section_roles
+    returns a value only for a strict-subset restriction, so unrestricted cards stamp nothing.
+    """
+    if page.get("root") not in (None, "project") or page.get("source") not in (None, "local"):
+        return None
+    candidate = page.get("displayPath") or page.get("path")
+    if not candidate:
+        return None
+    try:
+        path = Path(candidate)
+        if not path.is_file():
+            return None
+        from wiki_section import extract_section_roles  # local import keeps the renderer stdlib-only otherwise
+
+        return extract_section_roles(path.read_text(encoding="utf-8")).get(section_id)
+    except Exception:
+        return None
+
+
 def _scaffold_section(page: dict[str, Any], raw_section: Any, page_index: int, section_index: int) -> dict[str, Any]:
     where = f"selection wikiPages[{page_index}].sections[{section_index}]"
     section = _as_dict(raw_section, where)
@@ -711,6 +784,11 @@ def _scaffold_section(page: dict[str, Any], raw_section: Any, page_index: int, s
         out["destination"]["tasks"] = []
     if out["hardConstraint"]:
         out["reread"] = _derive_reread(page, section_id)
+    # Stamp the card's role binding from the authoritative marker (project-local pages only);
+    # only a strict-subset restriction is recorded, so ordinary sections carry no `roles`.
+    roles = _read_card_roles(page, section_id)
+    if roles:
+        out["roles"] = roles
     if "sourceAnchors" in section:
         out["sourceAnchors"] = _as_list(section.get("sourceAnchors"), f"{where}.sourceAnchors")
     if "caveats" in section:
@@ -919,7 +997,7 @@ def main() -> int:
             print("wiki context JSON is valid")
             return 0
         if args.reread_list:
-            print(render_reread_list(data, args.task_id))
+            print(render_reread_list(data, args.role, args.task_id))
             return 0
         print(render_markdown(data, args.role, args.task_id))
         return 0

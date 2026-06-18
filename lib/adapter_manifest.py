@@ -4,12 +4,54 @@
 from __future__ import annotations
 
 import json
+from itertools import zip_longest
 from pathlib import Path
 
 
 def load_manifest(script_dir: Path) -> dict:
     path = script_dir / 'manifest.json'
     return json.loads(path.read_text(encoding='utf-8'))
+
+
+def adapted_superpowers_version(script_dir: Path) -> str:
+    return str(load_manifest(script_dir).get('adaptedSuperpowersVersion', ''))
+
+
+def min_superpowers_version(script_dir: Path) -> str:
+    """The lowest Superpowers version this adapter supports.
+
+    Falls back to adaptedSuperpowersVersion when no explicit floor is declared, so an older
+    manifest without the key still has a sensible minimum.
+    """
+    manifest = load_manifest(script_dir)
+    return str(manifest.get('minSuperpowersVersion') or manifest.get('adaptedSuperpowersVersion', ''))
+
+
+def parse_version(version: str) -> tuple[int, ...]:
+    """Parse a dotted version into an int tuple. Non-numeric parts contribute their digits (or 0)."""
+    core = str(version).split('+', 1)[0].split('-', 1)[0]
+    parts: list[int] = []
+    for item in core.split('.'):
+        if item.isdigit():
+            parts.append(int(item))
+        else:
+            digits = ''.join(ch for ch in item if ch.isdigit())
+            parts.append(int(digits) if digits else 0)
+    return tuple(parts) if parts else (0,)
+
+
+def version_below(version: str, floor: str) -> bool:
+    """True when `version` is strictly below `floor`.
+
+    An empty/unknown version or floor returns False — we never gate out a target we cannot prove
+    is too old (callers can apply their own stricter policy if they must).
+    """
+    if not version or not floor:
+        return False
+    for left, right in zip_longest(parse_version(version), parse_version(floor), fillvalue=0):
+        if left != right:
+            return left < right
+    return False
 
 
 def installed_paths(script_dir: Path) -> list[str]:

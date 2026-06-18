@@ -23,29 +23,32 @@ manifest = json.loads((Path(sys.argv[1]) / 'manifest.json').read_text(encoding='
 print(manifest.get('adaptedSuperpowersVersion', ''))
 PY
 )"
+MIN_SUPERPOWERS_VERSION="$(python3 - <<'PY' "$SCRIPT_DIR"
+from pathlib import Path
+import sys
+import json
+manifest = json.loads((Path(sys.argv[1]) / 'manifest.json').read_text(encoding='utf-8'))
+print(manifest.get('minSuperpowersVersion') or manifest.get('adaptedSuperpowersVersion', ''))
+PY
+)"
 
-warn_if_target_is_newer() {
+superpowers_version_of() {
   local target_dir="$1"
-  local target_version=""
-
-  if [[ -f "$target_dir/package.json" ]]; then
-    target_version="$(python3 - <<'PY' "$target_dir"
+  [[ -f "$target_dir/package.json" ]] || return 0
+  python3 - <<'PY' "$target_dir"
 from pathlib import Path
 import json
 import sys
 path = Path(sys.argv[1]) / 'package.json'
 if path.is_file():
-    data = json.loads(path.read_text(encoding='utf-8'))
-    print(data.get('version', ''))
+    print(json.loads(path.read_text(encoding='utf-8')).get('version', ''))
 PY
-)"
-  fi
+}
 
-  if [[ -z "$target_version" || -z "$ADAPTED_SUPERPOWERS_VERSION" ]]; then
-    return 0
-  fi
-
-  if python3 - "$target_version" "$ADAPTED_SUPERPOWERS_VERSION" <<'PY'
+# Compare two dotted versions. mode=below -> exit 0 when v1 < v2; mode=newer-major -> exit 0 when
+# v1's MAJOR is greater than v2's. Keeps the bash callers free of inline version math.
+version_check() {
+  python3 - "$1" "$2" "$3" <<'PY'
 import sys
 from itertools import zip_longest
 
@@ -59,20 +62,39 @@ def parse(version: str) -> list[int]:
         else:
             digits = ''.join(ch for ch in item if ch.isdigit())
             parts.append(int(digits) if digits else 0)
-    return parts
+    return parts or [0]
 
 
-def is_newer(left: str, right: str) -> bool:
-    for left_part, right_part in zip_longest(parse(left), parse(right), fillvalue=0):
-        if left_part != right_part:
-            return left_part > right_part
-    return False
-
-
-sys.exit(0 if is_newer(sys.argv[1], sys.argv[2]) else 1)
+v1, v2, mode = sys.argv[1], sys.argv[2], sys.argv[3]
+if mode == 'below':
+    for left, right in zip_longest(parse(v1), parse(v2), fillvalue=0):
+        if left != right:
+            sys.exit(0 if left < right else 1)
+    sys.exit(1)
+if mode == 'newer-major':
+    sys.exit(0 if parse(v1)[0] > parse(v2)[0] else 1)
+sys.exit(1)
 PY
-  then
-    printf 'Warning: detected Superpowers %s in %s, but superpower-adapter is adapted against %s. Install will continue, but verify after the upgrade.\n' "$target_version" "$target_dir" "$ADAPTED_SUPERPOWERS_VERSION" >&2
+}
+
+# True (exit 0) when the target's Superpowers version is provably below the adapter minimum.
+target_below_minimum() {
+  local target_dir="$1"
+  local tv
+  tv="$(superpowers_version_of "$target_dir")"
+  [[ -n "$tv" && -n "$MIN_SUPERPOWERS_VERSION" ]] || return 1
+  version_check "$tv" "$MIN_SUPERPOWERS_VERSION" below
+}
+
+warn_if_target_is_newer() {
+  local target_dir="$1"
+  local target_version
+  target_version="$(superpowers_version_of "$target_dir")"
+  [[ -n "$target_version" && -n "$ADAPTED_SUPERPOWERS_VERSION" ]] || return 0
+  # Only a newer MAJOR warrants a re-verify nudge; the adapter tracks the whole 6.x line, so a
+  # 6.0.x patch/minor bump (e.g. 6.0.2) is in-baseline and must not cry wolf.
+  if version_check "$target_version" "$ADAPTED_SUPERPOWERS_VERSION" newer-major; then
+    printf 'Warning: detected Superpowers %s in %s, a newer MAJOR than the adapted %s. Install will continue, but verify after the upgrade.\n' "$target_version" "$target_dir" "$ADAPTED_SUPERPOWERS_VERSION" >&2
   fi
 }
 
@@ -109,6 +131,14 @@ install_target() {
   if [[ ! -d "$target_dir" ]]; then
     printf 'Missing superpowers target: %s\n' "$target_dir" >&2
     exit 1
+  fi
+
+  # Never write overlays into an incompatible (pre-minimum) Superpowers, even if one is passed
+  # explicitly. Discovery already filters these out (resolve_target.py); this guards the explicit path.
+  if target_below_minimum "$target_dir"; then
+    printf 'Skipping incompatible Superpowers at %s (below minimum %s); adapter targets %s+.\n' \
+      "$target_dir" "$MIN_SUPERPOWERS_VERSION" "$MIN_SUPERPOWERS_VERSION" >&2
+    return 0
   fi
 
   printf 'Installing superpower-adapter to %s\n' "$target_dir"

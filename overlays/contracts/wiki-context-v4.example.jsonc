@@ -95,6 +95,11 @@
           "sourceAnchors": [
             {"heading": "Path-Based Update", "excerpt": "All field updates MUST use updateByPath(path, value)."}
           ],
+          // OPTIONAL, discovery-card sections only: `roles` restricts which execution role(s) this
+          // section binds to (a strict subset of ["implement","review"]). It is stamped MECHANICALLY
+          // by --scaffold from the card's roles="…" marker in guides/skills.md, NOT authored here. A
+          // review-only skill card becomes "roles": ["review"] and is then injected for reviewers only
+          // (render + reread skip it for implementers). Ordinary sections omit `roles` = binds to both.
           "caveats": []
         },
         {

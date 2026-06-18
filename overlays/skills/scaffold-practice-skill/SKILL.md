@@ -63,12 +63,17 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
 # register / update the wiki discovery card + companion index + index linkage
 # --summary is an authored one-line THEME abstraction (not the trigger list); it is
 # written verbatim into the section index so wiki-researcher can judge relevance during
-# brainstorm. Run register-card from the PROJECT ROOT (or pass an absolute --project-root):
-# the wiki must already exist (init-wiki/bootstrap-wiki first) — register-card never mints one.
+# brainstorm. --roles scopes which execution role(s) the card binds to (default both):
+# pass "review" for a review-checklist skill (only reviewers get bound) or "implement"
+# for a pure generator; it is recorded on the card marker and enforced mechanically at
+# execution render time (a review-only card is never injected into implementer prompts).
+# Run register-card from the PROJECT ROOT (or pass an absolute --project-root): the wiki
+# must already exist (init-wiki/bootstrap-wiki first) — register-card never mints one.
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
   --project-root . --json register-card --name <skill-name> \
   --title "<card title>" --triggers "<scenario keywords>" \
   --summary "<one-line theme summary; ≤140 chars; single line; no \" or >>" \
+  [--roles implement,review|review|implement] \
   [--doc-summary "<override page overview>"] [--authorized-create|--authorized-update]
 
 # validate pack invariants + discoverability (+ optional source coverage)
@@ -84,7 +89,8 @@ python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/scaffold_practice_skill.py \
 2. Choose a kebab-case `name`, a trigger-rich `description`, and decide which sibling files the content actually needs (the open set).
 3. Run `scaffold` to write the skeleton, then author the real content into `SKILL.md` and each file. Keep `SKILL.md` thin; push heavy rules/examples into siblings.
 4. Run `register-card` (see authorization below) with an authored `--summary` to create the discovery card and make it discoverable. The `--summary` is the section's one-line **theme abstraction** (what the practice is + that it must be bound), NOT the comma-listed trigger keywords — a keyword "清单" just re-states the body and must be re-edited whenever a trigger changes. It is shown verbatim in the companion index, which is what `wiki-researcher` reads during brainstorm; keep it to one tight line (≤140 chars, no `"` or `>`). Omitting `--summary` falls back to a generic title-based line.
-5. Run `validate --name <name>` and fix any errors (and address the summary/overview warnings so the card is a 规范 wiki document).
+5. Set `--roles` to match what the skill is, so it binds only the role(s) that should use it. Default (omit) binds **both** implement and review — correct for a "how to build this" practice whose rules a reviewer also checks against (most packs). Pass `--roles review` for a **review-checklist skill** (审查类: a reviewer-only checklist; never injected into implementer prompts) or `--roles implement` for a **pure generator** a reviewer need not re-run. The binding is enforced mechanically at execution render time — don't try to express it inside `SKILL.md`.
+6. Run `validate --name <name>` and fix any errors (and address the summary/overview warnings so the card is a 规范 wiki document).
 
 ### Convert (non-destructive)
 

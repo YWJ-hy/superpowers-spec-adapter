@@ -114,6 +114,8 @@ Each leaf wiki page declares a node type in its frontmatter (shown as `> Type: <
 
 Bias by task kind: implementation/debug tasks lead with `constraint` (and relevant `domain`); planning/review tasks may also pull `decision` and `guide`. Do not flood a coding task with domain/decision context that does not change what it must do.
 
+Discovery-card sections (the skill cards in `guides/skills.md`) are selected by relevance like any other section — select the card when the task matches its triggers. You do NOT decide or record which execution role the card applies to: a card may bind to implement only, review only, or both, but that binding lives on the card marker and is stamped + enforced mechanically by the sidecar generator and execution renderer. Just select the relevant card; the role filtering happens downstream.
+
 When shared wiki source is `github_mcp`:
 
 1. Call `shared_wiki_status` first and preserve `repoUrl`, `baseBranch`, `displayRoot`, `revision`, and any validation caveats.

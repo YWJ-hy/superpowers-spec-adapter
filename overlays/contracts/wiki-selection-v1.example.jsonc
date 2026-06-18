@@ -15,6 +15,8 @@
   //   - schemaVersion / kind / generatedBy / planPath / taskRouting block
   //   - per-section `reread` (auto-derived for every hardConstraint section)
   //   - per-section `destination` (kind defaulted from relevance; reason/tasks authored later)
+  //   - per-section `roles` (role binding for a discovery-card section; --scaffold reads it from the
+  //                          card's roles="…" marker in guides/skills.md — never author it here)
   //   - top-level `sharedWiki` identity (copied from sharedWikiSource when a github_mcp page is selected)
   //   - taskWikiRefs / taskFingerprint (the task roster, scaffolded/stamped after task stabilization)
   //

@@ -4,7 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_INPUT="${1:-}"
 TARGETS_JSON="$(python3 "$SCRIPT_DIR/lib/resolve_target.py" --all "$TARGET_INPUT")"
-mapfile -t TARGET_DIRS < <(python3 - <<'PY' "$TARGETS_JSON"
+# Use a while-read loop, not `mapfile` — the latter is absent in macOS's bash 3.2 (install.sh
+# already avoids it for the same reason), and on that shell mapfile silently leaves TARGET_DIRS
+# empty so the uninstall becomes a no-op.
+TARGET_DIRS=()
+while IFS= read -r target_dir; do
+  [[ -z "$target_dir" ]] && continue
+  TARGET_DIRS+=("$target_dir")
+done < <(python3 - <<'PY' "$TARGETS_JSON"
 import json, sys
 for item in json.loads(sys.argv[1])['targets']:
     print(item['target'])
