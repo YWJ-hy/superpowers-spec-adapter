@@ -114,8 +114,12 @@ INDEX_CONTENT="$(cat "$INDEX_PATH")"
 assert_contains "contains section table header" "| section |" "$INDEX_CONTENT"
 assert_contains "contains path-based-update" "path-based-update" "$INDEX_CONTENT"
 assert_contains "contains deep-path" "deep-path" "$INDEX_CONTENT"
-assert_contains "path-based-update is hard" "| path-based-update | Path-Based Update | hard |" "$INDEX_CONTENT"
-assert_contains "deep-path is soft" "| deep-path | Deep Path Handling | soft |" "$INDEX_CONTENT"
+# Descriptions now fold the section heading plus content gist (heading alone just echoed
+# the id); assert the heading prefix, that content was folded in, and the strength.
+assert_contains "path-based-update heading prefix" "| path-based-update | Path-Based Update：" "$INDEX_CONTENT"
+assert_contains "path-based-update folds content" "updateByPath(path, value)" "$INDEX_CONTENT"
+assert_contains "path-based-update is hard" "is forbidden. | hard |" "$INDEX_CONTENT"
+assert_contains "deep-path is soft" "recommended pattern. | soft |" "$INDEX_CONTENT"
 assert_contains "has auto-generated notice" "Auto-generated" "$INDEX_CONTENT"
 
 printf '\nTest: no index for file without markers\n'
@@ -156,7 +160,7 @@ python3 "$SCRIPTS/wiki_generate_section_index.py" \
 
 INDEX_CONTENT="$(cat "$INDEX_PATH")"
 assert_contains "preserves overview" "Hook guidelines overview should survive table regeneration" "$INDEX_CONTENT"
-assert_contains "regenerates table row" "| path-based-update | Path-Based Update | hard |" "$INDEX_CONTENT"
+assert_contains "regenerates table row" "| path-based-update | Path-Based Update：" "$INDEX_CONTENT"
 assert_not_contains "removes stale table row" "stale-section" "$INDEX_CONTENT"
 
 printf '\nTest: idempotent regeneration\n'

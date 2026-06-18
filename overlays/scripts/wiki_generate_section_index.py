@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -56,16 +57,64 @@ def detect_strength(content: str) -> str:
     return "soft"
 
 
+DESC_LIMIT = 140
+_LIST_MARKER_RE = re.compile(r"^([-*+]|\d+[.)])\s+")
+_WIKI_EDGE_RE = re.compile(r"\[\[[^\]]*\]\]")
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+_TRAILING_SEP = "；：。，,;:、 ·-"
+
+
+def _clean_summary_fragment(text: str) -> str:
+    """Strip inline knowledge edges / markdown links / list markup from one line.
+
+    Section prose embeds ``[[page#section]]`` knowledge edges and ``[text](url)`` links;
+    those are structure, not summary signal, so drop the edge markup and keep only the
+    readable link text. List markers and surrounding punctuation are trimmed.
+    """
+    text = _LIST_MARKER_RE.sub("", text.strip())
+    text = _WIKI_EDGE_RE.sub("", text)
+    text = _MD_LINK_RE.sub(r"\1", text)
+    return text.strip(_TRAILING_SEP).strip()
+
+
 def first_description(content: str) -> str:
-    for line in content.splitlines():
-        stripped = line.strip()
+    """One-line section summary: the heading plus the gist of its content.
+
+    The heading alone usually just echoes the section id (e.g. "服务端状态" for
+    ``server-state-boundary``), giving the wiki-researcher almost no signal during the
+    brainstorm phase where only the index table is read. So fold in the first substantive
+    content lines — cleaned of edge/link markup and list bullets — up to a bounded length
+    and with table-breaking ``|`` neutralized.
+    """
+    heading = ""
+    body_parts: list[str] = []
+    for raw in content.splitlines():
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("<!--"):
+            continue
         if stripped.startswith("#"):
-            text = stripped.lstrip("#").strip()
-            if text:
-                return text[:80]
-        elif stripped and not stripped.startswith("<!--"):
-            return stripped[:80]
-    return "(empty section)"
+            text = _clean_summary_fragment(stripped.lstrip("#"))
+            if not heading:
+                heading = text
+            elif text:
+                body_parts.append(text)
+            continue
+        fragment = _clean_summary_fragment(stripped)
+        if fragment:
+            body_parts.append(fragment)
+
+    body = "；".join(part for part in body_parts if part)
+    if heading and body:
+        summary = f"{heading}：{body}"
+    else:
+        summary = heading or body
+    summary = re.sub(r"\s+", " ", summary).replace("|", "/").strip()
+    summary = re.sub(r"[；;]{2,}", "；", summary).strip(_TRAILING_SEP).strip()
+    if not summary:
+        return "(empty section)"
+    if len(summary) > DESC_LIMIT:
+        summary = summary[:DESC_LIMIT].rstrip(_TRAILING_SEP) + "…"
+    return summary
 
 
 def _with_trailing_newline(content: str) -> str:
