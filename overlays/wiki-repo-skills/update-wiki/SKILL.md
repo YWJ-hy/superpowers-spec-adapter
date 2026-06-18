@@ -67,6 +67,7 @@ Each leaf page declares a node `type:` in frontmatter — `constraint` (default,
 
 - Section IDs are kebab-case (`[a-z0-9][a-z0-9_-]*`) and reflect the constraint's semantics, not a heading translation.
 - The `summary="…"` is what the `wiki-researcher` reads during brainstorm (only the index table is read then), rendered verbatim. Write a **summary (an abstraction of the section's theme), NOT a comma-listed enumeration of every rule** — a list re-states the body and must be re-edited whenever a rule is added. Strongly target ≤ 140 chars (one tight line; 140 is not a hard cap); single line, no `"`/`>`/newlines. Omitting it falls back to a front-biased mechanical excerpt, so author one for every section.
+- **Editing an existing section: re-check summary fitness.** The gate is theme/scope drift, not "the body changed" — adding or rewording a single rule under the unchanged theme needs no summary edit (that stability is why the summary is an abstraction, so don't churn it). Rewrite the summary only when the edit broadens the section's theme/scope; if the new content's theme differs, re-target or split it into the right section rather than stretching the summary to cover it. The validator checks summary form only, never fit — this is your call.
 - Keep a `hard` section (mandatory rules: 必须/禁止/MUST/MUST NOT/REQUIRED/SHALL NOT) tight around the rule together with its examples — those get reread in full at execution.
 - When you create a new page, give it a `# Title` and, if non-default, a leading `--- type: ... ---` frontmatter block.
 - For a brand-new page, also add it to the owning directory's `index.md` so it becomes discoverable. List it inside the `<!-- superpower-adapter:auto:start -->` / `:auto:end` block; the regeneration step below refreshes the one-line summaries.
@@ -110,6 +111,7 @@ This repo's write policy lives in `.shared-superpowers/settings.json` under `wik
 - [ ] Knowledge was durable and reusable (or the skill stopped without writing).
 - [ ] Content is neutral and portable.
 - [ ] Section markers and node `type:` are correct; `[[ ]]` edges resolve.
+- [ ] For each edited section, summary fitness was re-checked — rewritten only on theme/scope drift (not single-rule changes under the same theme); off-theme content was re-targeted, not absorbed.
 - [ ] Companion indexes, directory indexes, and `.graph.json` were regenerated.
 - [ ] `wiki_update_check.py` passed (no errors; dangling links resolved).
 - [ ] Changes were reported and left for the user to commit — no git write commands were run.

@@ -117,4 +117,5 @@ Before finishing the update:
 - [ ] Did you avoid putting detailed rules into `index.md`?
 - [ ] If a new leaf wiki page was created, is it referenced by an index?
 - [ ] If you added `[[page#section]]` knowledge edges, do they all resolve (no dangling section links)?
+- [ ] For each existing section you edited, did you re-check summary fitness — rewriting it only when the edit broadened the section's theme/scope (not for single-rule changes under the same theme), and re-targeting off-theme content instead of stretching the summary to cover it?
 - [ ] Did you refresh the index chain and `.graph.json` after updating body content?

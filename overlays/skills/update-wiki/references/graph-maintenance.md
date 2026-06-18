@@ -44,6 +44,20 @@ relevance recall.
 - Whenever you add a section or materially change its theme, (re)write its summary. A section
   with NO summary falls back to a front-biased mechanical excerpt of the first ~140 chars of its
   body (strictly worse), so author one for every section.
+- **When you edit an existing section, re-check summary fitness against the new body.** The gate
+  is *theme/scope drift*, **not** "the body changed": adding, removing, or rewording a single
+  rule **under the section's unchanged theme** needs **no** summary edit — that stability is the
+  whole point of writing the summary as an abstraction, so do not churn it. Act only in these two
+  cases:
+  - the edit genuinely **broadens the section's theme or scope** (e.g. a styling-only section now
+    also mandates a tool) → rewrite the summary at a higher abstraction that re-covers the whole
+    section, still a theme summary and not a rule list; or
+  - the new content's theme **differs** from the section's → it does not belong here. Re-target it
+    to the owning section or split out a new one (`references/targeting.md`) rather than stretching
+    this summary to cover unrelated material.
+
+  The mechanical lint cannot judge this — it only checks summary *form* (single line, no `>`/`"`),
+  never whether the summary still fits the body — so it is your judgment on every edited section.
 
 ## 9b. Section knowledge edges (`[[page#section]]`)
 
