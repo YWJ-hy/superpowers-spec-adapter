@@ -59,14 +59,14 @@ Each leaf page declares a node `type:` in frontmatter — `constraint` (default,
   `summary="…"` on the opening marker:
 
   ```markdown
-  <!-- wiki-section:kebab-case-id summary="一句话，说明本节约束什么" -->
+  <!-- wiki-section:kebab-case-id summary="一句话总结本节主题与核心约束" -->
   ## Heading
   ...rule + its do/don't examples...
   <!-- /wiki-section:kebab-case-id -->
   ```
 
 - Section IDs are kebab-case (`[a-z0-9][a-z0-9_-]*`) and reflect the constraint's semantics, not a heading translation.
-- The `summary="…"` is what the `wiki-researcher` reads during brainstorm (only the index table is read then). Distill the section's load-bearing point, not its title; one line, ≤ ~100 chars, no `"`/`>`/newlines. Omitting it falls back to a front-biased mechanical excerpt, so prefer authoring it for every non-trivial section.
+- The `summary="…"` is what the `wiki-researcher` reads during brainstorm (only the index table is read then), rendered verbatim. Write a **summary (an abstraction of the section's theme), NOT a comma-listed enumeration of every rule** — a list re-states the body and must be re-edited whenever a rule is added. Strongly target ≤ 140 chars (one tight line; 140 is not a hard cap); single line, no `"`/`>`/newlines. Omitting it falls back to a front-biased mechanical excerpt, so author one for every section.
 - Keep a `hard` section (mandatory rules: 必须/禁止/MUST/MUST NOT/REQUIRED/SHALL NOT) tight around the rule together with its examples — those get reread in full at execution.
 - When you create a new page, give it a `# Title` and, if non-default, a leading `--- type: ... ---` frontmatter block.
 - For a brand-new page, also add it to the owning directory's `index.md` so it becomes discoverable. List it inside the `<!-- superpower-adapter:auto:start -->` / `:auto:end` block; the regeneration step below refreshes the one-line summaries.

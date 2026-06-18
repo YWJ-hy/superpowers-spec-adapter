@@ -6,7 +6,19 @@ Mechanical helper for wiki section migration.
 Usage:
   wiki_migrate_helper.py --inventory <project-root> [--wiki-root project|shared|all]
   wiki_migrate_helper.py --validate <project-root> [--wiki-root project|shared|all]
+  wiki_migrate_helper.py --missing-summaries <project-root> [--wiki-dir DIR] [--with-body] [--json]
+  wiki_migrate_helper.py --set-summaries <project-root> [--wiki-dir DIR] < entries.jsonl
   wiki_migrate_helper.py --generate-indexes <project-root> [--wiki-root project|shared|all]
+
+Summary-backfill loop (reads only the bodies that need a summary, no whole-doc scans):
+  1. --missing-summaries ... --with-body --json   -> [{root, path, sectionId, body}]
+  2. agent writes a theme-level summary for each body
+  3. --set-summaries ... < summaries.jsonl        -> writes summary="…" into each marker
+  4. --generate-indexes                            -> regenerate companion indexes + graph
+
+--set-summaries reads JSONL from stdin, one object per line:
+  {"root": "shared", "path": "frontend/x.md", "sectionId": "y", "summary": "一句话总结"}
+("root" may be omitted when a single root is targeted, e.g. with --wiki-dir.)
 """
 
 from __future__ import annotations
@@ -26,8 +38,14 @@ from wiki_common import (  # noqa: E402
     select_wiki_root,
     selected_wiki_roots,
     wiki_root_from_dir,
+    write_text_lf,
 )
-from wiki_section import list_section_ids, validate_section_markers  # noqa: E402
+from wiki_section import (  # noqa: E402
+    extract_all_sections,
+    extract_section_summaries,
+    list_section_ids,
+    validate_section_markers,
+)
 
 
 def _roots_for(project_root: Path, wiki_root_selector: str, wiki_dir: str | None):
@@ -100,6 +118,88 @@ def validate(project_root: Path, wiki_root_selector: str, wiki_dir: str | None =
     return issues
 
 
+def missing_summaries(project_root: Path, wiki_root_selector: str, wiki_dir: str | None = None, with_body: bool = False) -> list[dict]:
+    """List every section that lacks an authored ``summary="…"`` on its marker.
+
+    The mechanical first step of summary backfill: it tells the skill exactly which sections
+    to summarize. With ``with_body`` it also returns each missing section's body text, so the
+    agent reads ONLY those bodies (one self-contained call) instead of scanning whole wiki
+    documents — minimizing token use.
+    """
+    roots = _roots_for(project_root, wiki_root_selector, wiki_dir)
+    results = []
+    for root in roots:
+        if not (root.path / "index.md").is_file():
+            continue
+        graph = build_wiki_index_graph(root.path)
+        for leaf in graph.leaves:
+            if leaf.name == "index.md" or leaf.stem.endswith(".index"):
+                continue
+            text = leaf.read_text(encoding="utf-8")
+            have = extract_section_summaries(text)
+            rel = leaf.relative_to(root.path).as_posix()
+            bodies = extract_all_sections(text) if with_body else {}
+            for sid in list_section_ids(text):
+                if sid not in have:
+                    entry = {"root": root.name, "path": rel, "sectionId": sid}
+                    if with_body:
+                        entry["body"] = bodies.get(sid, "")
+                    results.append(entry)
+    return results
+
+
+def _sanitize_summary(summary: str) -> str:
+    """Strip characters that would break the HTML-comment attribute, collapse whitespace."""
+    return re.sub(r"\s+", " ", summary.replace('"', "").replace(">", "").replace("\n", " ")).strip()
+
+
+def _apply_summary(text: str, section_id: str, summary: str) -> tuple[str, int]:
+    """Rewrite a section's opening marker to carry ``summary="…"`` (idempotent)."""
+    pattern = re.compile(r'<!-- wiki-section:' + re.escape(section_id) + r'(?: summary="[^"]*")? -->')
+    replacement = f'<!-- wiki-section:{section_id} summary="{_sanitize_summary(summary)}" -->'
+    return pattern.subn(replacement, text, count=1)
+
+
+def set_summaries(project_root: Path, wiki_root_selector: str, entries: list[dict], wiki_dir: str | None = None) -> tuple[int, list[str]]:
+    """Write summaries into section markers. ``entries`` is [{root?, path, sectionId, summary}].
+
+    Reuses the same wiki-root resolution as the rest of the helper. Returns (applied, errors).
+    Markers are rewritten in place and the file is saved with LF newlines.
+    """
+    roots = {root.name: root for root in _roots_for(project_root, wiki_root_selector, wiki_dir)}
+    default_root = next(iter(roots.values())) if len(roots) == 1 else None
+
+    by_file: dict[tuple, list[tuple[str, str]]] = {}
+    errors: list[str] = []
+    for entry in entries:
+        root = roots.get(entry.get("root")) or default_root
+        if root is None:
+            errors.append(f"entry has unknown/ambiguous root: {entry!r}")
+            continue
+        path, sid, summary = entry.get("path"), entry.get("sectionId"), entry.get("summary")
+        if not (isinstance(path, str) and isinstance(sid, str) and isinstance(summary, str) and summary.strip()):
+            errors.append(f"entry missing path/sectionId/summary: {entry!r}")
+            continue
+        by_file.setdefault((root.name, path), []).append((sid, summary))
+
+    applied = 0
+    for (root_name, path), items in by_file.items():
+        root = roots[root_name]
+        file_path = root.path / path
+        if not file_path.is_file():
+            errors.append(f"{root_name}:{path}: file not found")
+            continue
+        text = file_path.read_text(encoding="utf-8")
+        for sid, summary in items:
+            text, n = _apply_summary(text, sid, summary)
+            if n != 1:
+                errors.append(f"{root_name}:{path}#{sid}: marker not found (matched {n})")
+                continue
+            applied += 1
+        write_text_lf(file_path, text)
+    return applied, errors
+
+
 def generate_indexes(project_root: Path, wiki_root_selector: str, wiki_dir: str | None = None) -> int:
     """Generate section indexes for all documents with markers. Returns count."""
     from wiki_generate_section_index import process_all
@@ -122,7 +222,10 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--inventory", metavar="PROJECT_ROOT", help="List indexed leaf pages with metadata")
     group.add_argument("--validate", metavar="PROJECT_ROOT", help="Validate section markers")
+    group.add_argument("--missing-summaries", metavar="PROJECT_ROOT", help="List sections lacking an authored summary=")
+    group.add_argument("--set-summaries", metavar="PROJECT_ROOT", help="Write summaries from JSONL stdin into section markers")
     group.add_argument("--generate-indexes", metavar="PROJECT_ROOT", help="Generate .index.md files")
+    parser.add_argument("--with-body", action="store_true", help="With --missing-summaries: include each section's body text for summarizing")
     parser.add_argument("--wiki-root", choices=["project", "shared", "all"], default="all")
     parser.add_argument("--wiki-dir", default=None, help="Treat this directory as the wiki root directly (repo-root wiki layout); overrides --wiki-root and the positional project root")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
@@ -157,6 +260,38 @@ def main() -> None:
                         print(f"    - {err}")
                 print(f"\n{len(issues)} file(s) with issues.")
                 sys.exit(1)
+
+    elif args.missing_summaries:
+        project = Path(args.missing_summaries).resolve()
+        results = missing_summaries(project, args.wiki_root, wiki_dir=args.wiki_dir, with_body=args.with_body)
+        if args.json:
+            print(json.dumps(results, indent=2, ensure_ascii=False))
+        else:
+            for item in results:
+                print(f"  {item['root']}:{item['path']}#{item['sectionId']}")
+            print(f"\n{len(results)} section(s) missing a summary.")
+
+    elif args.set_summaries:
+        project = Path(args.set_summaries).resolve()
+        entries = []
+        parse_errors = []
+        for index, raw in enumerate(sys.stdin, start=1):
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                if not isinstance(obj, dict):
+                    raise ValueError("not a JSON object")
+                entries.append(obj)
+            except (json.JSONDecodeError, ValueError) as exc:
+                parse_errors.append(f"line {index}: {exc}")
+        applied, errors = set_summaries(project, args.wiki_root, entries, wiki_dir=args.wiki_dir)
+        print(f"Applied {applied} summary(ies).")
+        for err in parse_errors + errors:
+            print(f"  error: {err}", file=sys.stderr)
+        if parse_errors or errors:
+            sys.exit(1)
 
     elif args.generate_indexes:
         project = Path(args.generate_indexes).resolve()

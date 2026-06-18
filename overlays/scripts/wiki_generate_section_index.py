@@ -69,13 +69,23 @@ _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
 _TRAILING_SEP = "；：。，,;:、 ·-"
 
 
-def _bound_desc(text: str) -> str:
-    """Collapse whitespace, neutralize table-breaking ``|``, and bound to DESC_LIMIT.
+def _sanitize_cell(text: str) -> str:
+    """Collapse whitespace and neutralize the table-breaking ``|``. No length bound.
 
-    Applied to both the authored ``summary="…"`` and the mechanically derived description
-    so a hand-written summary can never break the markdown table or run unboundedly long.
+    Applied to an authored ``summary="…"``, which is rendered verbatim: the author keeps
+    it concise (≤140 is a strong guideline, not a hard clip), so the index never re-summarizes
+    or truncates it — a genuinely complex section may run longer.
     """
-    text = re.sub(r"\s+", " ", text).replace("|", "/").strip()
+    return re.sub(r"\s+", " ", text).replace("|", "/").strip()
+
+
+def _bound_desc(text: str) -> str:
+    """Sanitize and hard-bound to DESC_LIMIT. Used only for the mechanical body excerpt.
+
+    The mechanical fallback is a front-biased slice of the section body, so it is capped to
+    avoid dumping a whole section into the cell; an authored summary is never capped here.
+    """
+    text = _sanitize_cell(text)
     if len(text) > DESC_LIMIT:
         text = text[:DESC_LIMIT].rstrip(_TRAILING_SEP) + "…"
     return text
@@ -160,10 +170,10 @@ def generate_index(
         content = extract_section(text, sid)
         if content is None:
             continue
-        # Prefer the author/agent-written one-line summary; fall back to a mechanical
-        # description folded from the section's leading content.
+        # Prefer the author/agent-written one-line summary, rendered verbatim (no length
+        # cap); fall back to a mechanical 140-char excerpt folded from the section body.
         authored = summaries.get(sid)
-        desc = _bound_desc(authored) if authored else first_description(content)
+        desc = _sanitize_cell(authored) if authored else first_description(content)
         strength = detect_strength(content)
         table_lines.append(f"| {sid} | {desc} | {strength} |")
 

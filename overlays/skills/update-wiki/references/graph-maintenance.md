@@ -21,20 +21,29 @@ When creating a new wiki page that will contain multiple independent constraint 
 ## 9a. Section summaries (`summary="…"`)
 
 Give each section marker a one-line summary. The `wiki-researcher` reads it during the
-brainstorm phase, where only the companion index table is read — not section bodies. Without
-a summary the index falls back to a mechanical excerpt of the section's leading content,
-which is front-biased and carries structural noise, so it can misjudge relevance.
+brainstorm phase, where only the companion index table is read — not section bodies. The
+index renders the summary **verbatim**, so it is the single biggest lever on section-level
+relevance recall.
 
-- Syntax: `<!-- wiki-section:id summary="一句话，说明本节约束什么" -->`. The closing marker stays
+- Syntax: `<!-- wiki-section:id summary="一句话总结" -->`. The closing marker stays
   `<!-- /wiki-section:id -->` (no attributes).
-- Summarize the section's **load-bearing point**, not its title — the title already echoes
-  the id (`server-state-boundary` → "服务端状态"). Distill what the section requires or forbids
-  so a reader can judge relevance without opening the body.
-- One line, ≤ ~100 characters. Do not use `"` or `>` (they break the HTML-comment
-  attribute) or newlines; `|` is auto-escaped but prefer prose. Truncated at 140 chars.
-- Whenever you add a section or materially change its rule, (re)write its summary. Omitting
-  it is allowed — the mechanical fallback still applies — but an authored summary is strongly
-  preferred for every non-trivial section.
+- **Write a summary (an abstraction), NOT a mini-list of every rule.** Capture the section's
+  *theme and core obligation* at a level that stays valid as you add or edit individual rules
+  inside it. A comma-separated enumeration is wrong: it just re-lists the body, and every time
+  the section gains a rule you would have to append to the summary too — it grows unbounded and
+  drifts out of sync. Also do not merely translate the title/id (`server-state-boundary` →
+  "服务端状态" adds nothing).
+  - Good: `服务端状态边界：数据获取收敛到服务层，Pinia 不充当通用请求缓存`
+  - Bad: `HTTP 收敛请求层；按域取数收敛服务层；Pinia 非缓存层；loading 显式管理；缓存失效明确设计；…`（把正文逐条搬来）
+- **Length: strongly target ≤ 140 characters, one tight line.** 140 is a strong guideline,
+  not a hard cap — the index shows the summary in full and never truncates it. If a genuinely
+  complex section truly cannot be captured in 140, you may exceed it, but treat overflow as a
+  signal to abstract harder first (it usually means you are listing rules, not summarizing).
+- Single line; no `"` and no `>` (they break the HTML-comment attribute — a `>` silently drops
+  the whole section, which lint now reports); no newlines; `|` is auto-escaped.
+- Whenever you add a section or materially change its theme, (re)write its summary. A section
+  with NO summary falls back to a front-biased mechanical excerpt of the first ~140 chars of its
+  body (strictly worse), so author one for every section.
 
 ## 9b. Section knowledge edges (`[[page#section]]`)
 

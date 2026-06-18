@@ -67,7 +67,7 @@ Show a per-document summary (overview + numbered sections with line ranges and s
 
 For each confirmed document:
 
-1. Insert `<!-- wiki-section:xxx -->` / `<!-- /wiki-section:xxx -->` around the identified sections. On each opening marker, author a one-line summary: `<!-- wiki-section:xxx summary="一句话，说明本节约束什么" -->`. Distill the section's load-bearing point (not its title — the title just echoes the id); one line, ≤ ~100 chars, no `"`/`>`/newlines. The `wiki-researcher` reads this during brainstorm; without it the index falls back to a front-biased mechanical excerpt. This is marker metadata, not a rewrite of body prose.
+1. Insert `<!-- wiki-section:xxx -->` / `<!-- /wiki-section:xxx -->` around the identified sections. On each opening marker, author a one-line **summary** (an abstraction of the section's theme, NOT a comma-listed enumeration of every rule — a list re-states the body and must be re-edited whenever a rule is added): `<!-- wiki-section:xxx summary="一句话总结本节主题与核心约束" -->`. Strongly target ≤ 140 chars (one tight line; 140 is not a hard cap, the index shows it verbatim); single line, no `"`/`>`/newlines. The `wiki-researcher` reads this during brainstorm; without it the index falls back to a front-biased mechanical excerpt. Marker metadata, not a rewrite of body prose.
 2. Keep the page's `# Title` in the `.md` file.
 3. Remove document-level overview/blockquote/`## 概览` summary text from the `.md` file.
 4. Create or update the companion `<stem>.index.md` header with the confirmed overview:
@@ -93,6 +93,35 @@ The index generator updates only the section table and preserves the `.index.md`
 ### Step 6 — Report (do not commit)
 
 Summarize: documents processed, sections created, companion indexes generated/updated, and the validation result. Tell the user to review the diff and commit themselves. Do not run git write commands.
+
+---
+
+## Backfilling summaries on already-sectioned pages
+
+A page that already has section markers skips the marker-insertion steps, so its sections may
+predate the `summary="…"` attribute. Backfill them **mechanically** — read only the bodies that
+lack a summary, never re-scan whole wiki documents:
+
+1. List the sections missing a summary, **with their bodies**, in one call:
+
+   ```bash
+   python3 "$TOOLS/wiki_migrate_helper.py" --missing-summaries "$WIKI_DIR" --wiki-dir "$WIKI_DIR" --with-body --json
+   ```
+
+   Output is `[{root, path, sectionId, body}]` — exactly the sections to summarize, nothing else.
+
+2. For each, write a one-line **summary** (theme-level abstraction, not a rule list). Confirm the
+   proposed summaries with the user before writing.
+
+3. Write them back in one batch — JSONL of `{path, sectionId, summary}` on stdin:
+
+   ```bash
+   python3 "$TOOLS/wiki_migrate_helper.py" --set-summaries "$WIKI_DIR" --wiki-dir "$WIKI_DIR" < summaries.jsonl
+   ```
+
+4. Regenerate indexes + graph (`--generate-indexes`, as in the Workflow).
+
+This reads each missing-summary body exactly once and loads no unrelated pages into context.
 
 ---
 
