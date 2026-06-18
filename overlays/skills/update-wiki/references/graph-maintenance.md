@@ -18,6 +18,24 @@ When creating a new wiki page that will contain multiple independent constraint 
 - Each section should be an independently citable constraint unit.
 - For hard-constraint sections (mandatory rules — 必须/禁止/MUST/MUST NOT), keep the rule and its do/don't examples together inside the markers, but keep the section tight: it is reread in full at execution (including nested children, no length limit), so put only compliance-irrelevant background/rationale in the document overview or a separate soft section. Never externalize or lossily summarize the "don't"/anti-pattern content.
 
+## 9a. Section summaries (`summary="…"`)
+
+Give each section marker a one-line summary. The `wiki-researcher` reads it during the
+brainstorm phase, where only the companion index table is read — not section bodies. Without
+a summary the index falls back to a mechanical excerpt of the section's leading content,
+which is front-biased and carries structural noise, so it can misjudge relevance.
+
+- Syntax: `<!-- wiki-section:id summary="一句话，说明本节约束什么" -->`. The closing marker stays
+  `<!-- /wiki-section:id -->` (no attributes).
+- Summarize the section's **load-bearing point**, not its title — the title already echoes
+  the id (`server-state-boundary` → "服务端状态"). Distill what the section requires or forbids
+  so a reader can judge relevance without opening the body.
+- One line, ≤ ~100 characters. Do not use `"` or `>` (they break the HTML-comment
+  attribute) or newlines; `|` is auto-escaped but prefer prose. Truncated at 140 chars.
+- Whenever you add a section or materially change its rule, (re)write its summary. Omitting
+  it is allowed — the mechanical fallback still applies — but an authored summary is strongly
+  preferred for every non-trivial section.
+
 ## 9b. Section knowledge edges (`[[page#section]]`)
 
 When a section's constraint relates to or depends on another section, link it with an

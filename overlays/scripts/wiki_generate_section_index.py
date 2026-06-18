@@ -20,7 +20,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from wiki_section import extract_section, list_section_ids, page_type  # noqa: E402
+from wiki_section import (  # noqa: E402
+    extract_section,
+    extract_section_summaries,
+    list_section_ids,
+    page_type,
+)
 from wiki_common import (  # noqa: E402
     build_section_graph,
     build_wiki_index_graph,
@@ -62,6 +67,18 @@ _LIST_MARKER_RE = re.compile(r"^([-*+]|\d+[.)])\s+")
 _WIKI_EDGE_RE = re.compile(r"\[\[[^\]]*\]\]")
 _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
 _TRAILING_SEP = "；：。，,;:、 ·-"
+
+
+def _bound_desc(text: str) -> str:
+    """Collapse whitespace, neutralize table-breaking ``|``, and bound to DESC_LIMIT.
+
+    Applied to both the authored ``summary="…"`` and the mechanically derived description
+    so a hand-written summary can never break the markdown table or run unboundedly long.
+    """
+    text = re.sub(r"\s+", " ", text).replace("|", "/").strip()
+    if len(text) > DESC_LIMIT:
+        text = text[:DESC_LIMIT].rstrip(_TRAILING_SEP) + "…"
+    return text
 
 
 def _clean_summary_fragment(text: str) -> str:
@@ -108,13 +125,9 @@ def first_description(content: str) -> str:
         summary = f"{heading}：{body}"
     else:
         summary = heading or body
-    summary = re.sub(r"\s+", " ", summary).replace("|", "/").strip()
-    summary = re.sub(r"[；;]{2,}", "；", summary).strip(_TRAILING_SEP).strip()
-    if not summary:
-        return "(empty section)"
-    if len(summary) > DESC_LIMIT:
-        summary = summary[:DESC_LIMIT].rstrip(_TRAILING_SEP) + "…"
-    return summary
+    summary = re.sub(r"\s+", " ", summary)
+    summary = re.sub(r"[；;]{2,}", "；", summary).strip(_TRAILING_SEP)
+    return _bound_desc(summary) or "(empty section)"
 
 
 def _with_trailing_newline(content: str) -> str:
@@ -137,6 +150,7 @@ def generate_index(
     if not section_ids:
         return None
 
+    summaries = extract_section_summaries(text)
     table_lines = [
         "| section | 描述 | 约束强度 |",
         "|---|---|---|",
@@ -146,7 +160,10 @@ def generate_index(
         content = extract_section(text, sid)
         if content is None:
             continue
-        desc = first_description(content)
+        # Prefer the author/agent-written one-line summary; fall back to a mechanical
+        # description folded from the section's leading content.
+        authored = summaries.get(sid)
+        desc = _bound_desc(authored) if authored else first_description(content)
         strength = detect_strength(content)
         table_lines.append(f"| {sid} | {desc} | {strength} |")
 

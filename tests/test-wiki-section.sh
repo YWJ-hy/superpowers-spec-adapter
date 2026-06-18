@@ -279,6 +279,53 @@ assert_contains "lists deep-path" "deep-path" "$IDS"
 assert_contains "lists parent-section" "parent-section" "$IDS"
 assert_contains "lists child-section" "child-section" "$IDS"
 
+printf '\nTest: authored section summaries\n'
+
+cat > "$TMP/.superpowers/wiki/frontend/summaries.md" <<'WIKI'
+# Summaries
+<!-- wiki-section:with-summary summary="服务端数据走服务层，不当请求缓存" -->
+## Server State
+body
+<!-- /wiki-section:with-summary -->
+<!-- wiki-section:no-summary -->
+## Other
+body
+<!-- /wiki-section:no-summary -->
+WIKI
+
+SUMS=$(PYTHONPATH="$SCRIPTS" PYTHONIOENCODING=utf-8 python3 -c "
+from wiki_section import extract_section_summaries, list_section_ids
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text(encoding='utf-8')
+s = extract_section_summaries(text)
+print('IDS:', ','.join(list_section_ids(text)))
+print('WITH:', s.get('with-summary', ''))
+print('NO:', 'no-summary' in s)
+" "$TMP/.superpowers/wiki/frontend/summaries.md")
+# Backward compat: both ids still parse with the extended open-marker regex.
+assert_contains "summary marker still lists both ids" "IDS: with-summary,no-summary" "$SUMS"
+assert_contains "parses authored summary" "WITH: 服务端数据走服务层，不当请求缓存" "$SUMS"
+assert_contains "section without summary absent from map" "NO: False" "$SUMS"
+
+printf '\nTest: malformed summary marker is reported (not silently dropped)\n'
+
+cat > "$TMP/.superpowers/wiki/frontend/bad-summary.md" <<'WIKI'
+# Bad
+<!-- wiki-section:broken-sum summary="a > b" -->
+## X
+body
+<!-- /wiki-section:broken-sum -->
+WIKI
+
+BADSUM=$(PYTHONPATH="$SCRIPTS" python3 -c "
+from wiki_section import validate_section_markers
+from pathlib import Path
+import sys
+for e in validate_section_markers(Path(sys.argv[1]).read_text(encoding='utf-8')): print(e)
+" "$TMP/.superpowers/wiki/frontend/bad-summary.md")
+assert_contains "malformed marker reported" "malformed wiki-section marker" "$BADSUM"
+
 # --- Summary ---
 printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
 printf 'Results: %d passed, %d failed\n' "$PASS" "$FAIL"

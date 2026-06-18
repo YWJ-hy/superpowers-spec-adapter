@@ -15,8 +15,17 @@ from dataclasses import dataclass, field
 SECTION_ID_PATTERN = r"[a-z0-9][a-z0-9_-]*"
 DOCUMENT_OVERVIEW_LIMIT = 600
 AUTO_GENERATED_INDEX_NOTICE = "Auto-generated from section markers. Do not edit manually."
-OPEN_RE = re.compile(r"^<!-- wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
+# The opening marker may carry optional HTML-comment attributes after the id, currently
+# just an authored one-line summary: <!-- wiki-section:id summary="…" -->. The attribute
+# tail is captured (group 2) but every existing caller reads group 1 (the id) only, so
+# legacy markers without attributes keep matching unchanged.
+OPEN_RE = re.compile(r"^<!-- wiki-section:(" + SECTION_ID_PATTERN + r")(\s[^>]*?)?\s*-->$")
 CLOSE_RE = re.compile(r"^<!-- /wiki-section:(" + SECTION_ID_PATTERN + r") -->$")
+SUMMARY_ATTR_RE = re.compile(r'\bsummary="([^"]*)"')
+# Catches lines that intend to be a marker but match neither OPEN_RE nor CLOSE_RE — e.g. a
+# summary containing '>' truncates the comment, which would otherwise silently drop the
+# whole section from parsing/indexing instead of surfacing an error.
+LOOSE_MARKER_RE = re.compile(r"^<!--\s*/?wiki-section:")
 FENCE_OPEN_RE = re.compile(r"^(`{3,}|~{3,})")
 
 # Knowledge edges are only the explicit [[page#section]] form (a deliberate
@@ -106,6 +115,12 @@ def _parse_spans(text: str) -> tuple[list[_SectionSpan], list[str]]:
             else:
                 stack[-1].end_line = i
                 stack.pop()
+            continue
+        if LOOSE_MARKER_RE.match(stripped):
+            errors.append(
+                f"Line {i + 1}: malformed wiki-section marker (id must be kebab-case; a "
+                f'summary="…" must avoid > and stay on one line): {stripped[:80]}'
+            )
 
     for span in stack:
         errors.append(f"Line {span.start_line + 1}: unclosed section '{span.section_id}'")
@@ -209,6 +224,31 @@ def validate_section_markers(text: str) -> list[str]:
     """Validate section markers, returning a list of error messages (empty = valid)."""
     _, errors = _parse_spans(text)
     return errors
+
+
+def extract_section_summaries(text: str) -> dict[str, str]:
+    """Map section id -> authored one-line summary from ``summary="…"`` on the open marker.
+
+    Only markers that declare a non-empty summary attribute are returned; sections without
+    one fall back to a mechanically derived description at index-generation time. Markers in
+    fenced code blocks are ignored, mirroring the other section parsers.
+    """
+    lines = text.splitlines()
+    fenced = _skip_fenced_blocks(lines)
+    summaries: dict[str, str] = {}
+    for i, line in enumerate(lines):
+        if i in fenced:
+            continue
+        m = OPEN_RE.match(line.strip())
+        if not m:
+            continue
+        attrs = m.group(2) or ""
+        summary_match = SUMMARY_ATTR_RE.search(attrs)
+        if summary_match:
+            value = summary_match.group(1).strip()
+            if value:
+                summaries[m.group(1)] = value
+    return summaries
 
 
 def _parse_wikilink(raw: str) -> tuple[str, str | None, str]:

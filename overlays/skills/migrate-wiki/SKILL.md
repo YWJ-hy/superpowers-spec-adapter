@@ -100,7 +100,7 @@ Ask the user to confirm or adjust before proceeding.
 
 For each confirmed document:
 
-1. Insert `<!-- wiki-section:xxx -->` and `<!-- /wiki-section:xxx -->` markers around the identified sections.
+1. Insert `<!-- wiki-section:xxx -->` and `<!-- /wiki-section:xxx -->` markers around the identified sections. On each opening marker, author a one-line summary: `<!-- wiki-section:xxx summary="一句话，说明本节约束什么" -->`. Distill the section's load-bearing point (not its title — the title just echoes the id); one line, ≤ ~100 chars, no `"`/`>`/newlines. The `wiki-researcher` reads this summary during brainstorm; without it the index falls back to a front-biased mechanical excerpt. This is metadata on the marker, not a change to the page's prose (the no-rewrite rule still holds for body content).
 2. Keep the page's `# Title` in the `.md` file.
 3. Remove document-level overview text from the `.md` file, including blockquote summaries, `## 概览` sections, or equivalent introductory summaries.
 4. Create or update the companion `<stem>.index.md` header with the confirmed overview:

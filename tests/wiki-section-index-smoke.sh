@@ -90,6 +90,12 @@ Direct props.model mutation is forbidden.
 For nested objects, use dot-notation paths.
 This is a recommended pattern.
 <!-- /wiki-section:deep-path -->
+
+<!-- wiki-section:summary-demo summary="作者摘要：本节演示 summary 覆盖机械提取" -->
+## Summary Demo
+
+VERBOSE_BODY_THAT_SHOULD_NOT_APPEAR in the description because an authored summary wins.
+<!-- /wiki-section:summary-demo -->
 WIKI
 
 cat > "$TMP/.superpowers/wiki/frontend/short-doc.md" << 'WIKI'
@@ -120,6 +126,9 @@ assert_contains "path-based-update heading prefix" "| path-based-update | Path-B
 assert_contains "path-based-update folds content" "updateByPath(path, value)" "$INDEX_CONTENT"
 assert_contains "path-based-update is hard" "is forbidden. | hard |" "$INDEX_CONTENT"
 assert_contains "deep-path is soft" "recommended pattern. | soft |" "$INDEX_CONTENT"
+# Authored summary="…" on the marker overrides the mechanical excerpt.
+assert_contains "authored summary used" "| summary-demo | 作者摘要：本节演示 summary 覆盖机械提取 |" "$INDEX_CONTENT"
+assert_not_contains "mechanical excerpt suppressed when summary present" "VERBOSE_BODY_THAT_SHOULD_NOT_APPEAR" "$INDEX_CONTENT"
 assert_contains "has auto-generated notice" "Auto-generated" "$INDEX_CONTENT"
 
 printf '\nTest: no index for file without markers\n'

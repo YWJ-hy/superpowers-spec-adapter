@@ -67,7 +67,7 @@ Show a per-document summary (overview + numbered sections with line ranges and s
 
 For each confirmed document:
 
-1. Insert `<!-- wiki-section:xxx -->` / `<!-- /wiki-section:xxx -->` around the identified sections.
+1. Insert `<!-- wiki-section:xxx -->` / `<!-- /wiki-section:xxx -->` around the identified sections. On each opening marker, author a one-line summary: `<!-- wiki-section:xxx summary="一句话，说明本节约束什么" -->`. Distill the section's load-bearing point (not its title — the title just echoes the id); one line, ≤ ~100 chars, no `"`/`>`/newlines. The `wiki-researcher` reads this during brainstorm; without it the index falls back to a front-biased mechanical excerpt. This is marker metadata, not a rewrite of body prose.
 2. Keep the page's `# Title` in the `.md` file.
 3. Remove document-level overview/blockquote/`## 概览` summary text from the `.md` file.
 4. Create or update the companion `<stem>.index.md` header with the confirmed overview:
