@@ -85,7 +85,8 @@ SKILLS_INTRO = (
 # preserved (see cmd_register_card).
 SKILLS_DOC_OVERVIEW = (
     "项目最佳实践 skill 的发现目录：每个 section 概述一个 skill 的适用场景与「命中即必须绑定」关系，"
-    "规范正文保留在对应 skill 包内，本页仅供 wiki-researcher 在 brainstorm 期发现并绑定。"
+    "规范正文保留在对应 skill 包内，本页只负责被 wiki-researcher 发现选中；"
+    "卡片到执行角色的绑定由下游 sidecar 生成器与执行渲染器机械完成。"
 )
 ROOT_INTRO = (
     "# Project Wiki\n\nUse this file as the entry point for project-specific wiki pages.\n"
