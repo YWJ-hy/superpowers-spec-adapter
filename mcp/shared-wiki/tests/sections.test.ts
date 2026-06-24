@@ -59,6 +59,23 @@ const BROKEN_DOC = `# Broken
 No closing marker.
 `;
 
+// Markers now carry an authored summary="…" (and optionally roles="…") attribute tail.
+// The MCP parser must tolerate it and still resolve the section by id.
+const SUMMARY_DOC = `# Hook Guidelines
+
+<!-- wiki-section:hook-scope-placement summary="Hook 按作用域分层放置: ..." -->
+## Hook Scope Placement
+
+Hooks must be layered by scope.
+<!-- /wiki-section:hook-scope-placement -->
+
+<!-- wiki-section:card-x summary="A card" roles="review" -->
+## Card X
+
+Card body.
+<!-- /wiki-section:card-x -->
+`;
+
 describe('extractAllSections', () => {
   it('extracts all top-level sections', () => {
     const sections = extractAllSections(SAMPLE_DOC);
@@ -82,6 +99,13 @@ describe('extractAllSections', () => {
     expect(sections.has('real')).toBe(true);
     expect(sections.get('real')).toContain('Real content');
   });
+
+  it('resolves sections whose open marker carries a summary/roles attribute', () => {
+    const sections = extractAllSections(SUMMARY_DOC);
+    expect(sections.size).toBe(2);
+    expect(sections.get('hook-scope-placement')).toContain('layered by scope');
+    expect(sections.get('card-x')).toContain('Card body');
+  });
 });
 
 describe('extractSection', () => {
@@ -93,12 +117,21 @@ describe('extractSection', () => {
   it('returns null for missing section', () => {
     expect(extractSection(SAMPLE_DOC, 'nonexistent')).toBeNull();
   });
+
+  it('returns content for a section whose marker carries a summary attribute', () => {
+    const content = extractSection(SUMMARY_DOC, 'hook-scope-placement');
+    expect(content).toContain('layered by scope');
+  });
 });
 
 describe('listSectionIds', () => {
   it('lists all section IDs in order', () => {
     const ids = listSectionIds(SAMPLE_DOC);
     expect(ids).toEqual(['path-based-update', 'deep-path']);
+  });
+
+  it('lists ids whose markers carry attributes', () => {
+    expect(listSectionIds(SUMMARY_DOC)).toEqual(['hook-scope-placement', 'card-x']);
   });
 
   it('includes nested IDs', () => {
@@ -128,5 +161,15 @@ describe('validateSectionMarkers', () => {
     const errors = validateSectionMarkers(doc);
     expect(errors.length).toBeGreaterThanOrEqual(1);
     expect(errors[0]).toContain("expected 'aaa'");
+  });
+
+  it('accepts valid summary/roles attributes', () => {
+    expect(validateSectionMarkers(SUMMARY_DOC)).toEqual([]);
+  });
+
+  it('flags a marker whose summary contains > (truncated comment)', () => {
+    const doc = `<!-- wiki-section:bad summary="a > b" -->\nContent\n<!-- /wiki-section:bad -->`;
+    const errors = validateSectionMarkers(doc);
+    expect(errors.some((e) => e.includes('malformed wiki-section marker'))).toBe(true);
   });
 });

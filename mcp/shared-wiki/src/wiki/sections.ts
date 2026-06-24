@@ -3,14 +3,24 @@
  *
  * Markers use HTML comments:
  *   <!-- wiki-section:section-id -->
+ *   <!-- wiki-section:section-id summary="…" -->
  *   <!-- /wiki-section:section-id -->
  *
  * Section IDs are restricted to kebab-case: [a-z0-9][a-z0-9_-]*
+ *
+ * Kept in lockstep with overlays/scripts/wiki_section.py (the index-generation side).
+ * The open marker may carry optional HTML-comment attributes after the id (currently an
+ * authored summary="…" / roles="…"); the attribute tail is captured but ignored here —
+ * the MCP only needs the section id. Legacy markers without attributes keep matching.
  */
 
 const SECTION_ID_PATTERN = '[a-z0-9][a-z0-9_-]*';
-const OPEN_RE = new RegExp(`^<!-- wiki-section:(${SECTION_ID_PATTERN}) -->$`);
+const OPEN_RE = new RegExp(`^<!-- wiki-section:(${SECTION_ID_PATTERN})(\\s[^>]*?)?\\s*-->$`);
 const CLOSE_RE = new RegExp(`^<!-- /wiki-section:(${SECTION_ID_PATTERN}) -->$`);
+// Catches lines that intend to be a marker but match neither OPEN_RE nor CLOSE_RE — e.g. a
+// summary containing '>' truncates the comment, which would otherwise silently drop the
+// whole section from parsing instead of surfacing an error.
+const LOOSE_MARKER_RE = /^<!--\s*\/?wiki-section:/;
 const FENCE_OPEN_RE = /^(`{3,}|~{3,})/;
 
 interface SectionSpan {
@@ -80,6 +90,14 @@ function parseSpans(text: string): { topLevel: SectionSpan[]; errors: string[] }
         stack[stack.length - 1].endLine = i;
         stack.pop();
       }
+      continue;
+    }
+
+    if (LOOSE_MARKER_RE.test(stripped)) {
+      errors.push(
+        `Line ${i + 1}: malformed wiki-section marker (id must be kebab-case; a ` +
+          `summary="…" must avoid > and stay on one line): ${stripped.slice(0, 80)}`,
+      );
     }
   }
 
