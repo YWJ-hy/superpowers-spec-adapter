@@ -194,10 +194,12 @@ def main():
 
     reminder = (
         "A merge that integrates a development branch into its integration branch just completed. "
-        "If this finalized implementation, debugging, or review work, use the `update-wiki` skill to "
-        "review whether the work produced durable implementation knowledge that should persist to the "
-        "project or shared wiki before you treat the task as done. If nothing durable should persist, "
-        "state an explicit skip reason. This is a post-merge knowledge-capture reminder only; it does "
+        "If this finalized implementation, debugging, or review work, run the `update-wiki` skill to "
+        "make the keep-or-skip determination about durable implementation knowledge before you treat "
+        "the task as done. Reach that call by running the skill so its judgment framework applies — do "
+        "not pre-decide on your own that nothing is durable and bypass the skill. Skipping is a valid "
+        "outcome, but it must be the skill's own conclusion, stated with an explicit reason, not a "
+        "reason to avoid invoking it. This is a post-merge knowledge-capture reminder only; it does "
         "not assert that implementation is verified or complete."
     )
 
