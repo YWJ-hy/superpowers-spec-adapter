@@ -324,12 +324,12 @@ If the preflight fails because task text changed after plan review, stop before 
 Before dispatching each implementer or reviewer, render only that task's role-scoped wiki constraints to a file under the SDD handoff directory, then pass the subagent that file path. This follows the native Superpowers file-handoff model (`task-brief`, `review-package`): bulk context moves as files the subagent Reads in one call, never pasted through the controller's context. The native `task-brief` already delivers the assigned task's full text, so do not paste the task text or the rendered wiki constraints into the dispatch prompt:
 
 ```bash
-SDD_DIR="$(git rev-parse --git-path sdd)"; mkdir -p "$SDD_DIR"
+SDD_DIR="$(git rev-parse --show-toplevel)/.superpowers/sdd"; mkdir -p "$SDD_DIR"
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --task-id <assigned-task-id> --role implementer --strict --execution-ready > "$SDD_DIR/task-<assigned-task-id>-wiki.md"
 python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --task-id <reviewed-task-id> --role reviewer --strict --execution-ready > "$SDD_DIR/task-<reviewed-task-id>-wiki-review.md"
 ```
 
-In the implementer prompt, instruct the subagent to Read `$SDD_DIR/task-<assigned-task-id>-wiki.md` (its rendered wiki constraints) alongside its `task-brief` file. In the reviewer prompt, point the reviewer at `$SDD_DIR/task-<reviewed-task-id>-wiki-review.md` alongside its `review-package` file. These rendered wiki files are transient scratch under the private git-dir (the same `sdd/` location as `task-brief`/`review-package`); never commit them, and do not pass legacy rendered context files such as `.claude-*-wiki-task*-impl.md`. If the plan lacks strict JSON wiki references or references only legacy context, pause and ask whether to update the plan before dispatching subagents.
+In the implementer prompt, instruct the subagent to Read `$SDD_DIR/task-<assigned-task-id>-wiki.md` (its rendered wiki constraints) alongside its `task-brief` file. In the reviewer prompt, point the reviewer at `$SDD_DIR/task-<reviewed-task-id>-wiki-review.md` alongside its `review-package` file. These rendered wiki files are transient scratch in the working-tree SDD workspace `<repo-root>/.superpowers/sdd/` (the same directory native `task-brief`/`review-package` use via `sdd-workspace`, kept out of `.git/` because Claude Code denies subagent writes under the protected git-dir); the workspace's self-ignoring `.gitignore` keeps them out of commits, and do not pass legacy rendered context files such as `.claude-*-wiki-task*-impl.md`. If the plan lacks strict JSON wiki references or references only legacy context, pause and ask whether to update the plan before dispatching subagents.
 
 ### Hard Wiki Constraint Rereads
 

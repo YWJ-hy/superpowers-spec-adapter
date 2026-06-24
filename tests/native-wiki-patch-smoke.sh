@@ -295,7 +295,7 @@ if ! grep -Fq '.wiki-context.json' "${TARGET_INPUT}/skills/subagent-driven-devel
   exit 1
 fi
 
-for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'shared_wiki_read_sections' 'revision metadata' '--batch-jsonl' 'file-handoff model' 'task-brief' 'review-package' '-wiki.md' 'git rev-parse --git-path sdd' '## Hard Wiki Constraint Rereads' 'rebinding drift' 'Adapter Source-of-Truth Task Lint' 'source_truth_settings.py' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'truth/edit: never' 'truth/edit: ask'; do
+for required in 'Adapter Task Context' 'wiki_context_render.py' '--task-id' '--fingerprint-preflight' '--execution-ready' '--role implementer' '--role reviewer' '--reread-list' 'shared_wiki_read_sections' 'revision metadata' '--batch-jsonl' 'file-handoff model' 'task-brief' 'review-package' '-wiki.md' 'git rev-parse --show-toplevel)/.superpowers/sdd' '## Hard Wiki Constraint Rereads' 'rebinding drift' 'Adapter Source-of-Truth Task Lint' 'source_truth_settings.py' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'truth/edit: never' 'truth/edit: ask'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/skills/subagent-driven-development/SKILL.md"; then
     printf 'Expected subagent-driven-development patch to contain source-aware forwarding text: %s\n' "$required" >&2
     exit 1
