@@ -81,15 +81,7 @@ focus: <module, workflow, or concern if known>
 
 Use the result as lightweight `Adapter Project Wiki Context` while designing the Superpowers spec. Wiki selection is strict and progressive: read indexes and companion section indexes first, select relevant sections only, and do not scan whole wiki trees without an explicit audit request. For `source: github_mcp`, treat `.shared-superpowers/wiki/<path>.md` as a logical display path, not a local file path. Do not block brainstorming if no relevant wiki exists, MCP is unavailable, or root indexes are missing; mention the caveat and continue. Do not write sidecar JSONL, `.wiki-selection.json`, or `.wiki-context.json` during brainstorming.
 
-Do not run Lanhu intake inside `brainstorming`. If the user provides a Lanhu URL, invite link, or asks to use Lanhu, pause brainstorming and ask them to invoke the explicit adapter skill first:
-
-```text
-lanhu-requirements skill <Lanhu link> frontend|backend <optional requirement name>
-```
-
-Continue only after the user confirms the generated `.lanhu/.../index.md` package. If the user points to an already confirmed `.lanhu/.../index.md` package, read that `index.md` first, follow only files it lists, and use the package as Superpowers requirements input. Do not regenerate Lanhu output, do not call Lanhu MCP by default, and do not copy Lanhu content into project/shared wiki, plan sidecars, final acceptance criteria, test plans, technical solution, or implementation tasks.
-
-Lanhu MCP is optional. If the explicit skill cannot use Lanhu tools, the user can paste requirements or continue with normal Superpowers brainstorming.
+Do not run Lanhu intake inside `brainstorming`. If the user gives a Lanhu URL, invite link, or asks for Lanhu, pause and have them run the explicit skill first — `lanhu-requirements skill <Lanhu link> frontend|backend <optional requirement name>` — and continue only after they confirm the generated `.lanhu/.../index.md` package. If they point to an already confirmed `.lanhu/.../index.md` package, read that `index.md` first and follow only the files it lists. Use the package as Superpowers requirements input only: do not regenerate Lanhu output, do not call Lanhu MCP by default, and do not copy Lanhu content into project/shared wiki, plan sidecars, final acceptance criteria, test plans, technical solution, or implementation tasks. Lanhu MCP is optional — the user can paste requirements or continue with normal Superpowers brainstorming instead.
 
 Before proposing approaches, render the configured source-of-truth spec policy with the installed plugin-root script:
 

@@ -500,4 +500,21 @@ if python3 "$SCRIPT" "$CONTEXT" --fingerprint-preflight --strict --execution-rea
 fi
 assert_contains "bad fingerprint failure" 'fingerprint' "$(cat /tmp/wiki-context-bad-fingerprint.out)"
 
+# R6: source-anchor excerpts are soft-capped at render with an ellipsis hint (a bounded pointer, not
+# the authoritative text -- that is the reread's job). Short excerpts pass through unchanged.
+python3 - "$SCRIPT" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("wcr_cap", sys.argv[1])
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+short = "All field updates MUST use updateByPath(path, value)."
+assert m._truncate_excerpt(short) == short, "short excerpt must pass through unchanged"
+assert m._truncate_excerpt(None) == "", "None excerpt -> empty string"
+long = "x" * 500
+out = m._truncate_excerpt(long)
+assert out.endswith("(truncated; reread the section for full text)"), out
+assert ("x" * 500) not in out and len(out) <= m.MAX_SOURCE_ANCHOR_EXCERPT + 60, out
+print("source-anchor excerpt cap ok")
+PY
+
 printf 'wiki-context-json-render smoke test complete\n'

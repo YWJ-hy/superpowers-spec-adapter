@@ -23,6 +23,10 @@ ROLE_CATEGORIES = {
 # some roles; render + reread skip a section whose roles exclude the active role. Absent roles =
 # binds to every role (historical behavior; non-card sections never carry roles).
 ROLE_TO_BINDING = {"implementer": "implement", "reviewer": "review"}
+# Source anchors are bounded pointers into a section, not the section body -- the authoritative full
+# text always comes from the reread. A long excerpt is soft-capped at render (the only place an anchor
+# reaches an execution prompt) so a verbose selection cannot bloat per-task injection.
+MAX_SOURCE_ANCHOR_EXCERPT = 200
 DESTINATION_KINDS = {"task-bound", "global", "planning-only"}
 SCAFFOLD_GENERATED_BY = "superpower-adapter"
 # taskRouting block emitted by --scaffold. These are the pre-confirmation values: the author flips
@@ -379,6 +383,21 @@ def _append_reread(lines: list[str], reread: Any) -> None:
         lines.append(f"- Include document context: `{_format_bool(reread_obj.get('includeDocumentContext'))}`")
 
 
+def _truncate_excerpt(value: Any) -> str:
+    """Soft-cap a source-anchor excerpt to a bounded pointer length with an ellipsis hint.
+
+    Anchors are pointers, not authoritative text (that is the reread's job), so a pathologically long
+    excerpt is trimmed here rather than rejected -- non-destructive to the stored selection, bounded in
+    the execution prompt. The trailing hint tells the reader where the full text lives.
+    """
+    if value is None:
+        return ""
+    text = str(value)
+    if len(text) <= MAX_SOURCE_ANCHOR_EXCERPT:
+        return text
+    return text[:MAX_SOURCE_ANCHOR_EXCERPT].rstrip() + "… (truncated; reread the section for full text)"
+
+
 def _append_source_anchors(lines: list[str], anchors: Any) -> None:
     source_anchors = _as_list(anchors, "sourceAnchors")
     if not source_anchors:
@@ -387,11 +406,11 @@ def _append_source_anchors(lines: list[str], anchors: Any) -> None:
     for anchor in source_anchors:
         if isinstance(anchor, dict):
             heading = anchor.get("heading")
-            excerpt = anchor.get("excerpt")
+            excerpt = _truncate_excerpt(anchor.get("excerpt"))
             prefix = f"{heading}: " if heading else ""
-            lines.append(f"- {prefix}{excerpt or ''}".rstrip())
+            lines.append(f"- {prefix}{excerpt}".rstrip())
         else:
-            lines.append(f"- {anchor}")
+            lines.append(f"- {_truncate_excerpt(anchor)}")
 
 
 def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None) -> str:

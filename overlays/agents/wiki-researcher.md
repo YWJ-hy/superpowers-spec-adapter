@@ -180,7 +180,7 @@ Selection structure:
             "general": ["<uncategorized preserved constraint>"]
           },
           "sourceAnchors": [
-            {"heading": "<optional heading within the section>", "excerpt": "<short bounded excerpt>"}
+            {"heading": "<optional heading within the section>", "excerpt": "<short bounded pointer, ~1 sentence / <=200 chars; the reread carries the authoritative full text>"}
           ]
         }
       ]
@@ -205,6 +205,7 @@ Rules:
 - `documentContext` belongs once per page, from the companion `<stem>.index.md` title/overview; keep it bounded. Do not nest `documentContext` inside section objects, and do not summarize sibling sections or the full page into it.
 - Populate `constraints` only when `readDepth` is `full`, and put every distilled constraint in exactly one of `implementation`, `test`, `review`, or `general` (use `general` when the category is unclear).
 - Output `relevanceTo` as a coarse human-readable task-area description, never specific task numbers.
+- Keep each `sourceAnchors` excerpt a short bounded pointer (about one sentence, <=200 chars); it locates the constraint while the reread carries the authoritative full section text. The renderer soft-caps longer excerpts with an ellipsis hint.
 - Include the `sharedWikiSource` block only when at least one selected page is `source: github_mcp`; preserve `repoUrl`, `baseBranch`, and `revision` from `shared_wiki_status` so the generator can record shared-wiki identity for drift detection.
 
 ### Plan-phase return
