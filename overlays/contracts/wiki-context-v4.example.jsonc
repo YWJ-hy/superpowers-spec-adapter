@@ -62,7 +62,6 @@
       "sections": [
         {
           "sectionId": "path-based-update",
-          "section_name": "path-based-update",
           "readDepth": "full",
           "relevance": "direct",
           "confidence": "high",
@@ -104,7 +103,6 @@
         },
         {
           "sectionId": "deep-path",
-          "section_name": "deep-path",
           "readDepth": "full",
           "relevance": "supporting",
           "confidence": "medium",
@@ -116,11 +114,11 @@
             "kind": "planning-only",
             "reason": "This context shaped task design but does not need execution prompt injection."
           },
+          // Empty categories are OMITTED (not written as []): the generator drops empty buckets, so only
+          // non-empty categories appear here. sectionId is the single canonical section id; section_name
+          // is no longer emitted.
           "constraints": {
-            "implementation": ["Use dot-notation for nested object paths."],
-            "test": [],
-            "review": [],
-            "general": []
+            "implementation": ["Use dot-notation for nested object paths."]
           },
           "sourceAnchors": [
             {"heading": "Deep Path Handling", "excerpt": "Use dot-notation paths like user.address.city."}
@@ -151,7 +149,6 @@
       "sections": [
         {
           "sectionId": "contract-review",
-          "section_name": "contract-review",
           "readDepth": "full",
           "relevance": "direct",
           "confidence": "high",

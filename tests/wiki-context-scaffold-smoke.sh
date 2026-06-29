@@ -221,8 +221,11 @@ assert s1['hardConstraint'] is False
 assert 'reread' not in s1
 assert s1['destination']['kind'] == 'planning-only'
 assert 'tasks' not in s1['destination'], s1['destination']
-# Constraints normalized to exactly the four categories.
-assert set(s1['constraints']) == {'implementation', 'test', 'review', 'general'}
+# R5: empty constraint buckets are dropped (s1 only had implementation) and section_name is no
+# longer emitted (sectionId is the single canonical id). s0 likewise drops its empty general bucket.
+assert set(s1['constraints']) == {'implementation'}, s1['constraints']
+assert 'section_name' not in s1, 's1 still carries redundant section_name'
+assert 'general' not in pages[0]['sections'][0]['constraints'], 's0 empty general bucket not dropped'
 # github_mcp hard section: reread uses wikiPath, never localPath.
 sc = pages[1]['sections'][0]
 assert sc['reread']['wikiPath'] == 'frontend/contracts.md'

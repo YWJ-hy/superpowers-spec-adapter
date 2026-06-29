@@ -371,7 +371,6 @@ def _append_reread(lines: list[str], reread: Any) -> None:
         ("localPath", "Local path"),
         ("wikiPath", "Wiki path"),
         ("sectionId", "Section"),
-        ("section_name", "Section"),
     ):
         value = reread_obj.get(key)
         if value:
@@ -441,20 +440,16 @@ def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None)
                 continue
             section_id = section.get("sectionId") or section.get("section_name")
             lines.append(f"### Section: `{section_id}`")
+            # Execution render carries only what the implementer/reviewer acts on for this task: keep
+            # relevanceTo + reason (separate fields, never merged) and the hard-constraint flag, and drop
+            # planning/routing bookkeeping -- relevance/confidence (selection-time signals) and the
+            # destination kind/reason (routing is already resolved: this section only renders because it
+            # routed to this task). Trims every selected section in every per-task render.
             if section.get("relevanceTo"):
                 lines.append(f"- Relevance to: {section['relevanceTo']}")
-            if section.get("relevance"):
-                lines.append(f"- Relevance: {section['relevance']}")
-            if section.get("confidence"):
-                lines.append(f"- Confidence: {section['confidence']}")
             if section.get("reason"):
                 lines.append(f"- Reason: {section['reason']}")
             lines.append(f"- Hard constraint: `{_format_bool(section.get('hardConstraint'))}`")
-            destination = section.get("destination")
-            if isinstance(destination, dict):
-                lines.append(f"- Destination: `{destination.get('kind')}`")
-                if destination.get("reason"):
-                    lines.append(f"- Destination reason: {destination['reason']}")
             for caveat in _as_list(section.get("caveats"), "section.caveats"):
                 lines.append(f"- Caveat: {caveat}")
             _append_constraints(lines, _as_dict(section.get("constraints"), "constraints"), role)
@@ -759,7 +754,7 @@ def _scaffold_section(page: dict[str, Any], raw_section: Any, page_index: int, s
         raise ValidationError(f"{where} must include sectionId or section_name")
     section_id = str(section_id)
 
-    out: dict[str, Any] = {"sectionId": section_id, "section_name": str(section.get("section_name") or section_id)}
+    out: dict[str, Any] = {"sectionId": section_id}
     for field_name in ("readDepth", "relevance", "confidence", "reason", "relevanceTo"):
         if section.get(field_name) is not None:
             out[field_name] = section[field_name]
@@ -769,9 +764,13 @@ def _scaffold_section(page: dict[str, Any], raw_section: Any, page_index: int, s
     unknown = sorted(set(constraints) - set(CONSTRAINT_CATEGORIES))
     if unknown:
         raise ValidationError(f"{where}.constraints contains unsupported categories: {', '.join(unknown)}")
+    # Keep only non-empty categories so the sidecar the planning agent reads (and every per-task
+    # render) carry no empty buckets. _as_list still validates each present value is a list; an absent
+    # category degrades to empty downstream (_as_list(None) -> []), so dropping empties is lossless.
     out["constraints"] = {
-        category: _as_list(constraints.get(category), f"{where}.constraints.{category}")
+        category: items
         for category in CONSTRAINT_CATEGORIES
+        if (items := _as_list(constraints.get(category), f"{where}.constraints.{category}"))
     }
 
     # destination.kind is a starting guess; reason stays empty on purpose so the author must justify
