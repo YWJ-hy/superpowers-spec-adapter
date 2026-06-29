@@ -305,7 +305,7 @@ While implementing a task, if you make a hard-to-reverse or surprising decision,
 
 Capture liberally and cheaply; do not run `update-wiki`, judge ownership, or check duplicates mid-flow — the end-of-flow review is the strict filter. Append-only; never rewrite earlier lines. This file is transient scratch: do not commit it.
 
-After completing implementation, use the `update-wiki` skill to review whether the work produced durable implementation knowledge that should be persisted to the appropriate wiki root, consuming any `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar as candidate input. Do not force a spec edit when there is nothing durable to record.
+After completing implementation, and before handing off to `finishing-a-development-branch` or otherwise removing/exiting the worktree, use the `update-wiki` skill to review whether the work produced durable implementation knowledge that should be persisted to the appropriate wiki root, consuming any `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar as candidate input. The sidecar lives in the working tree and is deleted when the worktree is removed, so consume it here — inside the still-live worktree — not later. Do not defer this consumption to the post-merge `update-wiki` reminder: that reminder is only a backstop for when this step was skipped, and once a merge completes the worktree (and the sidecar) is usually already gone, leaving update-wiki to fall back to the merged diff and conversation context. Do not force a spec edit when there is nothing durable to record.
 ''',
     ),
     PatchSpec(
@@ -369,7 +369,7 @@ Subagents must NOT write wiki pages or the candidates sidecar — parallel subag
 
 As each subagent returns, the main agent appends its candidates — one JSONL line each — to `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl`. The main agent serializes these appends (append-only; transient scratch; never committed) and is the only writer of the sidecar under SDD.
 
-After implementation and review, the main agent should use the `update-wiki` skill to decide whether any durable implementation knowledge should be persisted to the appropriate wiki root, consuming the `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar as candidate input. Subagents should not write wiki updates unless explicitly instructed.
+After implementation and review, and before handing off to `finishing-a-development-branch` or otherwise removing/exiting the worktree, the main agent should use the `update-wiki` skill to decide whether any durable implementation knowledge should be persisted to the appropriate wiki root, consuming the `docs/superpowers/plans/<plan-stem>.wiki-candidates.jsonl` sidecar as candidate input. The sidecar lives in the working tree and dies with the worktree, so consume it here — inside the still-live worktree — not after a merge. Do not defer this consumption to the post-merge `update-wiki` reminder: it is only a backstop for a skipped step, and once a merge completes the worktree (and the sidecar) is usually already gone, leaving update-wiki to fall back to the merged diff and conversation context. Subagents should not write wiki updates unless explicitly instructed.
 ''',
     ),
 ]
