@@ -430,14 +430,14 @@ check_native_skill_residuals() {
   done
 
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'keep-or-skip determination about durable implementation knowledge' 'and bypass the skill' 'candidate absence is not conclusive'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'revision metadata' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'Reviewers should check that any lint findings were resolved'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'revision metadata' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'Reviewers should check that any lint findings were resolved' 'keep-or-skip determination about durable implementation knowledge' 'and bypass the skill' 'candidate absence is not conclusive'; do
     if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1
@@ -452,14 +452,31 @@ check_native_skill_residuals() {
     exit 1
   fi
 
-  # The adapter no longer patches using-git-worktrees or finishing-a-development-branch
-  # (worktree-origin metadata mechanism removed; native base-branch detection is used).
+  # using-git-worktrees stays unpatched (worktree-origin metadata mechanism removed;
+  # native base-branch detection is used).
   for unpatched in \
-    "$TARGET_DIR/skills/using-git-worktrees/SKILL.md" \
-    "$TARGET_DIR/skills/finishing-a-development-branch/SKILL.md"
+    "$TARGET_DIR/skills/using-git-worktrees/SKILL.md"
   do
     if [[ -f "$unpatched" ]] && grep -Fq 'superpower-adapter:native-skill' "$unpatched"; then
       printf 'Adapter must no longer patch %s\n' "$unpatched" >&2
+      exit 1
+    fi
+  done
+
+  # finishing-a-development-branch carries the adapter durable-knowledge gate: before a
+  # finishing option removes the worktree (and its candidates sidecar), the update-wiki
+  # keep-or-skip determination must be made by running the skill, not pre-decided inline.
+  local finishing_skill="$TARGET_DIR/skills/finishing-a-development-branch/SKILL.md"
+  for required in \
+    'Adapter Durable-Knowledge Gate' \
+    'Step 1 (Verify Tests) still comes first' \
+    'keep-or-skip determination about durable implementation knowledge' \
+    'do not pre-decide in the main loop that nothing is durable and bypass the skill' \
+    'candidate absence is not conclusive' \
+    'last reliable point to consume it'
+  do
+    if ! grep -Fq -- "$required" "$finishing_skill"; then
+      printf 'Missing finishing-a-development-branch durable-knowledge gate: %s\n' "$required" >&2
       exit 1
     fi
   done
