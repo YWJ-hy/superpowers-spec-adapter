@@ -345,4 +345,53 @@ if python3 "$SCRIPT" "$CTX" --scaffold "$SEL_SRC" --scaffold-tasks --plan-path "
 fi
 assert_contains "combo guard" 'separate invocations' "$(cat /tmp/wiki-scaffold-combo.out)"
 
+# --- --finalize: one-shot scaffold-tasks + bind in a single write, after the lone destination edit pass. ---
+# Tier 1' planning path: fresh scaffold -> author edits destination once -> --finalize stamps + gates + writes once,
+# so the planning agent's Read-tracked sidecar is re-surfaced once instead of after two separate rewrites.
+FIN_SEL="$TMP/finalize.wiki-selection.json"
+FIN_CTX="$TMP/finalize.wiki-context.json"
+cp "$SEL_SRC" "$FIN_SEL"
+python3 "$SCRIPT" "$FIN_CTX" --scaffold "$FIN_SEL" --plan-path "$PLAN" --strict >/dev/null
+# Author edits ONLY semantic routing, in a single pass, exactly as the reworked planning patch directs.
+python3 - "$FIN_CTX" <<'PY'
+import json, sys
+f = sys.argv[1]
+d = json.load(open(f, encoding='utf-8'))
+s0 = d['wikiPages'][0]['sections'][0]['destination']
+s0['reason'] = 'T1 changes field update behavior.'
+s0['tasks'] = ['T1']
+d['wikiPages'][0]['sections'][1]['destination']['reason'] = 'Shaped task design only; not injected.'
+contract = d['wikiPages'][1]['sections'][0]['destination']
+contract['kind'] = 'global'
+contract.pop('tasks', None)
+contract['reason'] = 'Portable contract naming applies to every task and reviewer.'
+d['taskRouting']['status'] = 'confirmed'
+d['taskRouting']['selectedSectionsFrozen'] = True
+json.dump(d, open(f, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+PY
+# One call builds the roster, stamps fingerprints, gates execution readiness, and writes once.
+FIN_OUT="$(python3 "$SCRIPT" "$FIN_CTX" --finalize --strict --plan-path "$PLAN")"
+assert_contains "finalize output" 'finalized 2 task(s) (2 updated): T1, T2' "$FIN_OUT"
+# A clean finalize guarantees the execution-side preflight passes and execution-ready render works.
+python3 "$SCRIPT" "$FIN_CTX" --fingerprint-preflight --strict --execution-ready --plan-path "$PLAN" >/dev/null
+FIN_RENDER="$(python3 "$SCRIPT" "$FIN_CTX" --task-id T1 --role implementer --strict --execution-ready)"
+assert_contains "finalize render" 'Use updateByPath(path, value)' "$FIN_RENDER"
+# Re-running --finalize is idempotent: fingerprints already current, still execution-ready.
+FIN_OUT2="$(python3 "$SCRIPT" "$FIN_CTX" --finalize --strict --plan-path "$PLAN")"
+assert_contains "finalize idempotent" 'finalized 2 task(s) (already current): T1, T2' "$FIN_OUT2"
+
+# --- Negative: --finalize requires --plan-path. ---
+if python3 "$SCRIPT" "$FIN_CTX" --finalize --strict >/tmp/wiki-finalize-noplan.out 2>&1; then
+  printf 'Expected --finalize without --plan-path to fail\n' >&2
+  exit 1
+fi
+assert_contains "finalize needs plan" 'requires --plan-path' "$(cat /tmp/wiki-finalize-noplan.out)"
+
+# --- Negative: --finalize must not be combined with the subcommands it already runs. ---
+if python3 "$SCRIPT" "$FIN_CTX" --finalize --scaffold-tasks --plan-path "$PLAN" >/tmp/wiki-finalize-combo.out 2>&1; then
+  printf 'Expected --finalize + --scaffold-tasks together to fail\n' >&2
+  exit 1
+fi
+assert_contains "finalize combo guard" 'already runs scaffold-tasks' "$(cat /tmp/wiki-finalize-combo.out)"
+
 printf 'wiki-context-scaffold smoke test complete\n'

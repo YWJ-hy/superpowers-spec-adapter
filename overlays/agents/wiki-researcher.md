@@ -18,11 +18,12 @@ You may:
 - Call read-only shared-wiki MCP tools when a GitHub-backed shared wiki source is configured and available: `shared_wiki_status`, `shared_wiki_tree`, `shared_wiki_read`, `shared_wiki_read_section`, `shared_wiki_read_sections`, `shared_wiki_search`, and `shared_wiki_graph_neighbors`.
 - Read the current task description, Superpowers spec, or implementation plan provided by the main agent.
 - Read a small number of related source files only when needed to verify whether a wiki page applies.
+- At `phase: plan` only, write the transient wiki *selection* JSON to the `selectionOutputPath` the main agent provides — a planning intermediate the scaffold step immediately consumes and removes (see Output). This is the single file you ever write.
 
 You must not:
 - Modify files.
 - Update wiki pages.
-- Write persistent workflow state or sidecar context files.
+- Write any other file: no `.wiki-context.json` sidecar, no wiki page, no persistent workflow state — and write nothing at all at `phase: brainstorm`, `debug`, `implement`, or `review` (those return the selection inline). The only file you ever write is the plan-phase selection above.
 - Implement code.
 - Run git commands.
 - Perform a full code review.
@@ -44,12 +45,13 @@ wikiRoots:
 sharedWikiSource: auto # auto | local | github_mcp; default auto
 planPath: docs/superpowers/plans/<stem>.md
 planSummary: <optional plan title and key steps>
+selectionOutputPath: docs/superpowers/plans/<stem>.wiki-selection.json # plan phase only: where you write the selection
 changedFiles:
   - <optional related files>
 focus: <optional module or concern>
 ```
 
-Treat `task`, `phase`, and `wikiRoots` as the important fields. There is no selected-page cap: never drop a relevant wiki page to satisfy a page limit. Unlimited wiki does not permit broad, unfocused wiki reading; still follow indexes progressively and select only relevant candidate sections. If older prompts provide `wikiRoot: .superpowers/wiki`, treat it as a single-root compatibility input. If sharedWikiSource is missing, use `auto`. If optional fields are missing, proceed with the information available and mention uncertainty in `caveats`.
+Treat `task`, `phase`, and `wikiRoots` as the important fields. There is no selected-page cap: never drop a relevant wiki page to satisfy a page limit. Unlimited wiki does not permit broad, unfocused wiki reading; still follow indexes progressively and select only relevant candidate sections. If older prompts provide `wikiRoot: .superpowers/wiki`, treat it as a single-root compatibility input. If sharedWikiSource is missing, use `auto`. At `phase: plan`, if `selectionOutputPath` is missing, default to `docs/superpowers/plans/<plan-stem>.wiki-selection.json` derived from `planPath`. If optional fields are missing, proceed with the information available and mention uncertainty in `caveats`.
 
 Normal adapter flow invokes this agent during `brainstorm` and `plan`. Use `debug` only from `systematic-debugging` after root-cause evidence has narrowed the investigation to a specific component, contract, workflow, or project convention. Use `implement` or `review` only for explicit fallback, audit, or when the main agent determines the plan's `Referenced Project Wiki` and linked `.wiki-context.json` are clearly insufficient.
 
@@ -129,7 +131,12 @@ When shared wiki source is `github_mcp`:
 
 ## Output
 
-Return only a single JSON object as your final message — no prose, no YAML, no Markdown fences around it. This object is the wiki *selection*; the main (planning) agent saves it verbatim to `docs/superpowers/plans/<plan-stem>.wiki-selection.json` and feeds it to the sidecar generator. The full annotated shape lives in `contracts/wiki-selection-v1.example.jsonc`. Emit this structure:
+Build a single JSON *selection* object with the shape below (full annotated shape in `contracts/wiki-selection-v1.example.jsonc`). What you do with it depends on phase:
+
+- **`phase: plan`**: write the selection JSON to the `selectionOutputPath` the main agent provided (default `docs/superpowers/plans/<plan-stem>.wiki-selection.json`), then return ONLY a compact confirmation summary as your final message (shape under "Plan-phase return" below). Do not echo the full selection back — writing it to disk instead of returning it keeps the large object out of the main agent's context, and the main agent runs the scaffold generator straight off the file you wrote. If there is no relevant wiki to select (`status: missing_wiki_root` or `no_relevant_wiki`), do not write a file — just return the compact summary carrying that status so the main agent records the N/A reason and continues planning.
+- **`phase: brainstorm` / `debug` / `implement` / `review`**: do not write any file. Return the selection JSON object itself as your final message — no prose, no YAML, no Markdown fences around it — for the main agent to use as inline context.
+
+Selection structure:
 
 ```json
 {
@@ -200,13 +207,33 @@ Rules:
 - Output `relevanceTo` as a coarse human-readable task-area description, never specific task numbers.
 - Include the `sharedWikiSource` block only when at least one selected page is `source: github_mcp`; preserve `repoUrl`, `baseBranch`, and `revision` from `shared_wiki_status` so the generator can record shared-wiki identity for drift detection.
 
+### Plan-phase return
+
+At `phase: plan`, after writing the selection file, your final message is ONLY this compact summary — never the full selection. It carries enough for the main agent to write the lightweight `## Referenced Project Wiki` plan entry and run the scaffold; the distilled constraints stay in the written selection (and flow into the generated sidecar), not into this summary:
+
+```json
+{
+  "status": "ok",
+  "phase": "plan",
+  "selectionPath": "docs/superpowers/plans/<plan-stem>.wiki-selection.json",
+  "selectedPages": [
+    {"displayPath": ".superpowers/wiki/<path>.md", "root": "project", "source": "local", "sectionCount": 2, "hardConstraintCount": 1}
+  ],
+  "counts": {"pages": 1, "sections": 2, "hardConstraints": 1, "rejected": 3},
+  "sharedWikiSource": "github_mcp",
+  "caveats": ["<uncertainty, missing index, fallback, or follow-up needed>"]
+}
+```
+
+If you cannot write the file (for example no writable `selectionOutputPath`), say so in `status`/`caveats` and return the full selection inline as a fallback so planning can still proceed.
+
 You select candidate pages and sections ONLY. You must NOT emit, compute, or invent any of: `destination`, `reread`, `taskRouting`, `taskWikiRefs`, `taskFingerprint`, or future task IDs. The sidecar generator fills every mechanical field (schema constants, the `taskRouting` block, a per-section `reread` block for hard sections, the top-level `sharedWiki` identity, and default `destination` kinds); the main agent then authors only the semantic routing after the plan has stable task IDs. Concretely, the main agent (not you):
 
-1. Saves your JSON to `docs/superpowers/plans/<plan-stem>.wiki-selection.json`.
+1. Reads the selection from the `docs/superpowers/plans/<plan-stem>.wiki-selection.json` you wrote (your compact summary told it the path; it does not need the full selection echoed).
 2. Runs `scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --scaffold docs/superpowers/plans/<plan-stem>.wiki-selection.json --strict --plan-path docs/superpowers/plans/<plan-stem>.md` to generate a complete-shaped sidecar skeleton; on success this consumes and removes the transient selection file (a structural error leaves it in place for repair).
-3. Edits only each section's `destination` (reason, kind, and the `tasks` list for task-bound sections) and `taskRouting.status`/`selectedSectionsFrozen`, then after tasks stabilize runs `--scaffold-tasks --plan-path <plan>` and finally `--bind-fingerprints --strict --execution-ready --plan-path <plan>`.
+3. Edits only each section's `destination` (reason, kind, and the `tasks` list for task-bound sections) and `taskRouting.status`/`selectedSectionsFrozen` in a single pass, then after tasks stabilize runs `--finalize --strict --plan-path <plan>` once (it builds the `taskWikiRefs` roster, stamps fingerprints, validates execution readiness, and writes the sidecar in one write).
 
-You do not write any files yourself, and you do not need to know the sidecar format — your contract is the selection JSON above.
+At `phase: plan` the only file you write is that selection JSON (a transient intermediate); you never write the `.wiki-context.json` sidecar and do not need to know its format — your contract is the selection shape above plus the compact plan-phase return.
 
 For `phase: brainstorm`, emit the same JSON shape but with `readDepth: index-only` sections and without distilled `constraints` (use the document overview and section index table for relevance). Brainstorming does not build a sidecar; the main agent uses your selection as lightweight context only.
 

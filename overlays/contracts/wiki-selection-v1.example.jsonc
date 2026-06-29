@@ -4,12 +4,14 @@
   //   python3 <plugin-root>/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json \
   //     --scaffold docs/superpowers/plans/<plan-stem>.wiki-selection.json --plan-path docs/superpowers/plans/<plan-stem>.md
   //
-  // Flow: wiki-researcher emits THIS JSON object as its final structured result. The planning (main)
-  // agent writes it verbatim to docs/superpowers/plans/<plan-stem>.wiki-selection.json and runs
+  // Flow: wiki-researcher BUILDS this JSON object. At phase: plan it writes the object to
+  // docs/superpowers/plans/<plan-stem>.wiki-selection.json itself and returns only a compact summary
+  // (keeping the full selection out of the main agent's context). The planning (main) agent runs
   // --scaffold to get a complete-shaped <plan-stem>.wiki-context.json skeleton. The agent then edits
   // ONLY the semantic routing in the generated sidecar (each section's destination: reason, kind, and
-  // the tasks list for task-bound sections, plus taskRouting.status/selectedSectionsFrozen), runs
-  // --scaffold-tasks once the plan has stable numeric `### Task 1:` headings, and finally --bind-fingerprints.
+  // the tasks list for task-bound sections, plus taskRouting.status/selectedSectionsFrozen) in a single
+  // pass, then once the plan has stable numeric `### Task 1:` headings runs --finalize once (it builds the
+  // taskWikiRefs roster, stamps fingerprints, validates execution readiness, and writes the sidecar once).
   //
   // The generator fills everything mechanical, so this selection must NOT carry it:
   //   - schemaVersion / kind / generatedBy / planPath / taskRouting block

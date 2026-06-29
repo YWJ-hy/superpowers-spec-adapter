@@ -924,11 +924,14 @@ def main() -> int:
     parser.add_argument("--scaffold", metavar="SELECTION_JSON", help="Generate a sidecar skeleton from a wiki-researcher selection JSON and write it to the positional context path")
     parser.add_argument("--keep-selection", action="store_true", help="With --scaffold, keep the consumed selection JSON instead of removing it on success (for tests/debugging, or to regenerate from an edited selection)")
     parser.add_argument("--scaffold-tasks", action="store_true", help="Scaffold the taskWikiRefs roster (taskId/taskTitle) from stable plan headings into the existing sidecar, preserving any prior taskFingerprint (requires --plan-path)")
+    parser.add_argument("--finalize", action="store_true", help="One-shot planning finalize after the single destination edit pass: scaffold the taskWikiRefs roster from stable plan headings, stamp every taskFingerprint, validate execution readiness, and write the sidecar once (requires --plan-path). Combines --scaffold-tasks + --bind-fingerprints into a single write.")
     args = parser.parse_args()
 
     try:
         if args.scaffold and args.scaffold_tasks:
             raise ValidationError("Run --scaffold and --scaffold-tasks in separate invocations: --scaffold builds the sidecar from a selection, --scaffold-tasks adds task routing after the plan stabilizes")
+        if args.finalize and (args.scaffold or args.scaffold_tasks or args.bind_fingerprints):
+            raise ValidationError("--finalize already runs scaffold-tasks + bind-fingerprints in one write; do not combine it with --scaffold, --scaffold-tasks, or --bind-fingerprints")
         if args.scaffold:
             selection_path = Path(args.scaffold)
             selection = _load_json(selection_path, "wiki selection")
@@ -955,6 +958,25 @@ def main() -> int:
                     print(summary)
             return 0
         data = _load_context(Path(args.context_path))
+        if args.finalize:
+            if not args.plan_path:
+                raise ValidationError("--finalize requires --plan-path")
+            # Single transactional finalize for the planning flow, run once after the author's lone
+            # destination edit pass: refresh the task roster from the stable plan headings (idempotent,
+            # preserving prior fingerprints), validate structure, stamp every taskFingerprint from the
+            # current plan task text, then confirm the result is fully execution-ready before the one
+            # write. Combining scaffold-tasks + bind into a single write means the planning agent's
+            # Read-tracked sidecar is re-surfaced once here instead of after two separate rewrites.
+            task_ids, dropped = scaffold_tasks(data, Path(args.plan_path))
+            _validate_context(data, args.strict, execution_ready=False)
+            total, changed, _ = bind_fingerprints(data, Path(args.plan_path))
+            _validate_context(data, args.strict, execution_ready=True)
+            _write_context(Path(args.context_path), data)
+            for task_id in dropped:
+                print(f"Warning: dropped taskWikiRefs entry no longer in plan: {task_id}", file=sys.stderr)
+            status = f"{changed} updated" if changed else "already current"
+            print(f"finalized {total} task(s) ({status}): {', '.join(task_ids)}")
+            return 0
         if args.scaffold_tasks:
             if not args.plan_path:
                 raise ValidationError("--scaffold-tasks requires --plan-path")

@@ -10,7 +10,7 @@ if [[ ! -f "${TARGET_INPUT}/agents/wiki-researcher.md" ]]; then
   printf 'Expected installed wiki-researcher agent\n' >&2
   exit 1
 fi
-for required in 'wikiRoots:' '.shared-superpowers/wiki' 'root-prefixed `displayPath`' 'sharedWikiSource: auto' 'github_mcp' 'wikiPath' 'revision' 'logical display path' 'shared-wiki MCP'; do
+for required in 'wikiRoots:' '.shared-superpowers/wiki' 'root-prefixed `displayPath`' 'sharedWikiSource: auto' 'github_mcp' 'wikiPath' 'revision' 'logical display path' 'shared-wiki MCP' 'selectionOutputPath' 'Plan-phase return'; do
   if ! grep -Fq -- "$required" "${TARGET_INPUT}/agents/wiki-researcher.md"; then
     printf 'Expected installed wiki-researcher shared-root text: %s\n' "$required" >&2
     exit 1
@@ -166,6 +166,7 @@ fi
 
 for required in \
   'sharedWikiSource: auto' \
+  'selectionOutputPath' \
   'wiki-context-v4.example.jsonc' \
   '--validate-only --strict' \
   'infer the JSON format from `scripts/wiki_context_render.py`' \

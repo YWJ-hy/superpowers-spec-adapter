@@ -401,7 +401,7 @@ check_native_skill_residuals() {
     'review' \
     'general' \
     'wiki_context_render.py' \
-    '--bind-fingerprints' \
+    '--finalize' \
     'source_truth_settings.py' \
     '--render-prompt plan-pre' \
     '--render-prompt plan-review' \
