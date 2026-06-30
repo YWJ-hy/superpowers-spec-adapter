@@ -98,4 +98,58 @@ assert all(e.get("closureType") is None for e in lines), lines
 print("see-also not closed OK")
 PY
 
+# --- Shared-local: a locally checked-out shared wiki closes depends-on the same way ---
+# Same depends-on shape under .shared-superpowers/wiki with a shared-root local hard section;
+# the closure entry must carry root "shared" so the materializer reads it from the shared root.
+SW="${TMP}/.shared-superpowers/wiki"
+mkdir -p "${SW}/backend"
+printf '# W\n- `backend/`\n' > "${SW}/index.md"
+printf '# B\n- `contract.md`\n- `data.md`\n' > "${SW}/backend/index.md"
+printf '# D\n<!-- wiki-section:tx-rules -->\n## Tx\nSHARED_CURSOR_RULE\n<!-- /wiki-section:tx-rules -->\n' > "${SW}/backend/data.md"
+printf '# C\n<!-- wiki-section:resp -->\n## R\n必须遵循 [[depends-on: backend/data#tx-rules]]\n<!-- /wiki-section:resp -->\n' > "${SW}/backend/contract.md"
+cat > "${TMP}/shared.wiki-context.json" <<'JSON'
+{
+  "schemaVersion": 4,
+  "kind": "superpower-adapter.wiki-context",
+  "generatedBy": "superpower-adapter",
+  "taskRouting": {"status": "confirmed", "selectedSectionsFrozen": true},
+  "wikiPages": [
+    {
+      "root": "shared",
+      "source": "local",
+      "displayPath": ".shared-superpowers/wiki/backend/contract.md",
+      "localPath": "backend/contract.md",
+      "documentContext": {"title": "Contract", "overview": "Response rules."},
+      "sections": [
+        {
+          "sectionId": "resp",
+          "relevance": "direct",
+          "reason": "in scope",
+          "hardConstraint": true,
+          "destination": {"kind": "global", "reason": "applies to all tasks"},
+          "constraints": {"implementation": ["follow rules"], "test": [], "review": [], "general": []},
+          "reread": {"root": "shared", "source": "local", "localPath": "backend/contract.md", "sectionId": "resp", "includeDocumentContext": true}
+        }
+      ],
+      "caveats": []
+    }
+  ],
+  "taskWikiRefs": [],
+  "caveats": []
+}
+JSON
+python3 "${SCRIPTS}/wiki_generate_section_index.py" --all --wiki-root shared --project-root "${TMP}" >/dev/null
+rr3="$(cd "${TMP}" && python3 "${SCRIPTS}/wiki_context_render.py" shared.wiki-context.json --reread-list)"
+python3 - <<'PY' "${rr3}"
+import json, sys
+lines = [json.loads(l) for l in sys.argv[1].splitlines() if l.strip()]
+assert len(lines) == 2, f"expected direct + shared closure reread, got {len(lines)}: {lines}"
+closure = [e for e in lines if e.get("closureType") == "depends-on"]
+assert len(closure) == 1, closure
+assert closure[0]["root"] == "shared", closure
+assert closure[0]["localPath"] == "backend/data.md" and closure[0]["sectionId"] == "tx-rules", closure
+assert closure[0]["closedVia"] == "backend/contract.md#resp", closure
+print("shared-local closure entry OK")
+PY
+
 printf 'wiki-depends-on-closure-smoke complete\n'

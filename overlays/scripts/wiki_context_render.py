@@ -480,16 +480,21 @@ def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None)
     return "\n".join(lines).rstrip()
 
 
-def _load_project_section_graph() -> dict[str, Any] | None:
-    """Load the project wiki's derived .graph.json, or None if unavailable.
+def _load_local_section_graph(root_name: str) -> dict[str, Any] | None:
+    """Load a local wiki root's derived .graph.json, or None if unavailable.
 
-    Read lazily and defensively: depends-on closure is an additive convenience, so any
-    failure to locate/parse the graph must degrade to "no closure", never break rereads.
+    Works for both ``project`` (``.superpowers/wiki``) and a locally checked-out
+    ``shared`` wiki (``.shared-superpowers/wiki``). Read lazily and defensively:
+    depends-on closure is an additive convenience, so any failure to locate/parse the
+    graph must degrade to "no closure", never break rereads. The github_mcp shared wiki
+    has no local graph; its closure is computed by wiki_materialize_task.py against the
+    remote graph instead.
     """
     try:
-        from wiki_common import PROJECT_WIKI_REL, repo_root  # local import keeps the renderer stdlib-only otherwise
+        from wiki_common import repo_root, select_wiki_root  # local import keeps the renderer stdlib-only otherwise
 
-        graph_path = repo_root(Path.cwd()) / PROJECT_WIKI_REL / ".graph.json"
+        wiki = select_wiki_root(repo_root(Path.cwd()), root_name)
+        graph_path = wiki.path / ".graph.json"
         if not graph_path.is_file():
             return None
         graph = json.loads(graph_path.read_text(encoding="utf-8"))
@@ -499,44 +504,40 @@ def _load_project_section_graph() -> dict[str, Any] | None:
 
 
 def _depends_on_closure_entries(
-    project_source_nodes: list[str],
+    local_source_nodes: dict[str, list[str]],
     emitted_keys: set[tuple[str, str]],
 ) -> list[dict[str, Any]]:
-    """1-hop selection-time closure of depends-on edges for hard-constraint sections.
+    """1-hop selection-time closure of depends-on edges for LOCAL hard-constraint sections.
 
-    For each selected project hard-constraint section, pull its `depends-on` targets into
-    the reread set so a load-bearing dependency is never left behind a link at execution.
-    Bounded to one hop (a target's own depends-on edges are NOT followed) and deduped
-    against the directly-emitted rereads. Returns synthesized reread entries (project root,
-    section-level targets only); page-level depends-on targets are skipped (not rereadable
-    as a section).
+    ``local_source_nodes`` maps a local root name (``project`` / ``shared``) to its
+    selected hard-constraint ``page#section`` nodes. For each root we load that wiki's own
+    derived .graph.json and pull each section's ``depends-on`` targets into the reread set,
+    so a load-bearing dependency is never left behind a link at execution. Bounded to one
+    hop (a target's own depends-on edges are NOT followed) and deduped against the directly
+    emitted rereads. Returns synthesized reread entries (same local root, section-level
+    targets only); page-level depends-on targets are skipped (not rereadable as a section).
+
+    github_mcp shared sections are intentionally NOT handled here: their graph is remote, so
+    wiki_materialize_task.py closes them via the shared-wiki graph-neighbors CLI. Both paths
+    share wiki_common.depends_on_closure_targets, so what counts as a closed edge never forks.
     """
-    if not project_source_nodes:
-        return []
-    graph = _load_project_section_graph()
-    if not graph:
-        return []
+    from wiki_common import depends_on_closure_targets, one_hop_neighbors  # keep renderer stdlib-only otherwise
 
-    from wiki_common import one_hop_neighbors  # local import keeps the renderer stdlib-only otherwise
-
-    slices = one_hop_neighbors(graph, project_source_nodes)
     entries: list[dict[str, Any]] = []
-    for source_node in project_source_nodes:
-        for edge in slices.get(source_node, {}).get("out", []):
-            if edge.get("type") != "depends-on":
-                continue
-            target_node = edge.get("to") or ""
-            if "#" not in target_node:
-                continue  # whole-page depends-on is not rereadable as a single section
-            local_path, _, section_id = target_node.rpartition("#")
-            if not local_path or not section_id:
-                continue
-            key = ("project", f"{local_path}#{section_id}")
+    for root_name, source_nodes in local_source_nodes.items():
+        if not source_nodes:
+            continue
+        graph = _load_local_section_graph(root_name)
+        if not graph:
+            continue
+        slices = one_hop_neighbors(graph, source_nodes)
+        for closed_via, local_path, section_id in depends_on_closure_targets(slices, source_nodes):
+            key = (root_name, f"{local_path}#{section_id}")
             if key in emitted_keys:
                 continue
             emitted_keys.add(key)
             entries.append({
-                "root": "project",
+                "root": root_name,
                 "source": "local",
                 "displayPath": local_path,
                 "localPath": local_path,
@@ -544,7 +545,7 @@ def _depends_on_closure_entries(
                 "sectionId": section_id,
                 "reread": {"localPath": local_path, "sectionId": section_id, "includeDocumentContext": True},
                 "closureType": "depends-on",
-                "closedVia": source_node,
+                "closedVia": closed_via,
             })
     return entries
 
@@ -555,16 +556,19 @@ def reread_entries(data: dict[str, Any], role: str = "implementer", task_id: str
     Exposed so an orchestrator (wiki_materialize_task.py) can consume the same selection the
     renderer emits as JSONL — both go through this one function so the reread set never forks.
     Each entry carries the page identity (root/source/localPath/wikiPath/revision), the section
-    id, and the section's reread block; project-root hard sections additionally seed the 1-hop
-    depends-on closure appended at the end.
+    id, and the section's reread block; local (project or locally checked-out shared) hard
+    sections additionally seed the 1-hop depends-on closure appended at the end. A github_mcp
+    shared section's closure is computed downstream by wiki_materialize_task.py (remote graph).
     """
     section_keys = _task_section_keys(data, task_id) if task_id else None
     entries: list[dict[str, Any]] = []
     emitted_keys: set[tuple[str, str]] = set()
-    project_source_nodes: list[str] = []
+    local_source_nodes: dict[str, list[str]] = {"project": [], "shared": []}
 
     for page in _selected_pages(data, section_keys):
         root = page.get("root")
+        root_key = root if root in ("project", "shared") else "project"
+        source = page.get("source") or "local"
         local_path = page.get("localPath")
         for section in _as_list(page.get("sections"), "sections"):
             if not section.get("hardConstraint") or not section.get("reread"):
@@ -585,12 +589,13 @@ def reread_entries(data: dict[str, Any], role: str = "implementer", task_id: str
                 "reread": section.get("reread"),
             }
             entries.append({key: value for key, value in entry.items() if value is not None})
-            # Track project-root hard sections so we can close their depends-on edges below.
-            if root in (None, "project") and local_path and section_id:
-                emitted_keys.add(("project", f"{local_path}#{section_id}"))
-                project_source_nodes.append(f"{local_path}#{section_id}")
+            # Track local hard sections (project or locally checked-out shared) so we can close
+            # their depends-on edges below; github_mcp sections have no local graph here.
+            if source == "local" and local_path and section_id:
+                emitted_keys.add((root_key, f"{local_path}#{section_id}"))
+                local_source_nodes[root_key].append(f"{local_path}#{section_id}")
 
-    entries.extend(_depends_on_closure_entries(project_source_nodes, emitted_keys))
+    entries.extend(_depends_on_closure_entries(local_source_nodes, emitted_keys))
     return entries
 
 

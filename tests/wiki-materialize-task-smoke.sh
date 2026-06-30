@@ -84,27 +84,55 @@ cat > "$CONTEXT" <<JSON
 }
 JSON
 
-# Fake shared-wiki read-sections CLI: echoes one ok result per requested section, with repoUrl
-# and revision taken from FAKE_REPO_URL / FAKE_REVISION so the smoke can drive drift handling.
+# Fake shared-wiki MCP CLI: dispatches on the appended subcommand (read-sections / graph-neighbors),
+# the same way the real `node dist/index.js <subcommand>` binary does. read-sections echoes one ok
+# result per requested section; graph-neighbors returns an optional depends-on edge driven by
+# FAKE_DEPENDS_ON so the smoke can exercise the github_mcp 1-hop closure and its indexed gate.
+# repoUrl / revision come from FAKE_REPO_URL / FAKE_REVISION so the smoke can drive drift handling.
 FAKE="$TMP/fake_mcp.py"
 cat > "$FAKE" <<'PY'
 import json, os, sys
+sub = sys.argv[1] if len(sys.argv) > 1 else "read-sections"
 req = json.load(sys.stdin)
 repo = os.environ.get("FAKE_REPO_URL", "https://github.com/YWJ-hy/shared-wiki.git")
 rev = os.environ.get("FAKE_REVISION", "47a929320ac726eac7c10a56288035dcca382cd2")
+revision = {"commitSha": rev, "shortSha": rev[:12], "ref": "HEAD"}
+
+if sub == "graph-neighbors":
+    # FAKE_NO_GRAPH_NEIGHBORS stands in for a shared-wiki MCP deployment that predates the
+    # subcommand: error like the real "Unknown subcommand" path so closure must degrade.
+    if os.environ.get("FAKE_NO_GRAPH_NEIGHBORS"):
+        sys.stderr.write("Unknown subcommand: graph-neighbors\n")
+        sys.exit(1)
+    # FAKE_DEPENDS_ON = "source.md#sec=>target.md#sec" (append ":unindexed" to the target to
+    # exercise the indexed gate). Only the named source node gets the depends-on out-edge.
+    spec = os.environ.get("FAKE_DEPENDS_ON", "")
+    src = tgt = ""
+    indexed = True
+    if "=>" in spec:
+        src, tgt = spec.split("=>", 1)
+        if tgt.endswith(":unindexed"):
+            indexed = False
+            tgt = tgt[: -len(":unindexed")]
+    neighbors = {}
+    for n in req["nodes"]:
+        out = [{"to": tgt, "type": "depends-on", "indexed": indexed}] if (tgt and n == src) else []
+        neighbors[n] = {"out": out, "in": []}
+    print(json.dumps({"repoUrl": repo, "revision": revision, "neighbors": neighbors}))
+    sys.exit(0)
+
 results = []
 for i, s in enumerate(req["sections"]):
     results.append({
         "index": i, "status": "ok", "path": s["path"], "section": s["section"],
         "displayPath": ".shared-superpowers/wiki/" + s["path"],
-        "revision": {"commitSha": rev, "shortSha": rev[:12], "ref": "HEAD"},
+        "revision": revision,
         "content": "SHARED FULL TEXT: new code must pass TypeScript checks (" + s["section"] + ")",
         "documentContext": {"title": "Quality Guidelines", "overview": "Frontend quality gates.",
                             "contextSource": "frontend/quality.index.md",
                             "displayPath": ".shared-superpowers/wiki/frontend/quality.index.md"},
     })
-print(json.dumps({"status": "ok", "repoUrl": repo,
-                  "revision": {"commitSha": rev, "shortSha": rev[:12], "ref": "HEAD"},
+print(json.dumps({"status": "ok", "repoUrl": repo, "revision": revision,
                   "requestedCount": len(results), "results": results, "errors": []}))
 PY
 
@@ -205,6 +233,61 @@ if HOME="$TMP/empty-home" USERPROFILE="$TMP/empty-home" run_materialize --task-i
 fi
 if ! grep -Fq 'could not be resolved' "$TMP/err5"; then
   printf 'Case 5: expected unresolved-CLI error, got: %s\n' "$(cat "$TMP/err5")" >&2
+  exit 1
+fi
+
+# --- Case 6: github_mcp 1-hop depends-on closure pulls in an indexed target section ---
+# The selected github_mcp hard section frontend/quality.md#required-quality-patterns depends-on
+# frontend/type-safety.md#type-organization; the closure must materialize that target too and
+# label its provenance.
+DEP="frontend/quality.md#required-quality-patterns=>frontend/type-safety.md#type-organization"
+OUT6="$TMP/task-1-closure.md"
+: > "$OUT6"
+FAKE_DEPENDS_ON="$DEP" run_materialize --task-id 1 --shared-wiki-cmd "$FAKE_CMD" --append-to "$OUT6" 2> "$TMP/err6"
+for required in \
+  '### Reread: `.shared-superpowers/wiki/frontend/type-safety.md` # `type-organization`' \
+  'Pulled in via: depends-on closure of `frontend/quality.md#required-quality-patterns`' \
+  'SHARED FULL TEXT: new code must pass TypeScript checks (type-organization)'
+do
+  if ! grep -Fq -- "$required" "$OUT6"; then
+    printf 'Case 6: closure output missing: %s\n' "$required" >&2
+    exit 1
+  fi
+done
+if ! grep -Fq 'via depends-on closure' "$TMP/err6"; then
+  printf 'Case 6: expected closure count in stderr summary, got: %s\n' "$(cat "$TMP/err6")" >&2
+  exit 1
+fi
+
+# --- Case 7: an unindexed depends-on target is gated out (not materialized) and reported ---
+OUT7="$TMP/task-1-unindexed.md"
+: > "$OUT7"
+FAKE_DEPENDS_ON="${DEP}:unindexed" run_materialize --task-id 1 --shared-wiki-cmd "$FAKE_CMD" --append-to "$OUT7" 2> "$TMP/err7"
+if grep -Fq 'type-organization' "$OUT7"; then
+  printf 'Case 7: unindexed depends-on target must NOT be materialized\n' >&2
+  exit 1
+fi
+if ! grep -Fq 'unindexed depends-on target(s) skipped' "$TMP/err7"; then
+  printf 'Case 7: expected unindexed-skip report in stderr, got: %s\n' "$(cat "$TMP/err7")" >&2
+  exit 1
+fi
+
+# --- Case 8: a graph-neighbors failure (stale MCP) degrades to no closure, never fail-closed ---
+# The directly-selected github_mcp hard section must still materialize; only the additive
+# closure is skipped, with a warning.
+OUT8="$TMP/task-1-noclosure.md"
+: > "$OUT8"
+FAKE_NO_GRAPH_NEIGHBORS=1 FAKE_DEPENDS_ON="$DEP" run_materialize --task-id 1 --shared-wiki-cmd "$FAKE_CMD" --append-to "$OUT8" 2> "$TMP/err8"
+if ! grep -Fq 'SHARED FULL TEXT: new code must pass TypeScript checks (required-quality-patterns)' "$OUT8"; then
+  printf 'Case 8: direct github_mcp reread must survive a graph-neighbors failure\n' >&2
+  exit 1
+fi
+if grep -Fq 'type-organization' "$OUT8"; then
+  printf 'Case 8: closure target must be absent when graph-neighbors is unavailable\n' >&2
+  exit 1
+fi
+if ! grep -Fq 'depends-on closure skipped' "$TMP/err8"; then
+  printf 'Case 8: expected closure-degrade warning in stderr, got: %s\n' "$(cat "$TMP/err8")" >&2
   exit 1
 fi
 

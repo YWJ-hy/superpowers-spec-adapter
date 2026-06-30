@@ -2,7 +2,7 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { loadConfig } from './config.js';
 import { createServer } from './server.js';
-import { runReadSectionsCliFromStdin } from './cli.js';
+import { runGraphNeighborsCliFromStdin, runReadSectionsCliFromStdin } from './cli.js';
 
 async function startServer(): Promise<void> {
   const config = loadConfig();
@@ -15,15 +15,22 @@ async function main(): Promise<void> {
   // No subcommand: Claude Code launches `node dist/index.js` with no args -> stdio MCP server.
   // `read-sections`: same binary invoked as a CLI (`node dist/index.js read-sections`) that reuses
   // the server's loadConfig + readSectionsTool so a non-MCP caller shares one shared-wiki reader.
+  // `graph-neighbors`: same pattern over graphNeighborsTool, so the materializer can close a
+  // github_mcp hard section's 1-hop depends-on edges against the same remote graph.
   const subcommand = process.argv[2];
   if (subcommand === 'read-sections') {
     await runReadSectionsCliFromStdin();
     return;
   }
+  if (subcommand === 'graph-neighbors') {
+    await runGraphNeighborsCliFromStdin();
+    return;
+  }
   if (subcommand !== undefined) {
     throw new Error(
       `Unknown subcommand: ${subcommand}. Run with no arguments to start the MCP stdio server, ` +
-        "or 'read-sections' to read sections from a JSON request on stdin.",
+        "'read-sections' to read sections, or 'graph-neighbors' to query 1-hop graph neighbors " +
+        'from a JSON request on stdin.',
     );
   }
   await startServer();

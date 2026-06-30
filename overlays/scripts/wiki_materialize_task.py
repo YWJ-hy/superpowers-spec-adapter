@@ -11,11 +11,17 @@ sources into one rendered wiki file:
     detection.
 
 The task-scoped hard-constraint reread set comes from wiki_context_render.reread_entries (the
-same selection behind `--reread-list`), so there is one reread set, never a fork. The rendered
-output is appended under a `## Hard Wiki Constraint Rereads` heading (or printed to stdout), so a
-subagent reads the authoritative full section text in the same file as the rest of its wiki
-constraints. Fails closed on shared-wiki rebinding drift, revision drift, section errors, or
-partial results -- it never silently drops a hard constraint.
+same selection behind `--reread-list`), which also closes each LOCAL hard section's 1-hop
+`depends-on` edges. github_mcp shared sections cannot be closed by the renderer (their graph is
+remote), so this fetcher closes them here too: it queries the shared-wiki `graph-neighbors` CLI
+for each selected github_mcp hard node and folds its indexed `depends-on` section targets into
+the same read-sections batch. Both closure paths share wiki_common.depends_on_closure_targets, so
+what counts as a closed edge never forks. The rendered output is appended under a
+`## Hard Wiki Constraint Rereads` heading (or printed to stdout), so a subagent reads the
+authoritative full section text in the same file as the rest of its wiki constraints; a section
+pulled in by closure is labelled with the node it was closed from. Fails closed on shared-wiki
+rebinding drift, revision drift, section errors, or partial results -- it never silently drops a
+hard constraint.
 
 Usage:
   wiki_materialize_task.py <context.json> --task-id <id> [--role implementer|reviewer]
@@ -47,7 +53,7 @@ from wiki_section import (  # noqa: E402
     extract_section,
     list_section_ids,
 )
-from wiki_common import repo_root, select_wiki_root  # noqa: E402
+from wiki_common import depends_on_closure_targets, repo_root, select_wiki_root  # noqa: E402
 
 MCP_SOURCE = "github_mcp"
 REREAD_HEADING = "## Hard Wiki Constraint Rereads"
@@ -83,6 +89,13 @@ def _eff(entry: dict[str, Any], key: str) -> Any:
 
 def _entry_source(entry: dict[str, Any]) -> str:
     return str(_eff(entry, "source") or "local")
+
+
+def _closure_via(entry: dict[str, Any]) -> str | None:
+    """The source node a closure entry was pulled in from, or None for a direct selection."""
+    if entry.get("closureType") == "depends-on" and entry.get("closedVia"):
+        return str(entry["closedVia"])
+    return None
 
 
 def _display_rel(path: Path, wiki_root: Path) -> str:
@@ -146,6 +159,7 @@ def _materialize_local(entry: dict[str, Any], project_root: Path) -> dict[str, A
         "contextSource": context_source,
         "caveats": caveats,
         "content": content,
+        "closedVia": _closure_via(entry),
     }
 
 
@@ -193,6 +207,7 @@ def _materialize_mcp(
             "contextSource": doc.get("contextSource") or doc.get("displayPath"),
             "caveats": list(doc.get("caveats") or []) + global_caveats,
             "content": item.get("content") or "",
+            "closedVia": _closure_via(entry),
         }
     return materialized
 
@@ -223,13 +238,18 @@ def _check_drift(data: dict[str, Any], payload: dict[str, Any], allow_revision_d
             raise MaterializeError(f"{message} Re-confirm the constraints, or pass --allow-revision-drift to proceed with a caveat.")
 
 
-def _invoke_cli(cmd: dict[str, Any], project_root: Path, request: dict[str, Any]) -> dict[str, Any]:
+def _invoke_cli(
+    cmd: dict[str, Any],
+    project_root: Path,
+    request: dict[str, Any],
+    subcommand: str = "read-sections",
+) -> dict[str, Any]:
     env = dict(os.environ)
     env.update(cmd.get("env") or {})
     # The CLI self-configures from CLAUDE_PROJECT_DIR exactly like the stdio server, so point it
     # at this project's root to resolve wiki.sharedMcp.
     env["CLAUDE_PROJECT_DIR"] = str(project_root)
-    argv = list(cmd["argv"]) + ["read-sections"]
+    argv = list(cmd["argv"]) + [subcommand]
     try:
         proc = subprocess.run(
             argv,
@@ -256,6 +276,99 @@ def _invoke_cli(cmd: dict[str, Any], project_root: Path, request: dict[str, Any]
     if parsed.get("status") not in (None, "ok"):
         raise MaterializeError(f"shared-wiki MCP CLI returned status {parsed.get('status')!r} (expected ok): {parsed.get('errors')}")
     return parsed
+
+
+def _graph_neighbors_via_cli(
+    cmd: dict[str, Any],
+    project_root: Path,
+    nodes: list[str],
+) -> dict[str, dict[str, Any]]:
+    """1-hop neighbor slices for `nodes` from the shared-wiki `graph-neighbors` CLI.
+
+    Returns the connected shared graph's slice map ({node: {"out": [...], "in": [...]}}),
+    each out-edge carrying `type` and an `indexed` flag. The CLI shares the server's
+    loadConfig + graphNeighborsTool, so it reads the same remote graph at the same HEAD the
+    follow-up read-sections call materializes against.
+    """
+    payload = _invoke_cli(cmd, project_root, {"nodes": nodes}, subcommand="graph-neighbors")
+    neighbors = payload.get("neighbors")
+    slices: dict[str, dict[str, Any]] = {}
+    if isinstance(neighbors, dict):
+        for node, slice_ in neighbors.items():
+            if isinstance(slice_, dict):
+                slices[node] = {"out": slice_.get("out") or [], "in": slice_.get("in") or []}
+    return slices
+
+
+def _github_mcp_closure_entries(
+    mcp_entries: list[dict[str, Any]],
+    cmd: dict[str, Any],
+    project_root: Path,
+) -> tuple[list[dict[str, Any]], int, str | None]:
+    """1-hop depends-on closure for github_mcp hard sections against the remote shared graph.
+
+    The renderer closes depends-on edges for LOCAL roots only (it cannot reach the remote
+    graph); this is the symmetric closure for github_mcp shared sections. For each directly
+    selected github_mcp hard node we pull its `depends-on` section targets (via the same
+    wiki_common.depends_on_closure_targets the renderer uses) into the reread set, gated on
+    the graph's `indexed` flag so a follow-up read-sections can actually serve them. Returns
+    (synthesized github_mcp reread entries, count of unindexed depends-on targets skipped, a
+    degrade caveat or None). Deduped against the already-selected github_mcp sections; bounded
+    to one hop (closure entries themselves are not re-closed).
+
+    Closure is an additive convenience, mirroring the renderer's local-graph closure: if the
+    graph-neighbors CLI is unavailable or errors (e.g. a shared-wiki MCP deployment that
+    predates the graph-neighbors subcommand), degrade to "no closure" with a caveat rather than
+    failing the materialization. The directly-selected hard constraints still fail closed via
+    the strict read-sections batch.
+    """
+    direct = [entry for entry in mcp_entries if not _closure_via(entry)]
+    nodes: list[str] = []
+    seen_nodes: set[str] = set()
+    for entry in direct:
+        wiki_path = _eff(entry, "wikiPath") or entry.get("displayPath")
+        section_id = _eff(entry, "sectionId")
+        if not wiki_path or not section_id:
+            continue
+        node = f"{wiki_path}#{section_id}"
+        if node not in seen_nodes:
+            seen_nodes.add(node)
+            nodes.append(node)
+    if not nodes:
+        return [], 0, None
+
+    try:
+        slices = _graph_neighbors_via_cli(cmd, project_root, nodes)
+    except MaterializeError as exc:
+        return [], 0, f"depends-on closure skipped (graph-neighbors unavailable): {exc}"
+    existing = {
+        (_eff(entry, "wikiPath") or entry.get("displayPath"), _eff(entry, "sectionId"))
+        for entry in mcp_entries
+    }
+
+    all_targets = depends_on_closure_targets(slices, nodes, require_indexed=False)
+    indexed_keys = {(page, section) for _, page, section in depends_on_closure_targets(slices, nodes, require_indexed=True)}
+    skipped = sum(
+        1 for _, page, section in all_targets if (page, section) not in indexed_keys and (page, section) not in existing
+    )
+
+    entries: list[dict[str, Any]] = []
+    for closed_via, page, section in all_targets:
+        if (page, section) not in indexed_keys:
+            continue
+        if (page, section) in existing:
+            continue
+        existing.add((page, section))
+        entries.append({
+            "root": "shared",
+            "source": MCP_SOURCE,
+            "wikiPath": page,
+            "sectionId": section,
+            "reread": {"wikiPath": page, "sectionId": section, "includeDocumentContext": True},
+            "closureType": "depends-on",
+            "closedVia": closed_via,
+        })
+    return entries, skipped, None
 
 
 def _resolve_shared_wiki_cmd(explicit: str | None, project_root: Path) -> dict[str, Any] | None:
@@ -326,6 +439,8 @@ def _render_section_block(mat: dict[str, Any]) -> str:
     lines.append(f"- Source: `{mat['source']}`")
     if mat.get("revision"):
         lines.append(f"- Revision: `{mat['revision']}`")
+    if mat.get("closedVia"):
+        lines.append(f"- Pulled in via: depends-on closure of `{mat['closedVia']}`")
     if mat.get("title"):
         lines.append(f"- Document: {mat['title']}")
     if mat.get("overview"):
@@ -365,7 +480,7 @@ def main() -> int:
     parser.add_argument("--append-to", default=None, help="Append the rendered rereads to this file instead of stdout")
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--execution-ready", action="store_true", help="Require confirmed taskRouting and per-section destination routing")
-    parser.add_argument("--shared-wiki-cmd", default=None, help="Base command for the shared-wiki MCP CLI (POSIX-split); 'read-sections' is appended. Overrides SHARED_WIKI_MCP_CMD and registration discovery")
+    parser.add_argument("--shared-wiki-cmd", default=None, help="Base command for the shared-wiki MCP CLI (POSIX-split); the 'read-sections' / 'graph-neighbors' subcommand is appended. Overrides SHARED_WIKI_MCP_CMD and registration discovery")
     parser.add_argument("--allow-revision-drift", action="store_true", help="Downgrade shared-wiki revision drift from a hard stop to an appended caveat")
     args = parser.parse_args()
 
@@ -385,6 +500,8 @@ def main() -> int:
         return 0
 
     mcp_entries = [entry for entry in entries if _entry_source(entry) == MCP_SOURCE]
+    closure_added = 0
+    closure_skipped = 0
 
     try:
         mcp_map: dict[tuple[str, str], dict[str, Any]] = {}
@@ -393,9 +510,20 @@ def main() -> int:
             if not cmd:
                 raise MaterializeError(
                     f"{len(mcp_entries)} github_mcp hard-constraint section(s) require the shared-wiki MCP "
-                    "read-sections CLI, but it could not be resolved. Register the shared-wiki MCP server for "
+                    "CLI, but it could not be resolved. Register the shared-wiki MCP server for "
                     "this project, or pass --shared-wiki-cmd / set SHARED_WIKI_MCP_CMD."
                 )
+            # Close each selected github_mcp hard section's 1-hop depends-on edges against the
+            # remote graph, then materialize the directly-selected + closed sections in one
+            # strict batch (same connection, same HEAD as the graph-neighbors call). Closure is
+            # additive: a graph-neighbors failure degrades to no closure, never a hard stop.
+            closure_entries, closure_skipped, closure_caveat = _github_mcp_closure_entries(mcp_entries, cmd, project_root)
+            if closure_caveat:
+                print(f"Warning: {closure_caveat}", file=sys.stderr)
+            if closure_entries:
+                entries.extend(closure_entries)
+                mcp_entries.extend(closure_entries)
+                closure_added = len(closure_entries)
             mcp_map = _materialize_mcp(mcp_entries, data, project_root, cmd, args.allow_revision_drift)
 
         materialized: list[dict[str, Any]] = []
@@ -410,10 +538,17 @@ def main() -> int:
         return 1
 
     block = _render_rereads(materialized)
+    closure_suffix = ""
+    if closure_added:
+        closure_suffix += f" (+{closure_added} via depends-on closure)"
+    if closure_skipped:
+        closure_suffix += f"; {closure_skipped} unindexed depends-on target(s) skipped"
     if args.append_to:
         _append(Path(args.append_to), block)
-        print(f"materialized {len(materialized)} hard-constraint reread(s) -> {args.append_to}", file=sys.stderr)
+        print(f"materialized {len(materialized)} hard-constraint reread(s){closure_suffix} -> {args.append_to}", file=sys.stderr)
     else:
+        if closure_suffix:
+            print(f"materialized {len(materialized)} hard-constraint reread(s){closure_suffix}", file=sys.stderr)
         sys.stdout.write(block)
     return 0
 

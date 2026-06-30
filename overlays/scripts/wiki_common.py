@@ -785,6 +785,51 @@ def one_hop_neighbors(graph: dict, nodes: list[str]) -> dict[str, dict]:
     return result
 
 
+def depends_on_closure_targets(
+    slices: dict[str, dict],
+    source_nodes: list[str],
+    require_indexed: bool = False,
+) -> list[tuple[str, str, str]]:
+    """1-hop ``depends-on`` section targets out of a neighbors slice map.
+
+    Shared closure primitive used by both the renderer's selection-time closure
+    (``wiki_context_render._depends_on_closure_entries``, local graphs) and the
+    materializer's github_mcp closure (``wiki_materialize_task``, the remote shared
+    graph) so the two paths never fork on what counts as a closed edge.
+
+    For each requested ``source_node``, return ``(closed_via_node, target_page,
+    target_section)`` for every outgoing edge whose ``type`` is ``depends-on`` and
+    whose target is a *section* (``page#section``). Page-level depends-on targets (no
+    ``#``) are skipped — a whole page is not rereadable as one section. Bounded to one
+    hop. Targets are deduped by ``(page, section)`` so the first source that references
+    a target wins ``closed_via`` (matching emitted-order precedence). When
+    ``require_indexed`` is set, only edges flagged ``indexed`` are followed — the shared
+    graph marks whether a follow-up section read would pass the read whitelist, so an
+    unindexed neighbor would only fail closed downstream.
+    """
+    targets: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for source_node in source_nodes:
+        slice_ = slices.get(source_node) or {}
+        for edge in slice_.get("out", []) or []:
+            if not isinstance(edge, dict) or edge.get("type") != "depends-on":
+                continue
+            if require_indexed and not edge.get("indexed"):
+                continue
+            target_node = edge.get("to") or ""
+            if "#" not in target_node:
+                continue
+            page, _, section = target_node.rpartition("#")
+            if not page or not section:
+                continue
+            dedup = (page, section)
+            if dedup in seen:
+                continue
+            seen.add(dedup)
+            targets.append((source_node, page, section))
+    return targets
+
+
 def iter_indexed_wiki_files(wiki_root: Path, include_indexes: bool = False) -> list[Path]:
     graph = build_wiki_index_graph(wiki_root)
     return graph.files if include_indexes else graph.leaves
