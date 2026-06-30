@@ -366,26 +366,13 @@ Allowed package content:
 
 ## Completion checklist
 
-- [ ] Role was confirmed as `frontend` or `backend` before Lanhu analysis.
+- [ ] Every item in the `Lightweight post-write gate` passed, including role confirmed as `frontend` or `backend` before Lanhu analysis, and the user was asked to confirm the `.lanhu/.../index.md` before Superpowers brainstorming continued.
 - [ ] Lanhu MCP unavailability did not block the user.
-- [ ] Frontend routed only to `lanhu-frontend-requirements-analyst`; backend routed only to `lanhu-backend-requirements-analyst`.
-- [ ] Deprecated `lanhu.frontend.output.format` did not create a second frontend package variant.
-- [ ] The package was sanitized to exclude tests, testing points, technical test plans, final acceptance criteria, and code-development content.
-- [ ] The lightweight post-write gate checked `templateCompliance`, selected role consistency, `packageDir`, `indexPath`, `writtenFiles`, `sourceFactCoverage`, and empty `missingTemplateRequirements`, `genericHeadingsDetected`, and `forbiddenContentDetected` after the analyst wrote the package.
+- [ ] Frontend routed only to `lanhu-frontend-requirements-analyst`; backend routed only to `lanhu-backend-requirements-analyst`; deprecated `lanhu.frontend.output.format` did not create a second frontend package variant.
+- [ ] The package was sanitized per the `Sanitization rules` section (no tests/testing points/technical test plans, final acceptance criteria, Given / When / Then, implementation/technical solution, frontend/backend boundary inference, exception/risk inference, source checklist sections, or independent evidence mapping tables).
+- [ ] Final package artifacts were clean effective requirements: explicit effective facts were preserved, while rejected, superseded, ignored, deleted, or out-of-scope facts were not retained as process/history trace (`已确认口径`, `已剔除`, `不采用`, `另一套口径不采用`, `用户要求删除`, `按明确口径`).
 - [ ] Evidence diagrams used Mermaid flowchart by default, used mindmap only for small/simple structures, used short node labels with limited depth/branching, and moved dense details to tables or later sections.
-- [ ] Lanhu output used a unified `.lanhu/MM-DD-需求名称/` package directory.
-- [ ] `index.md` was the stable entrypoint and relationship authority.
-- [ ] No final acceptance criteria, Given / When / Then, test plan, implementation plan, technical solution, frontend/backend boundary inference, exception/risk inference, source checklist sections, or independent evidence mapping tables were generated.
-- [ ] Explicit effective Lanhu original-requirement facts were preserved; classification gaps were handled through concrete AI-defined source fact sections instead of dropping facts, while rejected, superseded, ignored, deleted, out-of-scope, or non-authoritative facts were not retained as process/history trace.
 - [ ] In package mode, `index.md` contains the file index, selected role, package kind, relationship summary, and flowchart when helpful.
-- [ ] Frontend output wrote `frontend-prd/prd.md`, optional `frontend-prd/design/index.html`, and optional confirmed `frontend-prd/design/assets/` only.
-- [ ] Frontend output did not write package-root `prd.md`, `prds/*.md`, package-root `index.html`, `prototype/index.html`, or XML-like UI sketches.
-- [ ] Backend output wrote `backend-prd/prd.md` or `backend-prd/prds/*.md`, stayed Markdown-only, and did not write `.html` files.
 - [ ] Existing files or directories were not overwritten.
-- [ ] Final package artifacts were clean effective requirements and did not contain correction, confirmation, deletion, exclusion, or resolved-conflict history such as `已确认口径`, `已剔除`, `不采用`, `另一套口径不采用`, `用户要求删除`, or `按明确口径`.
-- [ ] The analyst classified unresolved confirmation points and returned `confirmationGate`.
-- [ ] If `status: need_confirmation` occurred, the main session displayed only compact blocking questions and metadata.
-- [ ] User answers or explicit accepted assumptions were routed back to the same role analyst with `resolutionMode: resolve_confirmation`.
-- [ ] Superpowers brainstorming did not start until `confirmationGate.status: clear` and `status: ok`.
+- [ ] If `status: need_confirmation` occurred, the main session displayed only compact blocking questions and metadata, and routed user answers or explicit accepted assumptions back to the same role analyst with `resolutionMode: resolve_confirmation`.
 - [ ] Any source-internal factual contradiction affecting product-level semantics was surfaced via `confirmationGate.blockingQuestions` with `impact: source-fact-conflict` (non-blocking ones in `openQuestions`), not resolved or merged by the analyst, not written as a 矛盾分析 heading, and not copied from the Lanhu `遗漏/矛盾检查` label.
-- [ ] The user was asked to confirm the `.lanhu/.../index.md` before Superpowers brainstorming continues.
