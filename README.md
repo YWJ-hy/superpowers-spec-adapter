@@ -136,15 +136,18 @@ The flows above are *consumer-side*: knowledge is pushed up from a project into 
 ./manage.sh export-wiki-skills /path/to/wiki-repo
 ```
 
-This stamps a vendored toolchain and two skills under the repo's `.claude/`:
+This stamps a vendored toolchain, two skills, and a graph-rebuild GitHub Action under the repo's `.claude/` and `.github/`:
 
 ```text
-.claude/wiki-tools/scripts/        # vendored mechanical helpers + .export-manifest.json
-.claude/skills/update-wiki/        # author-side: add/edit a page or section, regenerate indexes/graph, validate
-.claude/skills/migrate-wiki/       # section-ify existing pages + optional typed graph enrichment (two modes)
+.claude/wiki-tools/scripts/                 # vendored mechanical helpers + .export-manifest.json
+.claude/skills/update-wiki/                 # author-side: add/edit a page or section, regenerate indexes/graph, validate
+.claude/skills/migrate-wiki/                # section-ify existing pages + optional typed graph enrichment (two modes)
+.github/workflows/rebuild-wiki-graph.yml    # rebuild .graph.json after a PR merges (default on; --no-graph-ci to skip)
 ```
 
 Once exported, open Claude Code in that repo and invoke `update-wiki` or `migrate-wiki`; they run with **zero dependency on superpower-adapter at runtime** (the helpers point at the repo root via `--wiki-dir`). Both skills are **edit-only**: they regenerate companion `*.index.md`, the directory `index.md` auto-blocks, and `.graph.json`, then run mechanical + neutrality validation — and stop, leaving the commit (or PR) to you. Re-run `export-wiki-skills` to refresh the vendored helpers after upgrading the adapter; it refuses to overwrite any file you authored yourself. Add a `.shared-superpowers/settings.json` at the repo root to drive the mechanical neutrality guards (`wiki.sharedNeutrality`) and write authorization (`wiki.updateAuthorization`).
+
+The graph-rebuild Action closes a gap specific to **consumer-contributed** updates: a PR (including the shared-wiki MCP PR flow) carries the per-page companion `*.index.md` it touched, but the cross-page root `.graph.json` (section edges + backlinks) cannot ride in those patches, so it would go stale after merge until a maintainer re-ran the skills by hand — and the MCP serves its 1-hop `depends-on` neighbors from exactly that file. On push to the default branch the Action reruns the **same** vendored `wiki_migrate_helper.py --generate-indexes` the skills use (so "what counts as an edge" never forks), and commits the regenerated `.graph.json` back with `[skip ci]`. It only acts on the default branch and no-ops when nothing changed. Export with `--no-graph-ci` to skip it (a later `--no-graph-ci` re-export also removes a previously stamped one); a hand-authored workflow at that path is left untouched. If the default branch has branch protection that blocks the `github-actions` bot from pushing, either allow it or keep the rebuild a manual maintainer step.
 
 ## Initialize starter wiki knowledge
 
