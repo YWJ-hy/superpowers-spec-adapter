@@ -430,14 +430,14 @@ check_native_skill_residuals() {
   done
 
   local executing_skill="$TARGET_DIR/skills/executing-plans/SKILL.md"
-  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--reread-list' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'keep-or-skip determination about durable implementation knowledge' 'and bypass the skill' 'candidate absence is not conclusive'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' 'wiki_materialize_task.py' 'Hard Wiki Constraint Rereads' 'source: github_mcp' 'read-sections' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'keep-or-skip determination about durable implementation knowledge' 'and bypass the skill' 'candidate absence is not conclusive'; do
     if ! grep -Fq -- "$required" "$executing_skill"; then
       printf 'Missing source-aware execution requirement: %s\n' "$required" >&2
       exit 1
     fi
   done
   local subagent_skill="$TARGET_DIR/skills/subagent-driven-development/SKILL.md"
-  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' '--reread-list' 'revision metadata' 'shared_wiki_read_sections' '--batch-jsonl' '--include-document-context' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'Reviewers should check that any lint findings were resolved' 'keep-or-skip determination about durable implementation knowledge' 'and bypass the skill' 'candidate absence is not conclusive'; do
+  for required in 'Adapter Task Context' '.wiki-context.json' 'wiki_context_render.py' '--role implementer' '--role reviewer' 'wiki_materialize_task.py' 'Hard Wiki Constraint Rereads' 'source: github_mcp' 'read-sections' 'revision drift' 'Adapter Source-of-Truth Task Lint' '--render-prompt execution-reminder' '--lint-changed' '--changed-path' '--authorized-truth-edit' 'sourceOfTruth renderer' 'Reviewers should check that any lint findings were resolved' 'keep-or-skip determination about durable implementation knowledge' 'and bypass the skill' 'candidate absence is not conclusive'; do
     if ! grep -Fq -- "$required" "$subagent_skill"; then
       printf 'Missing source-aware subagent forwarding requirement: %s\n' "$required" >&2
       exit 1

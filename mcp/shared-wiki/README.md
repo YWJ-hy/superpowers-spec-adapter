@@ -71,6 +71,19 @@ server 启动时读取 Claude Code 注入的 `CLAUDE_PROJECT_DIR`，再从该项
 - `shared_wiki_validate_patch`：校验 unified diff，不 push、不创建 PR。
 - `shared_wiki_create_patch_pr`：把已校验 patch 应用到新 branch，push 后创建 GitHub PR。
 
+## CLI：`read-sections`（执行期硬约束 reread）
+
+同一个 `dist/index.js` 既是 stdio MCP server（无参启动），也提供一个 `read-sections` 子命令：
+
+```bash
+echo '{"sections":[{"path":"frontend/quality.md","section":"required-quality-patterns"}],"includeDocumentContext":true}' \
+  | CLAUDE_PROJECT_DIR=/abs/path/to/consumer-project node /abs/path/to/shared-wiki-mcp/dist/index.js read-sections
+```
+
+它从 stdin 读一个 JSON 请求（与 `shared_wiki_read_sections` 同形），复用 server 同一份 `loadConfig`（照常从 `CLAUDE_PROJECT_DIR` 的 `wiki.sharedMcp` 自我配置）与 `readSectionsTool`，把 batch 结果加上顶层 `repoUrl` 以一行 JSON 打到 stdout，strict 错误以非零退出码 fail-closed。
+
+这是给 adapter 执行层 `wiki_materialize_task.py` 取 `source: github_mcp` 硬约束 reread 用的：让一个普通编排脚本不经 MCP 协议也能走**同一份** shared-wiki 读取实现（保证 revision / index / marker 语义一致），并据返回的 `repoUrl`+`revision` 检测换绑/revision 漂移。`wiki_materialize_task.py` 会从本项目的 MCP 注册解析出 server 命令再附加 `read-sections`，因此无需单独再注册一份。
+
 ## 写入策略
 
 server 会从 clone 后的仓库按以下顺序读取 wiki 策略：

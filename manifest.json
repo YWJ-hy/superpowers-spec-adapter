@@ -35,6 +35,7 @@
     "scripts/wiki_common.py",
     "scripts/wiki_section.py",
     "scripts/wiki_read_section.py",
+    "scripts/wiki_materialize_task.py",
     "scripts/wiki_graph_neighbors.py",
     "scripts/wiki_generate_section_index.py",
     "scripts/lanhu_settings.py",

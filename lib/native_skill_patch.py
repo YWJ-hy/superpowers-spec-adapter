@@ -268,19 +268,13 @@ Do not persist rendered task-context Markdown files such as `.claude-*-wiki-task
 
 #### Hard Wiki Constraint Rereads
 
-Before implementation, list task-scoped hard-constraint rereads and process the renderer-produced batch exactly in order:
+Before implementation, materialize this task's hard-constraint full-section rereads — both local project wiki and `source: github_mcp` shared wiki — with the single fixed fetcher, and inject its stdout directly after the rendered constraints under `## Hard Wiki Constraint Rereads`:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --task-id <current-task-id> --reread-list --strict --execution-ready
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_materialize_task.py docs/superpowers/plans/<plan-stem>.wiki-context.json --task-id <current-task-id> --role implementer --project-root <project-root> --strict --execution-ready
 ```
 
-For local rereads, prefer one ordered batch extraction:
-
-```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_read_section.py --batch-jsonl --project-root <project-root> --include-document-context < rereads.local.jsonl
-```
-
-For `source: github_mcp` rereads, use the MCP batch read plan with `shared_wiki_read_sections({ includeDocumentContext: true, sections: [{ path: wikiPath, section: sectionId }] })`. First, if the sidecar records a top-level `sharedWiki.repoUrl`, confirm `shared_wiki_status.repoUrl` matches it and stop on shared-wiki rebinding drift instead of rereading against a different repo. Then compare returned revisions to the sidecar, and stop on revision drift, section errors, partial results, or validation failures. Inject extracted document context plus full section text under `## Hard Wiki Constraint Rereads`; these rereads are authoritative hard constraints, not additional wiki search results.
+This one command is the only reread fetcher: it lists the task-scoped hard-constraint rereads (the same selection behind `--reread-list`), extracts local sections straight from the filesystem, and for each `source: github_mcp` section invokes the shared-wiki MCP `read-sections` CLI (the same `loadConfig` + `readSectionsTool` the MCP server runs, resolved from this project's `wiki.sharedMcp`). It fails closed on shared-wiki rebinding drift (sidecar `sharedWiki.repoUrl` vs the connected repo), revision drift, section errors, or partial results — do not hand-fetch sections, call `shared_wiki_read_sections` yourself, or paste whole-page body text instead. The emitted rereads are authoritative hard constraints, not additional wiki search results; reviewers must verify compliance against this full section text without applying sibling sections or whole-page body.
 
 ### Adapter Source-of-Truth Task Lint
 
@@ -338,13 +332,14 @@ In the implementer prompt, instruct the subagent to Read `$SDD_DIR/task-<assigne
 
 ### Hard Wiki Constraint Rereads
 
-Before dispatching implementation or review subagents for a task, list task-scoped hard-constraint rereads and process the renderer-produced batch exactly in order:
+Before dispatching the implementer or reviewer for a task, materialize that task's hard-constraint full-section rereads — both local project wiki and `source: github_mcp` shared wiki — directly into the rendered wiki file the subagent already Reads, with the single fixed fetcher:
 
 ```bash
-python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_context_render.py docs/superpowers/plans/<plan-stem>.wiki-context.json --task-id <assigned-or-reviewed-task-id> --reread-list --strict --execution-ready
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_materialize_task.py docs/superpowers/plans/<plan-stem>.wiki-context.json --task-id <assigned-task-id> --role implementer --project-root "$(git rev-parse --show-toplevel)" --strict --execution-ready --append-to "$SDD_DIR/task-<assigned-task-id>-wiki.md"
+python3 __SUPERPOWER_ADAPTER_PLUGIN_ROOT__/scripts/wiki_materialize_task.py docs/superpowers/plans/<plan-stem>.wiki-context.json --task-id <reviewed-task-id> --role reviewer --project-root "$(git rev-parse --show-toplevel)" --strict --execution-ready --append-to "$SDD_DIR/task-<reviewed-task-id>-wiki-review.md"
 ```
 
-For local rereads, prefer ordered batch extraction with `wiki_read_section.py --batch-jsonl --project-root <project-root> --include-document-context`. For `source: github_mcp`, use `shared_wiki_read_sections({ includeDocumentContext: true, sections: [{ path: wikiPath, section: sectionId }] })`; first, if the sidecar records a top-level `sharedWiki.repoUrl`, confirm `shared_wiki_status.repoUrl` matches it and stop on shared-wiki rebinding drift, then compare returned revision metadata to the sidecar, and stop on revision drift, section errors, partial results, or validation failures. Append the extracted document context plus full section text to that task's rendered wiki file (`$SDD_DIR/task-<id>-wiki.md` for the implementer, `...-wiki-review.md` for the reviewer) under a `## Hard Wiki Constraint Rereads` heading, so the subagent reads them in the same file as the rest of its wiki constraints; these rereads are authoritative hard constraints, not additional wiki search results. Reviewers must verify compliance with the full section text without applying sibling sections or whole-page body text.
+This one command is the only reread fetcher: it lists the task-scoped hard-constraint rereads (the same selection behind `--reread-list`), extracts local sections straight from the filesystem, and for each `source: github_mcp` section invokes the shared-wiki MCP `read-sections` CLI (the same `loadConfig` + `readSectionsTool` the MCP server runs, resolved from this project's `wiki.sharedMcp`). It appends the document context plus full section text under a `## Hard Wiki Constraint Rereads` heading in the same rendered file, and fails closed on shared-wiki rebinding drift (sidecar `sharedWiki.repoUrl` vs the connected repo), revision drift, section errors, or partial results — do not hand-fetch sections, call `shared_wiki_read_sections` yourself, or paste whole-page body text instead. These rereads are authoritative hard constraints, not additional wiki search results; reviewers must verify compliance against the full section text without applying sibling sections or whole-page body text.
 
 ### Adapter Source-of-Truth Task Lint
 

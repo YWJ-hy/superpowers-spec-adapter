@@ -549,7 +549,15 @@ def _depends_on_closure_entries(
     return entries
 
 
-def render_reread_list(data: dict[str, Any], role: str = "implementer", task_id: str | None = None) -> str:
+def reread_entries(data: dict[str, Any], role: str = "implementer", task_id: str | None = None) -> list[dict[str, Any]]:
+    """Task-scoped hard-constraint reread set as structured entries (the data behind --reread-list).
+
+    Exposed so an orchestrator (wiki_materialize_task.py) can consume the same selection the
+    renderer emits as JSONL — both go through this one function so the reread set never forks.
+    Each entry carries the page identity (root/source/localPath/wikiPath/revision), the section
+    id, and the section's reread block; project-root hard sections additionally seed the 1-hop
+    depends-on closure appended at the end.
+    """
     section_keys = _task_section_keys(data, task_id) if task_id else None
     entries: list[dict[str, Any]] = []
     emitted_keys: set[tuple[str, str]] = set()
@@ -583,7 +591,11 @@ def render_reread_list(data: dict[str, Any], role: str = "implementer", task_id:
                 project_source_nodes.append(f"{local_path}#{section_id}")
 
     entries.extend(_depends_on_closure_entries(project_source_nodes, emitted_keys))
+    return entries
 
+
+def render_reread_list(data: dict[str, Any], role: str = "implementer", task_id: str | None = None) -> str:
+    entries = reread_entries(data, role, task_id)
     lines = [json.dumps(entry, ensure_ascii=False, sort_keys=True) for entry in entries]
     if lines:
         return "\n".join(lines)
