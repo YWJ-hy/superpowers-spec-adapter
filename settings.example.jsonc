@@ -48,6 +48,9 @@
     "heuristics": false,
 
     // paths 使用 gitignore-style 语法：支持 **、前导 /、尾随 /、! 否定；后出现规则覆盖前面规则。
+    // ! 否定行表示从所在规则里抠掉某些子路径：被抠掉的路径在机械校验里按「未配置」处理
+    // （不再当作该规则的 truth/evidence），在 spec/plan 提示词里也不会列在该规则的 role 标题下，
+    // 而是单列为「Carved-out sub-paths」组。例如下面 openapi 规则里的 !openapi/legacy/**。
     "sources": [
       {
         // truth 表示当前实现事实的权威来源。edit: never 时，plan 不得让实现 agent 修改这些文件。

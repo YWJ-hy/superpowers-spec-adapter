@@ -77,6 +77,11 @@ for prompt_kind in spec-pre spec-review plan-pre plan-review execution-reminder;
   grep_json 'openapi/**' "$TMP_DIR/${prompt_kind}.md"
   reject_json '"sources"' "$TMP_DIR/${prompt_kind}.md"
   reject_json 'client file content sentinel' "$TMP_DIR/${prompt_kind}.md"
+  # `!openapi/draft/**` is a gitignore-style carve-out: it must render under the
+  # carve-out group with the `!` stripped, never as a `!`-prefixed truth line.
+  grep_json 'Carved-out sub-paths' "$TMP_DIR/${prompt_kind}.md"
+  grep_json 'openapi/draft/**' "$TMP_DIR/${prompt_kind}.md"
+  reject_json '!openapi/draft/**' "$TMP_DIR/${prompt_kind}.md"
 done
 grep_json 'Evidence-only paths' "$TMP_DIR/spec-pre.md"
 grep_json 'Ignored for source-of-truth' "$TMP_DIR/spec-pre.md"
@@ -111,6 +116,32 @@ python3 "$ROOT/overlays/scripts/source_truth_settings.py" "$TMP_DIR" --lint-chan
   --changed-paths-file "$TMP_DIR/changed-paths.txt" \
   --format json >"$TMP_DIR/lint-warn.json"
 grep_json '"status": "warn"' "$TMP_DIR/lint-warn.json"
+
+# Inline `!` negation inside a single truth/edit: never rule: the carved sub-path
+# must render as an explicit carve-out (not under the truth heading) and must
+# classify as unconfigured so the changed-path lint does not block it.
+cat >"$TMP_DIR/.superpowers/settings.json" <<'JSON'
+{
+  "sourceOfTruth": {
+    "sources": [
+      {"paths": ["src/service2/", "!src/service2/**/*.adapter.ts"], "role": "truth", "edit": "never"}
+    ]
+  }
+}
+JSON
+for prompt_kind in spec-pre plan-pre execution-reminder; do
+  python3 "$ROOT/overlays/scripts/source_truth_settings.py" "$TMP_DIR" --render-prompt "$prompt_kind" >"$TMP_DIR/carveout-${prompt_kind}.md"
+  grep_json 'Carved-out sub-paths' "$TMP_DIR/carveout-${prompt_kind}.md"
+  grep_json 'src/service2/**/*.adapter.ts' "$TMP_DIR/carveout-${prompt_kind}.md"
+  reject_json '!src/service2/**/*.adapter.ts' "$TMP_DIR/carveout-${prompt_kind}.md"
+done
+python3 "$ROOT/overlays/scripts/source_truth_settings.py" "$TMP_DIR" --lint-changed \
+  --changed-path src/service2/widget/widget.ts \
+  --changed-path src/service2/widget/widget.adapter.ts \
+  --format json >"$TMP_DIR/carveout-lint.json"
+grep_json '"status": "block"' "$TMP_DIR/carveout-lint.json"
+grep_json '"path": "src/service2/widget/widget.adapter.ts"' "$TMP_DIR/carveout-lint.json"
+grep_json '"role": "unconfigured"' "$TMP_DIR/carveout-lint.json"
 
 cat >"$TMP_DIR/.superpowers/settings.json" <<'JSON'
 {"sourceOfTruth": {"sources": [{"paths": ["src/**"], "role": "contract", "edit": "never"}]}}

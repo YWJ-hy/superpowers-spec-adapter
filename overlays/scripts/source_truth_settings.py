@@ -14,6 +14,7 @@ from source_truth_common import SourceTruthError, classify_path, load_source_tru
 PROMPT_KINDS = {"spec-pre", "spec-review", "plan-pre", "plan-review", "execution-reminder"}
 PROMPT_MAX_PATTERNS_PER_GROUP = 12
 PROMPT_MAX_PATTERN_CHARS = 120
+CARVE_OUT_TITLE = "Carved-out sub-paths (excluded from the above — not source-of-truth):"
 STATUS_RANK = {"pass": 0, "warn": 1, "ask": 2, "block": 3}
 
 
@@ -39,16 +40,27 @@ def _group_policy_patterns(policy: Any) -> dict[str, list[str]]:
         "truth_ask": [],
         "evidence": [],
         "ignore": [],
+        "carve_outs": [],
     }
     for source in policy.sources:
         if source.role == "truth" and source.edit == "never":
-            groups["truth_never"].extend(source.paths)
+            key = "truth_never"
         elif source.role == "truth" and source.edit == "ask":
-            groups["truth_ask"].extend(source.paths)
+            key = "truth_ask"
         elif source.role == "evidence":
-            groups["evidence"].extend(source.paths)
+            key = "evidence"
         elif source.role == "ignore":
-            groups["ignore"].extend(source.paths)
+            key = "ignore"
+        else:
+            continue
+        for pattern in source.paths:
+            # gitignore-style `!` negations exclude a sub-path from their own rule.
+            # Rendering them under the rule's role heading is misleading (a `!truth`
+            # path is not authoritative), so surface them as explicit carve-outs.
+            if pattern.startswith("!"):
+                groups["carve_outs"].append(pattern[1:])
+            else:
+                groups[key].append(pattern)
     return groups
 
 
@@ -87,6 +99,7 @@ def render_prompt(policy: Any, kind: str) -> str:
         _append_pattern_group(lines, "Authoritative truth paths (edit: ask):", groups["truth_ask"])
         _append_pattern_group(lines, "Evidence-only paths:", groups["evidence"])
         _append_pattern_group(lines, "Ignored for source-of-truth:", groups["ignore"])
+        _append_pattern_group(lines, CARVE_OUT_TITLE, groups["carve_outs"])
         lines.extend(
             [
                 "Rules:",
@@ -94,7 +107,8 @@ def render_prompt(policy: Any, kind: str) -> str:
                 "2. `truth / edit: ask` paths require explicit user confirmation before the spec/plan treats them as implementation work.",
                 "3. Evidence paths may inform investigation, but they are not authoritative.",
                 "4. Ignore paths must not be used to justify product facts or contract assumptions.",
-                "5. If the request appears to require changing a truth source, surface it as a user/source-chain decision instead of silently embedding it in implementation tasks.",
+                "5. Carved-out sub-paths are excluded from their parent rule and are not source-of-truth; do not treat them as authoritative or protected.",
+                "6. If the request appears to require changing a truth source, surface it as a user/source-chain decision instead of silently embedding it in implementation tasks.",
             ]
         )
     elif kind == "spec-review":
@@ -111,6 +125,7 @@ def render_prompt(policy: Any, kind: str) -> str:
         )
         _append_pattern_group(lines, "Configured `truth / edit: never` paths:", groups["truth_never"])
         _append_pattern_group(lines, "Configured `truth / edit: ask` paths:", groups["truth_ask"])
+        _append_pattern_group(lines, CARVE_OUT_TITLE, groups["carve_outs"])
         lines.extend(
             [
                 "If yes:",
@@ -135,6 +150,7 @@ def render_prompt(policy: Any, kind: str) -> str:
         _append_pattern_group(lines, "Configured `truth / edit: never` paths:", groups["truth_never"])
         _append_pattern_group(lines, "Configured `truth / edit: ask` paths:", groups["truth_ask"])
         _append_pattern_group(lines, "Evidence-only paths:", groups["evidence"])
+        _append_pattern_group(lines, CARVE_OUT_TITLE, groups["carve_outs"])
     elif kind == "plan-review":
         lines.extend(
             [
@@ -152,6 +168,7 @@ def render_prompt(policy: Any, kind: str) -> str:
         )
         _append_pattern_group(lines, "Configured `truth / edit: never` paths:", groups["truth_never"])
         _append_pattern_group(lines, "Configured `truth / edit: ask` paths:", groups["truth_ask"])
+        _append_pattern_group(lines, CARVE_OUT_TITLE, groups["carve_outs"])
         lines.append("If a conflict exists, request plan revision or user confirmation using the normal reviewer feedback channel.")
     else:
         lines.extend(
@@ -163,6 +180,7 @@ def render_prompt(policy: Any, kind: str) -> str:
         )
         _append_pattern_group(lines, "Protected `truth / edit: never` paths:", groups["truth_never"])
         _append_pattern_group(lines, "Protected `truth / edit: ask` paths:", groups["truth_ask"])
+        _append_pattern_group(lines, CARVE_OUT_TITLE, groups["carve_outs"])
 
     return "\n".join(lines).rstrip() + "\n"
 
