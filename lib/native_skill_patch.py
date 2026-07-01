@@ -70,7 +70,11 @@ def _preflight_fail(stop_before: str, deciders: str, mode: str) -> str:
 PATCHES = [
     PatchSpec(
         skill='using-superpowers',
-        anchor='## Instruction Priority\n',
+        # Superpowers 6.1.0 compressed the bootstrap and folded the standalone
+        # "## Instruction Priority" section into "## User Instructions", so anchor there now.
+        # Keep the old heading as a fallback for pre-6.1.0 Superpowers that still ship it.
+        anchor='## User Instructions\n',
+        fallback_anchors=('## Instruction Priority\n',),
         block_id='using-superpowers-adapter-workflow-boundary',
         content='''
 ## Adapter Workflow Boundary
@@ -457,17 +461,22 @@ def find_anchor(text: str, spec: PatchSpec) -> str:
 
 
 def apply_patch(path: Path, spec: PatchSpec, target: Path) -> bool:
-    text = load_text(path)
-    text, removed = strip_block(text, spec)
-    anchor = find_anchor(text, spec)
-    anchor_index = text.find(anchor)
+    original = load_text(path)
+    stripped, _removed = strip_block(original, spec)
+    anchor = find_anchor(stripped, spec)
+    anchor_index = stripped.find(anchor)
     insert_at = anchor_index + len(anchor)
-    block = '\n' + spec.rendered_block(target) + '\n'
-    updated = text[:insert_at] + block + text[insert_at:]
-    if updated != load_text(path):
+    # rendered_block already ends in a single newline, and strip_block reclaims exactly one leading
+    # and one trailing newline around the block. Inserting one leading newline and NO extra trailing
+    # one therefore makes apply the precise inverse of strip, so re-installing is a byte-stable no-op.
+    # (An earlier version appended a second trailing newline that strip could not reclaim, leaking one
+    # blank line into the file on every re-install.)
+    block = '\n' + spec.rendered_block(target)
+    updated = stripped[:insert_at] + block + stripped[insert_at:]
+    if updated != original:
         save_text(path, updated)
         return True
-    return removed
+    return False
 
 
 def remove_patch(path: Path, spec: PatchSpec) -> bool:

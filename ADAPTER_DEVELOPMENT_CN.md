@@ -52,7 +52,7 @@ adapter 分为四层：
 
 开发时可以分别验证各层，但最终必须回到“用户入口层 + 安装后的 Superpowers 环境”确认。
 
-当前兼容性边界：adapter 以 Superpowers 6.0.0 为适配基线，6.0.0 是硬性最低版本（`manifest.json` 的 `minSuperpowersVersion`，由 `lib/resolve_target.py` 与 `install.sh` 共同读取并执行）。低于 6.0.0 的目标一律跳过：目标发现过滤掉 sub-6.0.0（全部低于则报错），`install` 拒绝写入显式传入的 sub-6.0.0 目标；同一 6.x 大版本内的补丁/小版本不报警告，只有更高大版本才提示重新校验。修改版本门控逻辑时必须验证：sub-6.0.0 自动发现被过滤、显式 sub-6.0.0 install 被拒、>=6.0.0 正常安装、版本缺失/不可解析时不被误杀。自动发现安装目标目前依赖 `superpowers@claude-plugins-official` 的安装记录；native skill patch 依赖上游 skill 标题和锚点文本稳定，所以升级 Superpowers 后要重点复核这些 patch 位置。
+当前兼容性边界：adapter 以 Superpowers 6.1.0 为适配基线（已在 6.1.0 上跑通 install/verify 与 native-patch smoke），6.0.0 是硬性最低版本（`manifest.json` 的 `minSuperpowersVersion`，由 `lib/resolve_target.py` 与 `install.sh` 共同读取并执行）。低于 6.0.0 的目标一律跳过：目标发现过滤掉 sub-6.0.0（全部低于则报错），`install` 拒绝写入显式传入的 sub-6.0.0 目标；同一 6.x 大版本内的补丁/小版本不报警告，只有更高大版本才提示重新校验。修改版本门控逻辑时必须验证：sub-6.0.0 自动发现被过滤、显式 sub-6.0.0 install 被拒、>=6.0.0 正常安装、版本缺失/不可解析时不被误杀。自动发现安装目标目前依赖 `superpowers@claude-plugins-official` 的安装记录；native skill patch 依赖上游 skill 标题和锚点文本稳定，所以升级 Superpowers 后要重点复核这些 patch 位置。
 
 Subagent 模型配置由 `adapter.config.json` 控制，默认 `{}` 表示不改变模型路由；可配置 id 维护在 `adapter.config.example.jsonc`。配置只投射到 adapter 自有 overlay agent 的 frontmatter（`wiki-researcher`、Lanhu analyst）；允许非标准模型名但 install 必须 warning。`agents` 是 `subagentModels` 唯一支持的键 —— adapter 不再 patch Superpowers 上游 prompt template（6.0.0 起 implementer / task-reviewer 模板自带原生 `model:` 槽，由 `## Model Selection` 指导，应填原生占位符而非经 adapter），任何其它键（如已移除的 `upstreamPromptTemplates`）必须导致 install 硬失败。修改 `lib/subagent_models.py`、安装脚本时，必须验证空配置 no-op、配置后可应用、清空配置可移除、adapter agent 非标准模型 warning、未知键（含 `upstreamPromptTemplates`）hard fail。
 
