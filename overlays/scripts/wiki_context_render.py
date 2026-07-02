@@ -218,6 +218,8 @@ def _validate_context(data: dict[str, Any], strict: bool, execution_ready: bool 
     for page_index, page in enumerate(pages):
         page_obj = _as_dict(page, f"wikiPages[{page_index}]")
         _as_dict(page_obj.get("documentContext"), f"wikiPages[{page_index}].documentContext")
+        if "maintenanceWarnings" in page_obj:
+            _as_list(page_obj.get("maintenanceWarnings"), f"wikiPages[{page_index}].maintenanceWarnings")
         sections = _as_list(page_obj.get("sections"), f"wikiPages[{page_index}].sections")
         for section_index, section in enumerate(sections):
             section_obj = _as_dict(section, f"wikiPages[{page_index}].sections[{section_index}]")
@@ -248,6 +250,8 @@ def _validate_context(data: dict[str, Any], strict: bool, execution_ready: bool 
                     raise ValidationError(
                         f"{where} must be a non-empty subset of {sorted(known)} (got {section_obj.get('roles')!r})"
                     )
+    if "maintenanceWarnings" in data:
+        _as_list(data.get("maintenanceWarnings"), "maintenanceWarnings")
     if execution_ready:
         _validate_execution_ready(data)
     return caveats
@@ -844,6 +848,8 @@ def _scaffold_page(raw_page: Any, page_index: int) -> dict[str, Any]:
     out["documentContext"] = _as_dict(page.get("documentContext") or {}, f"{where}.documentContext")
     if "caveats" in page:
         out["caveats"] = _as_list(page.get("caveats"), f"{where}.caveats")
+    if "maintenanceWarnings" in page:
+        out["maintenanceWarnings"] = _as_list(page.get("maintenanceWarnings"), f"{where}.maintenanceWarnings")
 
     raw_sections = _as_list(page.get("sections"), f"{where}.sections")
     out["sections"] = [
@@ -896,6 +902,7 @@ def scaffold_from_selection(selection: dict[str, Any], plan_path: str | None) ->
     data["wikiPages"] = pages
     data["taskWikiRefs"] = []
     data["caveats"] = _as_list(selection.get("caveats"), "selection.caveats") if "caveats" in selection else []
+    data["maintenanceWarnings"] = _as_list(selection.get("maintenanceWarnings"), "selection.maintenanceWarnings") if "maintenanceWarnings" in selection else []
     return data
 
 

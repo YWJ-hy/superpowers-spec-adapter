@@ -65,7 +65,7 @@ For shared wiki, select exactly one source per invocation:
 - `sharedWikiSource: github_mcp`: use shared-wiki MCP only. If MCP tools are unavailable, status is unhealthy, or `shared_wiki_read` cannot read `index.md`, return `partial` or `missing_wiki_root` with a caveat instead of silently falling back to local shared wiki.
 - `sharedWikiSource: auto`: try MCP first. If `shared_wiki_status` and `shared_wiki_read({ path: "index.md" })` succeed, use `github_mcp` for shared wiki. If MCP tools are unavailable or cannot read `index.md`, fall back to local `.shared-superpowers/wiki/index.md` when present and record the fallback in `caveats`.
 
-If `shared_wiki_status.validation.errors` is non-empty but `index.md` is readable, you may still use MCP shared wiki as indexed documentation evidence, but include the validation errors in `caveats`.
+If `shared_wiki_status.validation.errors` is non-empty but `index.md` is readable, you may still use MCP shared wiki as indexed documentation evidence, but include the validation errors in `caveats`. Treat `shared_wiki_status.validation.warnings` by severity: warnings that can affect this task's selected section trust (for example stale/missing indexes or unreadable selected content) belong in `caveats`; maintenance-only health warnings, including large-page threshold warnings, belong in `maintenanceWarnings` and must not be repeated in `caveats`.
 
 Do not mix local shared wiki and MCP shared wiki pages in the same selected result. This avoids choosing two versions of the same logical `.shared-superpowers/wiki/<path>.md` page.
 
@@ -120,7 +120,7 @@ Discovery-card sections (the skill cards in `guides/skills.md`) are selected by 
 
 When shared wiki source is `github_mcp`, follow the same progressive index→section flow as the Research Process above, via the MCP tools:
 
-1. Call `shared_wiki_status` first and preserve `repoUrl`, `baseBranch`, `displayRoot`, `revision`, and any validation caveats.
+1. Call `shared_wiki_status` first and preserve `repoUrl`, `baseBranch`, `displayRoot`, `revision`, validation caveats that affect selected-section trust, and maintenance-only validation warnings separately.
 2. Navigate with `shared_wiki_read` on directory `index.md` and companion `<stem>.index.md` files only. Do NOT call `shared_wiki_read` on a leaf `xxx.md` during `brainstorm`, `plan`, or normal `debug`; read leaf content only via `shared_wiki_read_section` (one selected section) or `shared_wiki_read_sections` (multiple, with `includeDocumentContext: true`) after sections are selected, and do not batch-read unselected candidates.
 3. Use `shared_wiki_tree` for indexed navigation/inventory only (not full-context loading), and `shared_wiki_search` only when index navigation is insufficient (keep it query/focus-targeted, not a page-cap workaround).
 4. For every MCP-sourced page, return the logical display path in `path`, the MCP-relative leaf path in `wikiPath`, and the MCP `revision`.
@@ -189,7 +189,8 @@ Selection structure:
   "rejectedWikiPages": [
     {"path": ".superpowers/wiki/<path>.md", "root": "project", "source": "local", "reason": "<why not selected>"}
   ],
-  "caveats": ["<uncertainty, missing index, validation warning, fallback, or follow-up needed>"]
+  "caveats": ["<uncertainty, missing index, validation error, fallback, or selected-section trust issue>"],
+  "maintenanceWarnings": ["<maintenance-only shared wiki health hint, such as large-page threshold warnings>"]
 }
 ```
 
@@ -203,6 +204,7 @@ Rules:
 - Output `relevanceTo` as a coarse human-readable task-area description, never specific task numbers.
 - Keep each `sourceAnchors` excerpt a short bounded pointer (about one sentence, <=200 chars); it locates the constraint while the reread carries the authoritative full section text. The renderer soft-caps longer excerpts with an ellipsis hint.
 - Include the `sharedWikiSource` block only when at least one selected page is `source: github_mcp`; preserve `repoUrl`, `baseBranch`, and `revision` from `shared_wiki_status` so the generator can record shared-wiki identity for drift detection.
+- Keep `caveats` for issues that can affect this selection or execution trust. Put maintenance-only `shared_wiki_status.validation.warnings` in `maintenanceWarnings` instead; specifically, large-page threshold warnings mean future shared wiki updates should consider splitting/ownership cleanup, while selected `github_mcp` sections are still read section-scoped.
 
 ### Plan-phase return
 
@@ -218,7 +220,8 @@ At `phase: plan`, after writing the selection file, your final message is ONLY t
   ],
   "counts": {"pages": 1, "sections": 2, "hardConstraints": 1, "rejected": 3},
   "sharedWikiSource": "github_mcp",
-  "caveats": ["<uncertainty, missing index, fallback, or follow-up needed>"]
+  "caveats": ["<uncertainty, missing index, fallback, or selected-section trust issue>"],
+  "maintenanceWarnings": ["<maintenance-only shared wiki health hint, such as large-page threshold warnings>"]
 }
 ```
 

@@ -160,7 +160,10 @@ cat > "$SEL" <<'JSON'
       ]
     }
   ],
-  "caveats": []
+  "caveats": [],
+  "maintenanceWarnings": [
+    "shared wiki maintenance: frontend/contracts.md is approaching large-page thresholds; future updates should prefer ownership cleanup or splitting. Selected section rereads remain section-scoped."
+  ]
 }
 JSON
 
@@ -206,6 +209,7 @@ assert tr['fingerprintAlgorithm'] == 'sha256:superpower-adapter-task-text-v1'
 # Shared wiki identity captured because a github_mcp page was selected.
 assert d['sharedWiki']['repoUrl'] == 'https://github.com/acme/platform-wiki.git'
 assert d['sharedWiki']['baseBranch'] == 'master'
+assert d['maintenanceWarnings'] == ['shared wiki maintenance: frontend/contracts.md is approaching large-page thresholds; future updates should prefer ownership cleanup or splitting. Selected section rereads remain section-scoped.']
 pages = d['wikiPages']
 # Local hard section: reread auto-derived with localPath; destination defaulted task-bound, reason empty,
 # tasks seeded empty for the author to fill once the roster exists.
@@ -281,6 +285,7 @@ python3 "$SCRIPT" "$CTX" --fingerprint-preflight --strict --execution-ready --pl
 T1_RENDER="$(python3 "$SCRIPT" "$CTX" --task-id T1 --role implementer --strict --execution-ready)"
 assert_contains "T1 render" 'Use updateByPath(path, value)' "$T1_RENDER"
 assert_contains "T1 render" 'Keep shared payload names portable' "$T1_RENDER"
+assert_not_contains "T1 render" 'large-page thresholds' "$T1_RENDER"
 
 # --- Re-running --scaffold-tasks is idempotent: roster keeps taskFingerprint; section routing untouched. ---
 python3 "$SCRIPT" "$CTX" --scaffold-tasks --plan-path "$PLAN" --strict >/dev/null

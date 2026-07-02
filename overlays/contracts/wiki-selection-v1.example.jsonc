@@ -137,5 +137,13 @@
     {"path": ".shared-superpowers/wiki/index.md", "root": "shared", "source": "github_mcp", "wikiPath": "index.md"}
   ],
   "rejectedWikiPages": [],
-  "caveats": []
+  // Selection/execution caveats only: missing roots, unreadable selected sections, validation errors, stale indexes,
+  // or uncertainty that can change whether these constraints should be trusted for this task.
+  "caveats": [],
+  // Maintenance-only health hints copied into the sidecar for plan review/audit, but NOT rendered into
+  // execution constraints. Put shared_wiki_status validation warnings such as large-page thresholds here
+  // when they only advise future wiki splitting/ownership cleanup and do not affect section-scoped rereads.
+  "maintenanceWarnings": [
+    "shared wiki maintenance: frontend/contracts.md is approaching large-page thresholds; future updates should prefer ownership cleanup or splitting. Selected section rereads remain section-scoped."
+  ]
 }

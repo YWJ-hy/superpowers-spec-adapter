@@ -4,7 +4,7 @@
   // Planning agents should adapt this shape from wiki-researcher selected pages and sections.
   // wiki-researcher selects candidate sections only; it must not create taskWikiRefs or taskFingerprint.
   // taskWikiRefs are generated only after the final Superpowers plan has real stable task IDs.
-  // Do not inspect the installed wiki_context_render.py script to infer this format; it is only for validation/rendering.
+  // Do not inspect scripts/wiki_context_render.py to infer this format; it is only for validation/rendering.
   //
   // schemaVersion 4 routing model: ALL routing lives on each section's `destination` block. There are no
   // separate globalWikiRefs / wikiRefs collections and no legacy `appliesTo` field. A section is reached by:
@@ -198,5 +198,12 @@
       "taskFingerprint": "b8d2f6a0c4e7193b5d8f0a2c6e9b1d4f7a3c5e8b0d2f4a6c8e1b3d5f7a9c0e2d"
     }
   ],
-  "caveats": []
+  // Execution caveats only: rendered into task constraints when present, so do not put maintenance-only
+  // shared wiki health hints here.
+  "caveats": [],
+  // Preserved for planning review/audit but not rendered into task-scoped execution constraints. Use for
+  // shared_wiki_status validation warnings that advise wiki maintenance, such as large-page thresholds.
+  "maintenanceWarnings": [
+    "shared wiki maintenance: frontend/contracts.md is approaching large-page thresholds; future updates should prefer ownership cleanup or splitting. Selected section rereads remain section-scoped."
+  ]
 }

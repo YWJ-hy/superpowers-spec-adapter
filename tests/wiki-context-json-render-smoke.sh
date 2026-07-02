@@ -204,7 +204,10 @@ cat > "$CONTEXT" <<JSON
       "taskFingerprint": "${T2_HASH}"
     }
   ],
-  "caveats": []
+  "caveats": [],
+  "maintenanceWarnings": [
+    "shared wiki maintenance: frontend/contracts.md is approaching large-page thresholds; future updates should prefer ownership cleanup or splitting. Selected section rereads remain section-scoped."
+  ]
 }
 JSON
 
@@ -331,6 +334,7 @@ assert_contains "cp936 render" 'Preserve Unicode sentinel  in rendered constr
 assert_not_contains "T1 render" 'Use dot-notation for nested object paths' "$T1_OUT"
 assert_not_contains "T1 render" 'No selected wiki constraints for this role.' "$T1_OUT"
 assert_not_contains "T1 render" 'planning-only' "$T1_OUT"
+assert_not_contains "T1 render" 'large-page thresholds' "$T1_OUT"
 
 T2_OUT="$(python3 "$SCRIPT" "$CONTEXT" --task-id T2 --role implementer --strict --execution-ready)"
 assert_contains "T2 render" 'Shared Frontend Contracts' "$T2_OUT"
