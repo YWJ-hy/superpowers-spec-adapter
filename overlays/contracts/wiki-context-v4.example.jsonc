@@ -4,7 +4,7 @@
   // Planning agents should adapt this shape from wiki-researcher selected pages and sections.
   // wiki-researcher selects candidate sections only; it must not create taskWikiRefs or taskFingerprint.
   // taskWikiRefs are generated only after the final Superpowers plan has real stable task IDs.
-  // Do not inspect scripts/wiki_context_render.py to infer this format; that script is only for validation/rendering.
+  // Do not inspect the installed wiki_context_render.py script to infer this format; it is only for validation/rendering.
   //
   // schemaVersion 4 routing model: ALL routing lives on each section's `destination` block. There are no
   // separate globalWikiRefs / wikiRefs collections and no legacy `appliesTo` field. A section is reached by:

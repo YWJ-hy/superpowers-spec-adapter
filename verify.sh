@@ -37,7 +37,7 @@ check_file() {
     exit 1
   fi
   case "$relative" in
-    commands/*.md|skills/*/SKILL.md|skills/*/references/*.md)
+    agents/*.md|commands/*.md|contracts/*.jsonc|skills/*/SKILL.md|skills/*/references/*.md)
       if grep -Fq 'python3 superpowers/scripts/' "$target"; then
         printf 'Invalid project-relative script path in installed file: %s\n' "$target" >&2
         exit 1
@@ -48,6 +48,10 @@ check_file() {
       fi
       if grep -Eq 'python3 scripts/wiki[_-]' "$target"; then
         printf 'Invalid user-project-relative wiki script path in installed file: %s\n' "$target" >&2
+        exit 1
+      fi
+      if grep -Eq '(^|[^[:alnum:]_./-])scripts/wiki[_-]' "$target"; then
+        printf 'Invalid bare user-project-relative wiki script path in installed file: %s\n' "$target" >&2
         exit 1
       fi
       if grep -Fq '__SUPERPOWER_ADAPTER_PLUGIN_ROOT__' "$target"; then
