@@ -52,7 +52,14 @@ adapter 分为四层：
 
 开发时可以分别验证各层，但最终必须回到“用户入口层 + 安装后的 Superpowers 环境”确认。
 
-当前兼容性边界：adapter 以 Superpowers 6.0.0 为适配基线，6.0.0 是硬性最低版本（`manifest.json` 的 `minSuperpowersVersion`，由 `lib/resolve_target.py` 与 `install.sh` 共同读取并执行）。低于 6.0.0 的目标一律跳过：目标发现过滤掉 sub-6.0.0（全部低于则报错），`install` 拒绝写入显式传入的 sub-6.0.0 目标；同一 6.x 大版本内的补丁/小版本不报警告，只有更高大版本才提示重新校验。修改版本门控逻辑时必须验证：sub-6.0.0 自动发现被过滤、显式 sub-6.0.0 install 被拒、>=6.0.0 正常安装、版本缺失/不可解析时不被误杀。自动发现安装目标目前依赖 `superpowers@claude-plugins-official` 的安装记录；native skill patch 依赖上游 skill 标题和锚点文本稳定，所以升级 Superpowers 后要重点复核这些 patch 位置。
+当前兼容性边界：adapter 以 Superpowers 6.1.0 为适配基线（已在 6.1.0 上跑通 install/verify 与 native-patch smoke），6.0.0 是硬性最低版本（`manifest.json` 的 `minSuperpowersVersion`，由 `lib/resolve_target.py` 与 `install.sh` 共同读取并执行）。低于 6.0.0 的目标一律跳过：目标发现过滤掉 sub-6.0.0（全部低于则报错），`install` 拒绝写入显式传入的 sub-6.0.0 目标；同一 6.x 大版本内的补丁/小版本不报警告，只有更高大版本才提示重新校验。修改版本门控逻辑时必须验证：sub-6.0.0 自动发现被过滤、显式 sub-6.0.0 install 被拒、>=6.0.0 正常安装、版本缺失/不可解析时不被误杀。自动发现安装目标目前依赖 `superpowers@claude-plugins-official` 的安装记录；native skill patch 依赖上游 skill 标题和锚点文本稳定，所以升级 Superpowers 后要重点复核这些 patch 位置。
+
+**升级 Superpowers 后的耦合审计清单**（6.1.0 的教训：注入 prompt 与上游结构是耦合的，锚点只是其中一类，其它几类会静默漂移）：
+
+1. **注入锚点**：`lib/native_skill_patch.py` 每个 `PatchSpec.anchor` 的标题文本必须仍存在于对应上游 skill —— 缺失会让 `install` 硬失败（6.1.0 把 `## Instruction Priority` 折叠进 `## User Instructions`，就是这样断的）。给容易变的锚点配 `fallback_anchors` 兼容旧版。
+2. **注入块 prose 里叙述的上游名字**：正文引用了大量 native 概念（`task-brief`、`review-package`、`sdd-workspace`、`## Global Constraints`、“Required workflow skills”、implementer/task-reviewer 的 `## Model Selection` 槽等）。上游改名不报错，只会让 prose 静默过时 —— 升级后要逐一核对这些名字仍指向真实存在的东西。
+3. **引用的上游文件/路径**：注入块或文档若指向上游文件（如 `skills/using-superpowers/references/*-tools.md`），上游删文件后引用会悬空（6.1.0 删掉了 `claude-code-tools.md` / `copilot-tools.md`，本 adapter 恰好零引用才幸免）。
+4. **验证**：在真实升级后的目标上跑 `./manage.sh install`、`./manage.sh verify`、`bash tests/native-wiki-patch-smoke.sh <target>`，确认 9 处注入全部落位、smoke 钉的关键串仍在。
 
 Subagent 模型配置由 `adapter.config.json` 控制，默认 `{}` 表示不改变模型路由；可配置 id 维护在 `adapter.config.example.jsonc`。配置只投射到 adapter 自有 overlay agent 的 frontmatter（`wiki-researcher`、Lanhu analyst）；允许非标准模型名但 install 必须 warning。`agents` 是 `subagentModels` 唯一支持的键 —— adapter 不再 patch Superpowers 上游 prompt template（6.0.0 起 implementer / task-reviewer 模板自带原生 `model:` 槽，由 `## Model Selection` 指导，应填原生占位符而非经 adapter），任何其它键（如已移除的 `upstreamPromptTemplates`）必须导致 install 硬失败。修改 `lib/subagent_models.py`、安装脚本时，必须验证空配置 no-op、配置后可应用、清空配置可移除、adapter agent 非标准模型 warning、未知键（含 `upstreamPromptTemplates`）hard fail。
 

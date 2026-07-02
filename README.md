@@ -43,7 +43,7 @@ If this adapter lives as `superpower-adapter/` inside another project, run the s
 
 Install-related commands target all unique installed Superpowers Claude Code plugin directories by default, so multiple installed versions are patched together. Pass an explicit Superpowers target path to operate on only one plugin directory. Commands that read or write `.superpowers/wiki/` or `.shared-superpowers/wiki/` require an explicit project root argument.
 
-Current compatibility baseline: Superpowers 6.0.0, and 6.0.0 is the hard minimum. Targets below 6.0.0 are **skipped**: `./manage.sh` target discovery filters them out, and `install` refuses to write into a sub-6.0.0 target even when one is passed explicitly (`minSuperpowersVersion` in `manifest.json`). Install no longer warns about in-baseline 6.0.x patch/minor bumps — it only nudges you to re-verify when the detected target is a newer MAJOR than the adapted version. The version check reads the target's `package.json` (or the `installed_plugins.json` entry) version when available.
+Current compatibility baseline: adapted against Superpowers 6.1.0, and 6.0.0 is the hard minimum. Targets below 6.0.0 are **skipped**: `./manage.sh` target discovery filters them out, and `install` refuses to write into a sub-6.0.0 target even when one is passed explicitly (`minSuperpowersVersion` in `manifest.json`). Install no longer warns about in-baseline 6.0.x patch/minor bumps — it only nudges you to re-verify when the detected target is a newer MAJOR than the adapted version. The version check reads the target's `package.json` (or the `installed_plugins.json` entry) version when available.
 
 ### Optional subagent model configuration
 
@@ -438,7 +438,7 @@ The self-test covers:
 
 ## Compatibility
 
-- Adapter compatibility baseline: Superpowers 6.0.0 (hard minimum; sub-6.0.0 targets are skipped).
+- Adapter compatibility baseline: adapted against Superpowers 6.1.0; 6.0.0 hard minimum (sub-6.0.0 targets are skipped).
 - `./manage.sh install` warns, but does not block, when the detected Superpowers target version is newer than the compatibility baseline.
 - Default target discovery currently keys off the Claude Code plugin install record for `superpowers@claude-plugins-official`.
 - Native skill patches depend on upstream skill headings and anchor text staying stable; if Superpowers changes those files, the adapter patch points need a sync pass.
