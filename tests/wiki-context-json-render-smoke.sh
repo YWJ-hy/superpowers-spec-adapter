@@ -243,7 +243,7 @@ print(Path(sys.argv[1]).read_text(encoding='utf-8'))
 PY
 )"
 assert_contains "example contract" 'AI-facing authoring contract' "$EXAMPLE_TEXT"
-assert_contains "example contract" 'Do not inspect scripts/wiki_context_render.py to infer this format' "$EXAMPLE_TEXT"
+assert_contains "example contract" 'Do not inspect <plugin-root>/scripts/wiki_context_render.py to infer this format' "$EXAMPLE_TEXT"
 assert_contains "example contract" '--bind-fingerprints --strict' "$EXAMPLE_TEXT"
 assert_contains "example contract" '--execution-ready --plan-path' "$EXAMPLE_TEXT"
 assert_contains "example contract" '--fingerprint-preflight' "$EXAMPLE_TEXT"
