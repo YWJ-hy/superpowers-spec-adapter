@@ -297,10 +297,6 @@ def _task_section_keys(data: dict[str, Any], task_id: str) -> set[tuple[str, str
     return keys
 
 
-def _format_bool(value: Any) -> str:
-    return "true" if bool(value) else "false"
-
-
 def _section_roles(section: dict[str, Any]) -> list[str] | None:
     """Return a section's binding-role restriction, or None when it binds to every role.
 
@@ -326,33 +322,30 @@ def _role_allows(section: dict[str, Any], role: str) -> bool:
     return ROLE_TO_BINDING.get(role, role) in roles
 
 
-def _append_metadata(lines: list[str], page: dict[str, Any]) -> None:
-    for key, label in (
-        ("root", "Root"),
-        ("source", "Source"),
-        ("localPath", "Local path"),
-        ("wikiPath", "Wiki path"),
-    ):
-        value = page.get(key)
-        if value:
-            lines.append(f"- {label}: `{value}`")
-    revision = page.get("revision")
-    if isinstance(revision, dict):
-        commit = revision.get("commitSha") or revision.get("shortSha") or revision.get("ref")
-        if commit:
-            lines.append(f"- Revision: `{commit}`")
+def _append_document_context(lines: list[str], display: str, context: dict[str, Any]) -> None:
+    """Render the page heading plus its bounded document context, content-first.
 
-
-def _append_document_context(lines: list[str], context: dict[str, Any]) -> None:
-    lines.append("### Document Context")
-    if context.get("title"):
-        lines.append(f"- Document: {context['title']}")
+    The heading folds the wiki path (its `.superpowers/` vs `.shared-superpowers/` prefix already
+    signals the root) and the human title into one line; the overview renders as a blockquote. The
+    machine plumbing an execution/reviewer subagent never acts on -- root/source/localPath/wikiPath
+    metadata rows, the `.index.md` context-source path, the standalone "Document Context" heading --
+    is dropped: nothing downstream parses this Markdown (it is Read once and discarded), so those
+    rows were pure per-task token cost.
+    """
+    title = context.get("title")
+    # The companion-index H1 is the canonical "Sections: <rel-path>" marker (migrate-wiki / scaffold
+    # seed), not a human title -- folding it in would just echo the page path already in the heading.
+    # Keep a genuine title (rare in practice); drop the structural placeholder.
+    if isinstance(title, str) and title.strip().startswith("Sections:"):
+        title = None
+    heading = f"### `{display}`"
+    if title:
+        heading += f" — {title}"
+    lines.append(heading)
     if context.get("overview"):
-        lines.append(f"- Overview: {context['overview']}")
+        lines.append(f"> {context['overview']}")
     if context.get("scope"):
         lines.append(f"- Scope: {context['scope']}")
-    if context.get("contextSource"):
-        lines.append(f"- Context source: `{context['contextSource']}`")
     for caveat in _as_list(context.get("caveats"), "documentContext.caveats"):
         lines.append(f"- Caveat: {caveat}")
 
@@ -362,29 +355,10 @@ def _append_constraints(lines: list[str], constraints: dict[str, Any], role: str
         items = _as_list(constraints.get(category), f"constraints.{category}")
         if not items:
             continue
-        lines.append(f"#### {category.capitalize()} constraints")
+        # Bold label, not a heading: sections already render at h4, so a category h4 would collide.
+        lines.append(f"**{category.capitalize()} constraints:**")
         for item in items:
             lines.append(f"- {item}")
-
-
-def _append_reread(lines: list[str], reread: Any) -> None:
-    if not reread:
-        return
-    reread_obj = _as_dict(reread, "reread")
-    lines.append("#### Reread")
-    for key, label in (
-        ("root", "Root"),
-        ("source", "Source"),
-        ("filePath", "File path"),
-        ("localPath", "Local path"),
-        ("wikiPath", "Wiki path"),
-        ("sectionId", "Section"),
-    ):
-        value = reread_obj.get(key)
-        if value:
-            lines.append(f"- {label}: `{value}`")
-    if reread_obj.get("includeDocumentContext") is not None:
-        lines.append(f"- Include document context: `{_format_bool(reread_obj.get('includeDocumentContext'))}`")
 
 
 def _truncate_excerpt(value: Any) -> str:
@@ -406,7 +380,7 @@ def _append_source_anchors(lines: list[str], anchors: Any) -> None:
     source_anchors = _as_list(anchors, "sourceAnchors")
     if not source_anchors:
         return
-    lines.append("#### Source anchors")
+    lines.append("**Source anchors:**")
     for anchor in source_anchors:
         if isinstance(anchor, dict):
             heading = anchor.get("heading")
@@ -442,18 +416,16 @@ def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None)
         if commit:
             identity_bits.append(f"revision `{commit}`")
         if identity_bits:
+            # Identity only. The drift check ("confirm the MCP still serves this repo") is not the
+            # subagent's job: wiki_materialize_task.py already fails closed on sharedWiki rebinding
+            # and revision drift before appending the rereads this file gets Read alongside.
             lines.append(f"- Shared wiki source: {', '.join(identity_bits)}")
-            lines.append("- Before trusting github_mcp rereads, confirm the connected shared-wiki MCP still serves this repo; a mismatch means the project rebound its shared wiki after planning.")
             lines.append("")
     for page in pages:
         display = page.get("displayPath") or page.get("path") or page.get("wikiPath") or "unknown wiki page"
-        lines.append(f"### Wiki Page: `{display}`")
-        _append_metadata(lines, page)
-        page_caveats = _as_list(page.get("caveats"), "page.caveats")
-        for caveat in page_caveats:
+        _append_document_context(lines, display, _as_dict(page.get("documentContext"), "documentContext"))
+        for caveat in _as_list(page.get("caveats"), "page.caveats"):
             lines.append(f"- Caveat: {caveat}")
-        lines.append("")
-        _append_document_context(lines, _as_dict(page.get("documentContext"), "documentContext"))
         lines.append("")
 
         for section in _as_list(page.get("sections"), "sections"):
@@ -462,22 +434,27 @@ def render_markdown(data: dict[str, Any], role: str, task_id: str | None = None)
             if not _role_allows(section, role):
                 continue
             section_id = section.get("sectionId") or section.get("section_name")
-            lines.append(f"### Section: `{section_id}`")
-            # Execution render carries only what the implementer/reviewer acts on for this task: keep
-            # relevanceTo + reason (separate fields, never merged) and the hard-constraint flag, and drop
-            # planning/routing bookkeeping -- relevance/confidence (selection-time signals) and the
-            # destination kind/reason (routing is already resolved: this section only renders because it
-            # routed to this task). Trims every selected section in every per-task render.
+            hard = bool(section.get("hardConstraint"))
+            # Execution render carries only what the implementer/reviewer acts on for this task: the
+            # section id + binding strength (folded into the heading), relevanceTo + reason (separate
+            # fields, never merged), and the constraints. Planning/routing bookkeeping is dropped
+            # (relevance/confidence selection signals, destination kind/reason -- routing is already
+            # resolved: this section only renders because it routed to this task), and so is the
+            # `#### Reread` pointer block: it duplicated the page metadata above and the section's full
+            # text below, which materialize appends verbatim under "## Hard Wiki Constraint Rereads".
+            lines.append(f"#### `{section_id}` · {'hard' if hard else 'soft'}")
             if section.get("relevanceTo"):
-                lines.append(f"- Relevance to: {section['relevanceTo']}")
+                lines.append(f"- Relevance: {section['relevanceTo']}")
             if section.get("reason"):
-                lines.append(f"- Reason: {section['reason']}")
-            lines.append(f"- Hard constraint: `{_format_bool(section.get('hardConstraint'))}`")
+                lines.append(f"- Why: {section['reason']}")
             for caveat in _as_list(section.get("caveats"), "section.caveats"):
                 lines.append(f"- Caveat: {caveat}")
             _append_constraints(lines, _as_dict(section.get("constraints"), "constraints"), role)
-            _append_reread(lines, section.get("reread"))
-            _append_source_anchors(lines, section.get("sourceAnchors"))
+            # Source anchors are a lossy pointer into the section body. For a hard constraint the
+            # authoritative full text is appended below, so an anchor there is pure duplication; render
+            # anchors only for soft (no-reread) sections, where they are the sole verbatim provenance.
+            if not hard:
+                _append_source_anchors(lines, section.get("sourceAnchors"))
             lines.append("")
     for caveat in _as_list(data.get("caveats"), "caveats"):
         lines.append(f"- Context caveat: {caveat}")

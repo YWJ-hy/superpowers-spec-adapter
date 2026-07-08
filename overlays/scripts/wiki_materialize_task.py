@@ -434,19 +434,16 @@ def _pick_shared_wiki_server(servers: Any) -> dict[str, Any] | None:
 
 
 def _render_section_block(mat: dict[str, Any]) -> str:
+    # The heading (displayPath # sectionId) is the provenance; its wiki-root prefix already signals
+    # project vs shared, so the root/source rows are dropped. Document/Overview/Context-source rows are
+    # dropped too: they duplicated the top-half page context (the same page renders there) or degraded
+    # to a bare "Type: constraint". What stays is what the reader acts on -- the revision stamp (drift
+    # authority), the closure provenance, any drift caveats, and the authoritative full text.
     lines = [f"### Reread: `{mat['displayPath']}` # `{mat['sectionId']}`"]
-    lines.append(f"- Root: `{mat['root']}`")
-    lines.append(f"- Source: `{mat['source']}`")
     if mat.get("revision"):
         lines.append(f"- Revision: `{mat['revision']}`")
     if mat.get("closedVia"):
         lines.append(f"- Pulled in via: depends-on closure of `{mat['closedVia']}`")
-    if mat.get("title"):
-        lines.append(f"- Document: {mat['title']}")
-    if mat.get("overview"):
-        lines.append(f"- Overview: {mat['overview']}")
-    if mat.get("contextSource"):
-        lines.append(f"- Context source: `{mat['contextSource']}`")
     for caveat in mat.get("caveats") or []:
         lines.append(f"- Caveat: {caveat}")
     lines.append("#### Full section text")
