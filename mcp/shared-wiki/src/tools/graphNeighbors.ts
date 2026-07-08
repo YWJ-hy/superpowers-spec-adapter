@@ -6,6 +6,8 @@ import { isCompanionIndexForIndexedLeaf } from '../wiki/indexGraph.js';
 import { wikiRootPath } from '../wiki/paths.js';
 
 const GRAPH_FILE = '.graph.json';
+const DEFAULT_DISPLAY_ROOT_PREFIXES = ['.shared-superpowers/wiki/', '.superpowers/wiki/'];
+const MD_SUFFIX_RE = /\.(md|markdown|mdx)$/;
 
 type OutEdge = { to: string; type?: string; indexed: boolean };
 type InEdge = { from: string; type?: string; indexed: boolean };
@@ -13,6 +15,37 @@ type Slice = { out: OutEdge[]; in: InEdge[] };
 
 function emptyNeighbors(nodes: string[]): Record<string, Slice> {
   return Object.fromEntries(nodes.map((node) => [node, { out: [], in: [] }]));
+}
+
+// Normalize a query node id to the persisted graph's canonical `rel/path.md#section` key.
+// The graph keys pages wiki-root-relative with a `.md` suffix, but callers routinely hold a
+// page in the shape the read path accepts: display-root-prefixed (.shared-superpowers/wiki/…),
+// ./-prefixed, or the `.md`-less form shown in [[page#section]] link text and companion index
+// tables. read-sections resolves all of those via normalizeWikiRelativePath; before this, they
+// silently missed every graph lookup and returned empty edges. Mirror that normalization so any
+// identifier the read path resolves also resolves here — strip a display-root/./ prefix off the
+// page part and append `.md` when it lacks a markdown suffix — keeping the #section anchor (and a
+// bare page node) intact. Best-effort and non-throwing (this tool degrades to empty, never
+// errors); a canonical node passes through unchanged.
+function normalizeGraphNode(config: SharedWikiConfig, node: string): string {
+  const hashIndex = node.indexOf('#');
+  let page = hashIndex === -1 ? node : node.slice(0, hashIndex);
+  const anchor = hashIndex === -1 ? '' : node.slice(hashIndex); // includes the leading '#'
+  page = page.trim().replaceAll('\\', '/');
+  if (page.startsWith('./')) page = page.slice(2);
+  const displayRoot = config.displayRoot?.trim().replace(/\/+$/, '');
+  const prefixes =
+    displayRoot && displayRoot !== '.'
+      ? [`${displayRoot}/`, ...DEFAULT_DISPLAY_ROOT_PREFIXES]
+      : DEFAULT_DISPLAY_ROOT_PREFIXES;
+  for (const prefix of prefixes) {
+    if (page.startsWith(prefix)) {
+      page = page.slice(prefix.length);
+      break;
+    }
+  }
+  if (page && !MD_SUFFIX_RE.test(page)) page = `${page}.md`;
+  return `${page}${anchor}`;
 }
 
 function companionIndexRel(node: string): string | null {
@@ -77,12 +110,16 @@ export async function graphNeighborsTool(config: SharedWikiConfig, input: { node
 
   const neighbors: Record<string, Slice> = {};
   for (const node of input.nodes) {
-    const out: OutEdge[] = (outByNode.get(node) ?? []).map((edge) => ({
+    // Look up by the canonical key, but return keyed by the caller's original node string so
+    // it maps the slice back to exactly what it requested (and callers that pass canonical
+    // ids — the renderer, the materializer's wikiPath path — are unaffected).
+    const key = normalizeGraphNode(config, node);
+    const out: OutEdge[] = (outByNode.get(key) ?? []).map((edge) => ({
       to: edge.to,
       type: edge.type,
       indexed: isIndexedNeighbor(config, edge.to),
     }));
-    const incomingRaw = backlinks[node];
+    const incomingRaw = backlinks[key];
     const incoming: InEdge[] = Array.isArray(incomingRaw)
       ? incomingRaw
           .filter(

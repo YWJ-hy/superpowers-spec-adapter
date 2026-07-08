@@ -85,6 +85,29 @@ describe('shared wiki graph neighbors', () => {
     expect(result.neighbors['b.md#s2'].out).toEqual([]);
   });
 
+  it('resolves display-prefixed and .md-less node ids to the same canonical slice', async () => {
+    const { repoUrl } = await createRemoteRepo(true);
+    // The read path (read-sections) accepts a page as a display-root-prefixed path, a
+    // ./-prefixed path, or the .md-less form shown in [[page#section]] link text. graph-neighbors
+    // must resolve them the same way instead of silently returning empty edges; results stay
+    // keyed by the caller's original (un-normalized) node string.
+    const canonical = await graphNeighborsTool(config(repoUrl, cache()), { nodes: ['a.md#s1'] });
+    const variants = ['.shared-superpowers/wiki/a.md#s1', './a.md#s1', 'a#s1'];
+    for (const node of variants) {
+      const result = await graphNeighborsTool(config(repoUrl, cache()), { nodes: [node] });
+      expect(Object.keys(result.neighbors)).toEqual([node]); // keyed by what the caller asked
+      expect(result.neighbors[node].out).toEqual(canonical.neighbors['a.md#s1'].out);
+      expect(result.neighbors[node].in).toEqual(canonical.neighbors['a.md#s1'].in);
+    }
+    // Backlink direction resolves through the same normalization.
+    const prefixedTarget = await graphNeighborsTool(config(repoUrl, cache()), {
+      nodes: ['.shared-superpowers/wiki/b.md#s2'],
+    });
+    expect(prefixedTarget.neighbors['.shared-superpowers/wiki/b.md#s2'].in).toEqual([
+      { from: 'a.md#s1', type: 'depends-on', indexed: true },
+    ]);
+  });
+
   it('returns empty slice for unknown nodes', async () => {
     const { repoUrl } = await createRemoteRepo(true);
     const result = await graphNeighborsTool(config(repoUrl, cache()), { nodes: ['missing.md#nope'] });

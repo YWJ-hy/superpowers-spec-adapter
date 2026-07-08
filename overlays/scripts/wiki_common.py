@@ -753,6 +753,38 @@ def build_section_graph(wiki_root: Path) -> SectionGraph:
     return graph
 
 
+_WIKI_DISPLAY_PREFIXES = (".shared-superpowers/wiki/", ".superpowers/wiki/")
+_WIKI_MD_SUFFIXES = (".md", ".markdown", ".mdx")
+
+
+def normalize_graph_node(node: str) -> str:
+    """Normalize a query node id to the persisted graph's canonical key form.
+
+    The graph keys a page wiki-root-relative and with a ``.md`` suffix
+    (``frontend/type-safety.md#enum-const-enum``). Callers, however, routinely hold a page
+    in the shape the *read* path accepts instead: display-root-prefixed
+    (``.shared-superpowers/wiki/…`` / ``.superpowers/wiki/…``), ``./``-prefixed, or the
+    ``.md``-less form that ``[[page#section]]`` link text and companion index tables show.
+    Those forms all resolve for read-sections (via ``normalizeWikiRelativePath``) but, before
+    this, silently missed every graph lookup and returned empty edges. Mirror that read-path
+    normalization so any identifier read-sections resolves also resolves here: strip a
+    display-root/``./`` prefix off the page part and append ``.md`` when it lacks a markdown
+    suffix. The ``#section`` anchor (and a bare page node with no anchor) is preserved.
+    Best-effort and idempotent — a node already in canonical form returns unchanged.
+    """
+    page, sep, section = node.partition("#")
+    page = page.strip().replace("\\", "/")
+    if page.startswith("./"):
+        page = page[2:]
+    for prefix in _WIKI_DISPLAY_PREFIXES:
+        if page.startswith(prefix):
+            page = page[len(prefix):]
+            break
+    if page and not page.endswith(_WIKI_MD_SUFFIXES):
+        page = page + ".md"
+    return f"{page}#{section}" if sep else page
+
+
 def one_hop_neighbors(graph: dict, nodes: list[str]) -> dict[str, dict]:
     """Bounded 1-hop slice of a persisted ``section-graph`` payload.
 
@@ -762,6 +794,11 @@ def one_hop_neighbors(graph: dict, nodes: list[str]) -> dict[str, dict]:
     "load the entire .graph.json into context". Unknown nodes yield empty lists. The
     function is pure (graph payload in, slice out); companion-index gating is layered on
     by callers that have the wiki filesystem.
+
+    Each requested node is normalized to the graph's canonical key form before lookup (see
+    ``normalize_graph_node``) so display-root-prefixed / ``.md``-less identifiers resolve the
+    same way they do for read-sections; results stay keyed by the caller's original node
+    string so callers map slices back to exactly what they asked for.
     """
     out_by_node: dict[str, list[dict]] = {}
     edges = graph.get("edges") if isinstance(graph, dict) else None
@@ -776,12 +813,13 @@ def one_hop_neighbors(graph: dict, nodes: list[str]) -> dict[str, dict]:
     backlinks = graph.get("backlinks") if isinstance(graph, dict) else None
     result: dict[str, dict] = {}
     for node in nodes:
+        key = normalize_graph_node(node)
         incoming: list[dict] = []
         if isinstance(backlinks, dict):
-            for src in backlinks.get(node, []) or []:
+            for src in backlinks.get(key, []) or []:
                 if isinstance(src, dict) and isinstance(src.get("from"), str):
                     incoming.append({"from": src["from"], "type": src.get("type")})
-        result[node] = {"out": out_by_node.get(node, []), "in": incoming}
+        result[node] = {"out": out_by_node.get(key, []), "in": incoming}
     return result
 
 

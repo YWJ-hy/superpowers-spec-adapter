@@ -71,6 +71,26 @@ assert ("a.md#s1", "depends-on", True) in inb, f"missing indexed backlink into b
 print("bounded neighbor query OK")
 PY
 
+# --- Display-prefixed / .md-less node ids resolve to the same slice (read-path parity) ---
+# The wiki-researcher and materializer often hold a page as a display-root-prefixed path
+# (.superpowers/wiki/...) or the .md-less form shown in [[page#section]] link text. These
+# must resolve like the canonical id instead of silently returning empty edges.
+variant_json="$(python3 "${SCRIPTS}/wiki_graph_neighbors.py" \
+  --node ".superpowers/wiki/a.md#s1" \
+  --node "a#s1" \
+  --wiki-root project --project-root "${TMP_PROJECT}")"
+python3 - <<'PY' "${variant_json}"
+import json, sys
+n = json.loads(sys.argv[1])["neighbors"]
+# Keyed by the caller's original node strings, not the normalized form.
+assert set(n) == {".superpowers/wiki/a.md#s1", "a#s1"}, f"variant keys not preserved: {set(n)}"
+for node in (".superpowers/wiki/a.md#s1", "a#s1"):
+    out = {(e["to"], e["type"], e["indexed"]) for e in n[node]["out"]}
+    assert ("b.md#s2", "depends-on", True) in out, f"{node}: depends-on edge not resolved: {out}"
+    assert ("c.md#s3", "see-also", False) in out, f"{node}: see-also edge not resolved: {out}"
+print("prefixed / .md-less node resolution OK")
+PY
+
 # --- Unknown node yields an empty slice, still bounded ---
 unknown_json="$(python3 "${SCRIPTS}/wiki_graph_neighbors.py" --node "missing.md#nope" --wiki-root project --project-root "${TMP_PROJECT}")"
 python3 - <<'PY' "${unknown_json}"
