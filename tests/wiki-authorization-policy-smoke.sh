@@ -139,4 +139,34 @@ if ! grep -Fq 'New summary text.' "${TMP_PROJECT}/.superpowers/wiki/index.md"; t
   exit 1
 fi
 
+# Regression: a section-ized page whose title is immediately followed by a wiki-section
+# marker (no prose paragraph) must NOT degrade its auto-block summary to the first
+# '## subheading'. The extractor should skip the heading and reach the real prose.
+cat > "${TMP_PROJECT}/.superpowers/wiki/section-page.md" <<'MD'
+# Section Page
+
+<!-- wiki-section:demo -->
+## 子标题
+真实说明段落。
+<!-- /wiki-section:demo -->
+MD
+cat > "${TMP_PROJECT}/.superpowers/wiki/index.md" <<'MD'
+# Project Wiki
+
+<!-- superpower-adapter:auto:start -->
+- `section-page.md` — stale
+<!-- superpower-adapter:auto:end -->
+MD
+(cd "${TMP_PROJECT}" && python3 "${TARGET_DIR}/scripts/update-wiki.py" --wiki-root project --authorized-update)
+if grep -Fq '## 子标题' "${TMP_PROJECT}/.superpowers/wiki/index.md"; then
+  printf 'Regression: section-ized page summary degraded to a raw ## subheading\n' >&2
+  cat "${TMP_PROJECT}/.superpowers/wiki/index.md" >&2
+  exit 1
+fi
+if ! grep -Fq '真实说明段落。' "${TMP_PROJECT}/.superpowers/wiki/index.md"; then
+  printf 'Expected section-ized page summary to reach the real prose paragraph\n' >&2
+  cat "${TMP_PROJECT}/.superpowers/wiki/index.md" >&2
+  exit 1
+fi
+
 printf 'wiki authorization policy smoke test complete\n'

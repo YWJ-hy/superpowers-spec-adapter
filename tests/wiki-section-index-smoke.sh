@@ -188,6 +188,49 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+printf '\nTest: aligned (spaced) delimiter table is replaced, not duplicated\n'
+
+# A column-aligned index (pipes padded with spaces) is the format a human or markdown
+# formatter may have committed. Regeneration must recognize and REPLACE it — not fail to
+# detect the old table and append a second one, leaving two tables in the file.
+cat > "$INDEX_PATH" << 'INDEX'
+# Sections: frontend/hook-guidelines.md
+
+> Aligned overview should survive regeneration.
+
+| section        | 描述           | 约束强度 |
+| -------------- | -------------- | -------- |
+| aligned-stale  | Stale aligned  | soft     |
+INDEX
+
+python3 "$SCRIPTS/wiki_generate_section_index.py" \
+  "frontend/hook-guidelines.md" \
+  --wiki-root project --project-root "$TMP"
+
+INDEX_CONTENT="$(cat "$INDEX_PATH")"
+assert_contains "preserves aligned overview" "Aligned overview should survive regeneration" "$INDEX_CONTENT"
+assert_contains "regenerates real rows" "| path-based-update | Path-Based Update：" "$INDEX_CONTENT"
+assert_not_contains "removes aligned stale row" "aligned-stale" "$INDEX_CONTENT"
+HEADER_COUNT="$(grep -c '约束强度' "$INDEX_PATH" || true)"
+if [[ "$HEADER_COUNT" -eq 1 ]]; then
+  printf '  ✓ single section table (no duplicate)\n'
+  PASS=$((PASS + 1))
+else
+  printf '  ✗ single section table (found %s table header rows)\n' "$HEADER_COUNT"
+  FAIL=$((FAIL + 1))
+fi
+
+printf '\nTest: project-root-relative path with wiki prefix resolves (no double-prefix)\n'
+
+rm -f "$INDEX_PATH"
+# The path a user copies is usually project-root-relative and already carries the
+# .superpowers/wiki/ prefix; joining it onto the wiki root double-prefixed it into
+# .superpowers/wiki/.superpowers/wiki/… → "file not found". It must now resolve.
+python3 "$SCRIPTS/wiki_generate_section_index.py" \
+  ".superpowers/wiki/frontend/hook-guidelines.md" \
+  --wiki-root project --project-root "$TMP"
+assert_file_exists "prefixed project-relative path resolved" "$INDEX_PATH"
+
 # --- Summary ---
 printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
 printf 'Results: %d passed, %d failed\n' "$PASS" "$FAIL"

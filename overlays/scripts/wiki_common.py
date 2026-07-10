@@ -408,12 +408,16 @@ def summary_from_markdown(path: Path) -> str:
     summary = ""
     for line in lines:
         stripped = line.strip()
-        if not stripped:
+        if not stripped or stripped.startswith("<!--"):
+            # Blank lines and HTML comments (wiki-section markers included) carry no summary.
             continue
-        if not title and stripped.startswith("#"):
-            title = stripped.lstrip("#").strip()
-            continue
-        if stripped.startswith("<!--"):
+        if stripped.startswith("#"):
+            # The first heading is the page title. A LATER heading is not a summary — it is
+            # the first section's ## on a section-ized page whose title is immediately
+            # followed by a wiki-section marker and no prose. Skip it and keep looking for
+            # real prose; grabbing it verbatim produced garbage like "Title — ## Subheading".
+            if not title:
+                title = stripped.lstrip("#").strip()
             continue
         summary = stripped
         break

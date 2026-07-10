@@ -44,11 +44,31 @@ SECTION_GRAPH_FILE = ".graph.json"
 LEGACY_NOTE_MARKER = "由源文档的 `[[page#section]]` 链接生成"
 
 
+def _is_table_delimiter(line: str) -> bool:
+    """True for a Markdown table delimiter row in any spacing/alignment form.
+
+    Matches the compact ``|---|---|`` this generator emits AND the column-aligned
+    ``| ---------- | ---- |`` (or ``| :--- | ---: |``) form a formatter or human may have
+    committed. It discriminates against a data row because a delimiter contains only pipes,
+    dashes, colons and spaces, with at least one dash — a data row carries other characters.
+    """
+    s = line.strip()
+    if not s.startswith("|") or "-" not in s:
+        return False
+    return all(ch in "|:- " for ch in s)
+
+
 def _split_header_and_table(content: str) -> tuple[str, str]:
-    """Split existing .index.md into preserved header and generated table."""
+    """Split existing .index.md into preserved header and generated table.
+
+    The split point is the column-header row (one line above the delimiter), so both the
+    header row and the delimiter are dropped along with the old data rows. Detecting the
+    delimiter tolerantly (see _is_table_delimiter) is what lets regeneration REPLACE an
+    aligned/old-format table instead of failing to find it and appending a second table.
+    """
     lines = content.splitlines(keepends=True)
     for i, line in enumerate(lines):
-        if line.strip().startswith("|---"):
+        if _is_table_delimiter(line):
             split_at = max(i - 1, 0)
             return "".join(lines[:split_at]), "".join(lines[split_at:])
     return content, ""
@@ -228,6 +248,35 @@ def index_path_for(file_path: Path) -> Path:
     return file_path.parent / f"{file_path.stem}.index.md"
 
 
+def resolve_wiki_file(raw: str, wiki_root: Path, project_root: Path) -> Path | None:
+    """Resolve a user-given wiki file path to an existing file under the wiki root.
+
+    The documented contract is "relative to the wiki root", but the path a user sees and
+    copies is usually project-root-relative (``.superpowers/wiki/foo/bar.md``). Joining that
+    onto the wiki root double-prefixes it into ``.superpowers/wiki/.superpowers/wiki/…`` →
+    "file not found". So try the wiki-root-relative reading first (the contract), then fall
+    back to project-root- and cwd-relative readings, and accept the first candidate that
+    both exists AND resolves under the wiki root — an index is only meaningful for a file
+    inside the wiki, so a match outside it is rejected rather than silently used.
+    """
+    p = Path(raw)
+    if p.is_absolute():
+        candidates = [p]
+    else:
+        candidates = [wiki_root / p, project_root / p, Path.cwd() / p]
+    wr = wiki_root.resolve()
+    for cand in candidates:
+        cand = cand.resolve()
+        if not cand.is_file():
+            continue
+        try:
+            cand.relative_to(wr)
+        except ValueError:
+            continue
+        return cand
+    return None
+
+
 def process_file(file_path: Path) -> bool:
     """Process a single file. Returns True if index was written."""
     out = index_path_for(file_path)
@@ -312,11 +361,9 @@ def main() -> None:
         print(f"\nGenerated {count} section index file(s).")
     elif args.file_path:
         wiki = wiki_root_from_dir(args.wiki_dir) if args.wiki_dir else select_wiki_root(project, "project" if args.wiki_root == "all" else args.wiki_root)
-        file_path = Path(args.file_path)
-        if not file_path.is_absolute():
-            file_path = wiki.path / file_path
-        if not file_path.is_file():
-            print(f"Error: file not found: {file_path}", file=sys.stderr)
+        file_path = resolve_wiki_file(args.file_path, wiki.path, project)
+        if file_path is None:
+            print(f"Error: file not found under wiki root {wiki.path}: {args.file_path}", file=sys.stderr)
             sys.exit(1)
         # A single edited page can shift the whole root's graph, so rebuild the
         # root-level .graph.json before regenerating this file's index.
