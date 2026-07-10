@@ -18,6 +18,10 @@ def repo_root(start: Path) -> Path:
     for candidate in (current, *current.parents):
         if (candidate / ".superpowers").exists() or (candidate / ".shared-superpowers").exists() or (candidate / "superpowers").exists():
             return candidate
+        if (candidate / ".git").exists():
+            # Stop at the enclosing git repository root; never climb past .git
+            # into unrelated ancestors. Mirrors wiki_common.repo_root.
+            return candidate
     return current
 
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 
 import argparse
@@ -10,10 +11,11 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from wiki_common import build_wiki_index_graph, display_wiki_path, known_wiki_roots, repo_root, summary_from_markdown
+from wiki_common import build_wiki_index_graph, display_wiki_path, known_wiki_roots, summary_from_markdown
 
 MAX_SCAN_RESULTS = 400
 MAX_FILE_SAMPLES = 12
+MAX_SCAN_ENTRIES = 50000
 
 EXTENSION_GROUPS: dict[str, set[str]] = {
     "python": {".py"},
@@ -39,14 +41,34 @@ def run_find(project_root: Path) -> list[Path]:
     ignored_directories = {"node_modules", ".git", "dist", "build", "coverage", ".next", "target"}
     suffixes = {suffix for group in EXTENSION_GROUPS.values() for suffix in group}
     paths: list[Path] = []
-    for path in sorted(project_root.rglob("*")):
-        relative = path.relative_to(project_root)
-        if any(part in ignored_directories for part in relative.parts):
-            continue
-        if path.is_file() and path.suffix.lower() in suffixes:
+    entries_seen = 0
+    # Walk top-down and prune ignored/hidden directories *in place* so traversal
+    # never descends into them. The previous sorted(rglob("*")) enumerated the
+    # entire tree — including node_modules/.git/AppData — into one list before the
+    # MAX_SCAN_RESULTS cap could apply, which let a mis-rooted scan balloon to
+    # several GB. os.walk holds only one directory's listing at a time, and
+    # MAX_SCAN_ENTRIES bounds traversal when a root has few matching source files.
+    for current_dir, dir_names, file_names in os.walk(project_root):
+        dir_names[:] = sorted(
+            name
+            for name in dir_names
+            if name not in ignored_directories and not name.startswith(".")
+        )
+        entries_seen += 1
+        if entries_seen > MAX_SCAN_ENTRIES:
+            break
+        for name in sorted(file_names):
+            entries_seen += 1
+            if entries_seen > MAX_SCAN_ENTRIES:
+                return paths
+            if os.path.splitext(name)[1].lower() not in suffixes:
+                continue
+            path = Path(current_dir) / name
+            if not path.is_file():
+                continue
             paths.append(path)
             if len(paths) >= MAX_SCAN_RESULTS:
-                break
+                return paths
     return paths
 
 
@@ -121,7 +143,11 @@ def indexed_wiki_pages(root_desc) -> tuple[list[dict[str, str]], list[str]]:
 
 
 def build_inventory(project_root_arg: str, hint: str) -> dict:
-    project_root = repo_root(Path(project_root_arg).resolve())
+    # Trust the explicit project-root argument instead of climbing to an ancestor
+    # wiki marker: init inventories exactly the directory it is given. Climbing is
+    # what let `init-wiki .` resolve up to a marked ancestor (e.g. C:\projects) and
+    # scan far more than intended.
+    project_root = Path(project_root_arg).resolve()
     project_wiki_root = project_root / ".superpowers" / "wiki"
     files = run_find(project_root)
     package_json = read_package_json(project_root)

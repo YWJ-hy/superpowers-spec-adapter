@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 
 import argparse
@@ -44,14 +45,21 @@ def discover_sources(source: Path) -> list[Path]:
         return [source]
     if not source.is_dir():
         raise SystemExit(f"Missing source wiki path: {source}")
-    return sorted(
-        path
-        for path in source.rglob("*")
-        if path.is_file()
-        and path.suffix.lower() in SUPPORTED_SUFFIXES
-        and ".git" not in path.parts
-        and "node_modules" not in path.parts
-    )
+    ignored_directories = {".git", "node_modules"}
+    matches: list[Path] = []
+    # Prune ignored directories during traversal rather than enumerating the whole
+    # tree with rglob("*") and filtering afterward — a source that happens to
+    # contain a large node_modules/.git would otherwise be walked in full. The
+    # returned set is identical (still sorted, same suffix filter).
+    for current_dir, dir_names, file_names in os.walk(source):
+        dir_names[:] = [name for name in dir_names if name not in ignored_directories]
+        for name in file_names:
+            if os.path.splitext(name)[1].lower() not in SUPPORTED_SUFFIXES:
+                continue
+            path = Path(current_dir) / name
+            if path.is_file():
+                matches.append(path)
+    return sorted(matches)
 
 
 def normalize_suffix(path: Path) -> Path:

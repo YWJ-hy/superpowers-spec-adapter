@@ -119,6 +119,12 @@ def repo_root(start: Path) -> Path:
     for candidate in (current, *current.parents):
         if (candidate / ".superpowers").exists() or (candidate / ".shared-superpowers").exists() or (candidate / "superpowers").exists():
             return candidate
+        if (candidate / ".git").exists():
+            # Stop at the enclosing git repository root. A project's wiki lives
+            # inside its own repo, so never climb past .git into unrelated
+            # ancestors — that unbounded ascent is how a marker-less start could
+            # escape up to a parent like C:\projects that happened to be marked.
+            return candidate
     return current
 
 
